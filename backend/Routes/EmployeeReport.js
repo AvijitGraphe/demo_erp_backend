@@ -1,0 +1,610 @@
+const express = require('express');
+const User = require('../Models/User'); 
+const Role = require('../Models/Role');
+const UserDetails = require('../Models/UserDetails'); 
+const JoiningDate = require('../Models/JoiningDate');
+const UserTime = require('../Models/Usertime'); 
+const ProfileImage = require('../Models/ProfileImage');
+const Overtime = require('../Models/Overtime');
+const Attendance = require('../Models/Attendance');
+const moment = require('moment');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const router = express.Router();
+const LeaveBalance = require('../Models/LeaveBalance');
+const Tasks = require('../Models/Tasks');
+const mongoose = require('mongoose');
+
+
+
+
+const { ObjectId } = mongoose.Types;
+
+router.get('/Employee-report-attendance', authenticateToken, async (req, res) => {
+    const { userId, month, year } = req.query;
+    console.log(userId, month, year);
+
+    if (!userId || !month || !year) {
+        return res.status(400).json({ message: 'userId, month, and year are required' });
+    }
+
+    try {
+        // Convert userId to ObjectId
+        const userObjectId = new ObjectId(userId); // Use 'new' keyword to instantiate ObjectId
+
+        // Ensure month is zero-padded to 2 digits (e.g., '01' for January)
+        const formattedMonth = String(month).padStart(2, '0');
+        const formattedYear = String(year);
+
+        // Parse the start and end of the month
+        const startDate = moment(`${formattedYear}-${formattedMonth}-01`, 'YYYY-MM-DD').startOf('month').toDate();
+        const endDate = moment(startDate).endOf('month').toDate();
+        const isCurrentMonth = moment().isSame(moment(startDate), 'month');
+
+        // Aggregation Pipeline to fetch and calculate attendance statistics
+        const userDetails = await User.aggregate([
+            {
+                $match: { _id: userObjectId } // Match using ObjectId
+            },
+            {
+                $lookup: {
+                    from: 'attendances', 
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'attendance'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$attendance',
+                    preserveNullAndEmptyArrays: true // Keep users without attendance records
+                }
+            },
+            {
+                $match: {
+                    'attendance.date': { $gte: startDate, $lte: endDate } // Filter by the date range of the month
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalPresentDays: { $sum: { $cond: [{ $eq: ['$attendance.checkin_status', true] }, 1, 0] } },
+                    totalAbsentDays: { $sum: { $cond: [{ $eq: ['$attendance.checkin_status', false] }, 1, 0] } },
+                    lateDays: {
+                        $addToSet: {
+                            $cond: [
+                                { $gt: ['$attendance.start_time', '09:00:00'] }, '$attendance.date', null
+                            ]
+                        }
+                    },
+                    totalOvertimeMinutes: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$attendance.attendance_status', 'Full-Day'] },
+                                {
+                                    $let: {
+                                        vars: {
+                                            totalTime: { $split: ['$attendance.total_time', ' '] },
+                                            hours: { $toInt: { $arrayElemAt: [{ $split: [{ $arrayElemAt: ['$totalTime', 0] }, 'h'] }, 0] } },
+                                            minutes: { $toInt: { $arrayElemAt: [{ $split: [{ $arrayElemAt: ['$totalTime', 1] }, 'm'] }, 0] } }
+                                        },
+                                        in: { $add: [{ $multiply: ['$vars.hours', 60] }, '$vars.minutes'] }
+                                    }
+                                },
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    totalDaysInMonth: { $literal: moment(startDate).daysInMonth() },
+                    totalPresentDays: 1,
+                    totalAbsentDays: 1,
+                    lateDays: { $size: { $ifNull: ['$lateDays', []] } }, // Safeguard for null values
+                    totalOvertimeHours: { $divide: ['$totalOvertimeMinutes', 60] }
+                }
+            }
+        ]);
+
+        if (!userDetails || userDetails.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const {
+            totalDaysInMonth,
+            totalPresentDays,
+            totalAbsentDays,
+            lateDays,
+            totalOvertimeHours
+        } = userDetails[0]; // Aggregation returns an array, so we take the first element
+
+        res.status(200).json({
+            totalDaysInMonth,
+            totalPresentDays,
+            totalAbsentDays,
+            lateDays,
+            totalOvertimeHours: totalOvertimeHours.toFixed(2) // Format the overtime in hours
+        });
+    } catch (error) {
+        console.error(`Error fetching user details: ${error.message}`);
+        res.status(500).json({ message: 'Error fetching user details', error: error.message });
+    }
+});
+
+
+
+
+
+router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
+    const { user_id } = req.params; // Get user_id from params
+    const { month, year } = req.query; // Get month and year from query params
+
+    // Check if month and year are provided
+    if (!month || !year) {
+        return res.status(400).json({
+            success: false,
+            message: "Month and year query parameters are required.",
+        });
+    }
+
+    try {
+        // Convert user_id to ObjectId using `new ObjectId()` for proper instantiation
+        const userObjectId = new ObjectId(user_id);
+
+        // Aggregation pipeline to fetch leave balances and join with leaveType
+        const leaveBalances = await LeaveBalance.aggregate([
+            {
+                $match: { user_id: userObjectId },  // Match the user_id as ObjectId
+            },
+            {
+                $lookup: {
+                    from: 'leavetypes',  // The name of the collection you're joining with
+                    localField: 'leave_type_id',  // The field in LeaveBalance that holds the reference
+                    foreignField: '_id',  // The field in LeaveType that you're matching against
+                    as: 'leaveTypeDetails',  // Alias for the populated field
+                },
+            },
+            {
+                $unwind: {
+                    path: '$leaveTypeDetails',  // Unwind the array to get a single object for leaveType
+                    preserveNullAndEmptyArrays: true,  // Preserve LeaveBalance documents with no leaveType
+                },
+            },
+            {
+                $project: {
+                    LeaveType: { $ifNull: ['$leaveTypeDetails.name', 'Unknown'] },  // Get leave type name or 'Unknown'
+                    Total: { $ifNull: ['$total_days', 0] },  // Total leave balance
+                    Earned: { $ifNull: ['$earned_days', 0] },  // Earned leave (if applicable)
+                },
+            },
+        ]);
+
+        if (!leaveBalances || leaveBalances.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No leave balances found for the specified user.',
+            });
+        }
+
+        // Send the leave balances response
+        res.status(200).json({
+            success: true,
+            data: leaveBalances,
+        });
+    } catch (error) {
+        console.error('Error fetching leave balance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch leave balances.',
+            error: error.message,
+        });
+    }
+});
+
+
+
+
+
+// Month name mapping
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => {
+    const { user_id } = req.params;
+    const { month, year } = req.query;
+    if (!month || !year) {
+        return res.status(400).json({
+            success: false,
+            message: "Month and year query parameters are required.",
+        });
+    }
+    try {
+        // Start and end dates for the selected month and year
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59);
+        // Fetch task count by status for the given month, year, and user
+        const taskCountsByStatus = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: user_id,
+                    task_startdate: { $gte: startDate, $lte: endDate },
+                },
+            },
+            {
+                $group: {
+                    _id: '$status',
+                    statusCount: { $sum: 1 }, // Count tasks by status
+                },
+            },
+        ]);
+        // Fetch missed and on-time task counts for the given month
+        const missedAndOnTimeCounts = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: user_id,
+                    task_startdate: { $gte: startDate, $lte: endDate },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    missedCount: {
+                        $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] },
+                    },
+                    onTimeCount: {
+                        $sum: { $cond: [{ $eq: ['$missed_deadline', false] }, 1, 0] },
+                    },
+                },
+            },
+        ]);
+
+        // Fetch tasks with project and brand details that missed their deadlines using $lookup
+        const missedDeadlineTasks = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: user_id,
+                    task_startdate: { $gte: startDate, $lte: endDate },
+                    missed_deadline: true,
+                },
+            },
+            // Lookup the project information
+            {
+                $lookup: {
+                    from: 'projects', // The name of the collection you're joining with (make sure this is the correct name)
+                    localField: 'project', // The field in Tasks that references the project
+                    foreignField: '_id', // The _id field in the Project collection
+                    as: 'project_details',
+                },
+            },
+            {
+                $unwind: '$project_details', // Unwind the project details to get the actual data
+            },
+            // Lookup the brand information
+            {
+                $lookup: {
+                    from: 'brands', // The name of the collection you're joining with (make sure this is the correct name)
+                    localField: 'project_details.brand', // The field in project_details that references the brand
+                    foreignField: '_id', // The _id field in the Brand collection
+                    as: 'brand_details',
+                },
+            },
+            {
+                $unwind: '$brand_details', // Unwind the brand details to get the actual data
+            },
+        ]);
+
+        // Fetch all tasks of the year for the given user, grouped by month
+        const tasksByMonth = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: user_id,
+                    task_startdate: { $gte: new Date(year, 0, 1), $lte: new Date(year, 11, 31, 23, 59, 59) },
+                },
+            },
+            {
+                $group: {
+                    _id: { $month: '$task_startdate' },
+                    totalTasks: { $sum: 1 },
+                    successfulTasks: {
+                        $sum: {
+                            $cond: [{ $eq: ['$missed_deadline', false] }, 1, 0],
+                        },
+                    },
+                },
+            },
+        ]);
+
+        // Calculate yearly totals for conversion rate
+        const yearlyTotals = tasksByMonth.reduce(
+            (acc, monthData) => {
+                acc.totalTasks += monthData.totalTasks;
+                acc.successfulTasks += monthData.successfulTasks;
+                return acc;
+            },
+            { totalTasks: 0, successfulTasks: 0 }
+        );
+
+        // Yearly conversion rate
+        const yearlyConversionRate = yearlyTotals.totalTasks > 0
+            ? ((yearlyTotals.successfulTasks / yearlyTotals.totalTasks) * 100).toFixed(2)
+            : '0.00';
+
+        // Map month numbers to names and calculate monthly conversion rates
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const conversionRates = tasksByMonth.map((monthData) => {
+            const monthIndex = monthData._id - 1; // MongoDB months are 1-based, but JS months are 0-based
+            if (monthIndex < 0 || monthIndex > 11) {
+                throw new Error(`Invalid month index ${monthIndex}`);
+            }
+
+            const monthName = monthNames[monthIndex];
+            return {
+                month: monthName,
+                totalTasks: monthData.totalTasks,
+                successfulTasks: monthData.successfulTasks,
+                conversionRate: monthData.totalTasks > 0
+                    ? ((monthData.successfulTasks / monthData.totalTasks) * 100).toFixed(2)
+                    : '0.00',
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                taskCountsByStatus,           // Includes counts grouped by task status
+                missedAndOnTimeCounts: missedAndOnTimeCounts[0], // Missed and on-time counts
+                yearlyConversionRate,         // Yearly conversion rate
+                monthlyConversionRates: conversionRates, // Monthly conversion rates
+                missedDeadlineTasks,          // Tasks that missed their deadlines (with populated project and brand)
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching task statistics:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch task statistics.',
+            error: error.message,
+        });
+    }
+});
+
+
+
+
+
+// Fetch users for the report
+router.get('/fetch-report-users', authenticateToken, async (req, res) => {
+    const { search } = req.query;
+    const userTypes = ['Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'];
+    try {
+        // Build the filter for users
+        let filter = {
+            user_type: { $in: userTypes },
+            Is_active: true,
+        };
+
+
+        console.log(search, filter);    
+        if (search) {
+            filter.$or = [
+                { first_name: { $regex: search, $options: 'i' } }, 
+                { last_name: { $regex: search, $options: 'i' } },
+            ];
+        }
+        // Fetch users from MongoDB
+        const users = await User.find(filter)
+            .select('first_name last_name')  
+            .lean();
+
+        console.log(users);
+
+        const formattedUsers = users.map(user => ({
+            user_id: user._id,
+            username: `${user.first_name} ${user.last_name}`,
+        }));
+        res.status(200).json({ success: true, data: formattedUsers });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch users.', error: error.message });
+    }
+});
+
+
+
+// Task stats monthly
+router.get('/task-stats/monthly/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const currentYear = new Date().getFullYear();
+
+    try {
+        // Define start and end dates for the current year
+        const startOfYear = new Date(currentYear, 0, 1);
+        const endOfYear = new Date(currentYear, 11, 31);
+
+        // Helper function to map data into months
+        const mapDataToMonths = (data) => {
+            const monthData = Array(12).fill(0);
+            data.forEach((entry) => {
+                const monthIndex = entry._id.month - 1; // MongoDB month starts from 1
+                monthData[monthIndex] = entry.total;
+            });
+            return monthData;
+        };
+
+        // Fetch all tasks for the user for the current year
+        const allTasks = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: userId,
+                    createdAt: { $gte: startOfYear, $lte: endOfYear },
+                },
+            },
+            {
+                $group: {
+                    _id: { month: { $month: '$createdAt' } },
+                    total: { $sum: 1 },
+                },
+            },
+        ]);
+
+        // Fetch completed tasks for the user for the current year
+        const completedTasks = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: userId,
+                    status: 'Completed',
+                    createdAt: { $gte: startOfYear, $lte: endOfYear },
+                },
+            },
+            {
+                $group: {
+                    _id: { month: { $month: '$createdAt' } },
+                    completed: { $sum: 1 },
+                },
+            },
+        ]);
+
+        // Fetch missed deadline tasks for the user for the current year
+        const missedDeadlineTasks = await Tasks.aggregate([
+            {
+                $match: {
+                    task_user_id: userId,
+                    missed_deadline: true,
+                    createdAt: { $gte: startOfYear, $lte: endOfYear },
+                },
+            },
+            {
+                $group: {
+                    _id: { month: { $month: '$createdAt' } },
+                    missed_deadlines: { $sum: 1 },
+                },
+            },
+        ]);
+
+        // Map aggregated data into months
+        const totalTasksByMonth = mapDataToMonths(allTasks);
+        const completedTasksByMonth = mapDataToMonths(completedTasks);
+        const missedDeadlineTasksByMonth = mapDataToMonths(missedDeadlineTasks);
+
+        // Month names
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        // Build response
+        const response = monthNames.map((month, index) => ({
+            month,
+            total_tasks: totalTasksByMonth[index],
+            completed_tasks: completedTasksByMonth[index],
+            missed_deadline_tasks: missedDeadlineTasksByMonth[index],
+        }));
+
+        res.json({ success: true, data: response });
+    } catch (error) {
+        console.error('Error fetching task stats:', error);
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    }
+});
+
+
+
+///employee dashboard attendance 
+router.get('/dashboard-Employee-report-attendance', authenticateToken, async (req, res) => {
+    const { userId } = req.query;
+    if (!userId) {
+        return res.status(400).json({ message: 'userId is required' });
+    }
+    try {
+        // Calculate the first and last day of the current month
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+        // Format startDate and endDate for database queries
+        const formattedStartDate = startDate.toISOString().split('T')[0];
+        const formattedEndDate = endDate.toISOString().split('T')[0];
+        // Fetch user details excluding overtime
+        const userDetails = await User.findById(userId)
+            .select('-password') // Exclude password from user details
+            .populate({
+                path: 'Role_id',
+                select: 'role_name', // Populate Role_id
+                strictPopulate: false
+            })
+            .populate({
+                path: 'profileImage',
+                select: 'image_url', // Populate ProfileImage
+                strictPopulate: false
+            })
+            .populate({
+                path: 'userTimes', // Assuming userTimes are stored in the User model
+                select: 'start_time createdAt updatedAt',
+                strictPopulate: false
+            })
+            .populate({
+                path: 'joiningDates', // Assuming joiningDates are stored in the User model
+                select: 'joining_date createdAt updatedAt',
+                strictPopulate: false
+            })
+            .populate({
+                path: 'attendances',
+                select: 'date checkin_status start_time end_time total_time Attendance_status',
+                match: { date: { $gte: formattedStartDate, $lte: formattedEndDate } },
+                strictPopulate: false
+            })
+            .populate({
+                path: 'overtimes',
+                select: 'total_time',
+                match: { overtime_date: { $gte: startDate, $lte: endDate }, status: 'Approved' },
+                strictPopulate: false
+            });
+
+        if (!userDetails) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Ensure that attendances, userTimes, and overtimes are safely accessed
+        const { attendances = [], userTimes = [], overtimes = [] } = userDetails;
+        const startTime = userTimes?.[0]?.start_time || '09:00:00';
+
+        // Calculate statistics
+        const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+        const weekdays = Array.from({ length: totalDaysInMonth }, (_, i) => new Date(year, month, i + 1));
+        const workingDays = weekdays.filter(
+            (date) => ![0, 6].includes(date.getDay()) // Exclude weekends (Sunday: 0, Saturday: 6)
+        );
+
+        const totalPresentDays = attendances.length;
+        const totalAbsentDays = workingDays.filter(
+            (date) => date < now && !attendances.some((att) => new Date(att.date).toDateString() === date.toDateString())
+        ).length;
+        const lateDays = attendances.filter(
+            (attendance) => attendance.start_time > startTime
+        ).map((attendance) => attendance.date);
+        const totalLateCount = lateDays.length;
+        // Calculate total overtime in hours
+        const totalOvertimeMinutes = overtimes.reduce((sum, overtime) => sum + overtime.total_time, 0) || 0;
+        const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
+        res.status(200).json({
+            totalOvertimeHours,
+            totalDaysInMonth,
+            totalPresentDays,
+            totalAbsentDays,
+            totalLateCount,
+            lateDays, // Include late days in the response
+        });
+    } catch (error) {
+        console.error(`Error fetching user details: ${error.message}`);
+        res.status(500).json({ message: 'Error fetching user details', error: error.message });
+    }
+});
+
+
+
+
+module.exports = router; 
