@@ -150,11 +150,10 @@ router.get('/fetch-monthly-attendance', authenticateToken, async (req, res) => {
 
 
 
-
+/** */
 router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req, res) => {
     try {
-        const currentDate = moment().format('YYYY-MM-DD'); // Current date in YYYY-MM-DD format
-        // Aggregation pipeline for fetching user data and attendance summary
+        const currentDate = moment().format('YYYY-MM-DD');
         const pipeline = [
             {
                 $match: {
@@ -275,9 +274,7 @@ router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req,
                 }
             }
         ];
-
         const result = await User.aggregate(pipeline);
-
         if (result.length === 0) {
             return res.json({
                 totalUsers: 0,
@@ -288,7 +285,6 @@ router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req,
                 leaveUsers: [],
             });
         }
-
         const summary = result[0];
         res.json(summary);
     } catch (error) {

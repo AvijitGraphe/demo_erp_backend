@@ -18,9 +18,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 // Employee verification
 router.post('/update-user-role-location', authenticateToken, async (req, res) => {
-    const { user_id, user_type, joining_date, start_time } = req.body;
-    console.log(" user_id, user_type, joining_date, start_time",  user_id, user_type, joining_date, start_time)
-
+    const { user_id, user_type, joining_date, start_time, user_type_id } = req.body;
     if (!user_id || !user_type || !joining_date || !start_time) {
         return res.status(400).json({ message: 'Missing required fields: user_id, user_type, joining_date, start_time' });
     }
@@ -32,21 +30,20 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
     try {
         // Step 1: Fetch the role from the Role collection
         const role = await Role.findOne({
-            role_name: user_type,
+            _id: user_type_id,
+            role_name: { $ne: 'SuperAdmin'}
         });
-
+        console.log("log the data role", role);
         if (!role) {
             return res.status(404).json({ message: 'Role not found or role is SuperAdmin' });
         }
-
         // Step 2: Update user details (User model)
         await User.updateOne(
-            { user_id },
+            { _id: user_id },
             { $set: { Role_id: role._id, user_type: role.role_name } }
         );
-
         // Step 3: Update or create joining date (JoiningDate model)
-        const existingJoiningDate = await JoiningDate.findOne({ user_id });
+        const existingJoiningDate = await JoiningDate.findOne({ user_id:user_id });
 
         if (existingJoiningDate) {
             await JoiningDate.updateOne(
@@ -60,17 +57,15 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
         }
 
         // Step 4: Parse and format start_time into local time
-        const localTime = moment.utc(start_time).tz('Asia/Kolkata'); // Adjust to desired timezone
+        const localTime = moment.utc(start_time).tz('Asia/Kolkata');
         const formattedTime = localTime.format('HH:mm:ss');
         console.log(formattedTime);
 
         if (!formattedTime) {
             return res.status(400).json({ message: 'Invalid start_time format. Expected ISO 8601 format.' });
         }
-
         // Step 5: Update or create UserTime (UserTime model)
         const existingUserTime = await UserTime.findOne({ user_id });
-
         if (existingUserTime) {
             await UserTime.updateOne(
                 { user_id },
@@ -81,7 +76,6 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
                 { user_id, start_time: formattedTime }
             );
         }
-
         return res.status(200).json({ message: 'User details updated successfully' });
     } catch (error) {
         console.error('Error updating user role and location:', error);
@@ -106,62 +100,49 @@ router.get('/unverified_count', authenticateToken, async (req, res) => {
 // Fetch unverified users along with their associated data
 router.get('/users_unverified', authenticateToken, async (req, res) => {
     try {
-        // Define aggregation pipeline
-        const pipeline = [
-            {
-                $match: { user_type: 'Unverified' }  // Match users with 'Unverified' type
-            },
+        const unverifiedUsers = await User.aggregate([
+            { $match: { user_type: 'Unverified' } },
             {
                 $lookup: {
-                    from: 'userdetails',                // Mongo collection name for UserDetails
-                    localField: '_id',                  // The field in User collection to match
-                    foreignField: 'user_id',            // The field in UserDetails collection to match
-                    as: 'userDetails'                   // Alias for the populated field
+                    from: 'userdetails',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'userDetails'
                 }
             },
             {
                 $lookup: {
-                    from: 'emergencycontacts',          // Mongo collection name for EmergencyContact
-                    localField: '_id',                  // The field in User collection to match
-                    foreignField: 'user_id',            // The field in EmergencyContact collection to match
-                    as: 'emergencyContacts'             // Alias for the populated field
+                    from: 'emergencycontacts',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'emergencyContacts'
                 }
             },
             {
                 $lookup: {
-                    from: 'educationinfos',             // Mongo collection name for EducationInfo
-                    localField: '_id',                  // The field in User collection to match
-                    foreignField: 'user_id',            // The field in EducationInfo collection to match
-                    as: 'educationInfos'                // Alias for the populated field
+                    from: 'educationinfos',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'educationInfos'
                 }
             },
             {
                 $lookup: {
-                    from: 'profileimages',              // Mongo collection name for ProfileImage
-                    localField: '_id',                  // The field in User collection to match
-                    foreignField: 'user_id',            // The field in ProfileImage collection to match
-                    as: 'profileImage'                  // Alias for the populated field
+                    from: 'profileimages',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'profileImage'
                 }
             },
             {
                 $lookup: {
-                    from: 'bankdetails',                // Mongo collection name for BankDetails
-                    localField: '_id',                  // The field in User collection to match
-                    foreignField: 'user_id',            // The field in BankDetails collection to match
-                    as: 'bankDetails'                   // Alias for the populated field
-                }
-            },
-            {
-                $project: {                             // Optionally project the fields you want
-                    password: 0                       // Exclude the password field from the result
+                    from: 'bankdetails',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'bankDetails'
                 }
             }
-        ];
-
-        // Execute the aggregation pipeline
-        const unverifiedUsers = await User.aggregate(pipeline);
-
-        // Respond with the unverified users and their associated data
+        ]);
         res.status(200).json(unverifiedUsers);
     } catch (error) {
         console.error('Error fetching unverified users and their documents:', error);
@@ -174,7 +155,13 @@ router.get('/users_unverified', authenticateToken, async (req, res) => {
 // GET /roles - Fetch all roles
 router.get('/allroles', authenticateToken, async (req, res) => {
     try {
-        const roles = await Role.find({}, 'Role_id role_name'); 
+        const roles = await Role.aggregate([
+            {
+                $project: {
+                    role_name: 1
+                }
+            }
+        ]);
         res.status(200).json({
             success: true,
             data: roles, 
@@ -190,62 +177,41 @@ router.get('/allroles', authenticateToken, async (req, res) => {
 
 
 
-
+//get user users_verified
 router.get('/users_verified', authenticateToken, async (req, res) => {
     try {
-        // Aggregation pipeline
-        const aggregationPipeline = [
+        const verifiedUsers = await User.aggregate([
             {
-                // Stage 1: Filter users by user_type excluding 'Admin', 'Founder', 'SuperAdmin', 'Ex_employee', 'Unverified'
                 $match: {
                     user_type: { $nin: ['Admin', 'Founder', 'SuperAdmin', 'Ex_employee', 'Unverified'] }
                 }
             },
             {
-                // Stage 2: Join related collections (populate)
                 $lookup: {
-                    from: 'profileimages', // Ensure the collection name is correct
-                    localField: 'profileImage', // Field in User schema
-                    foreignField: '_id', // Reference field in ProfileImage collection
-                    as: 'profileImage' // Alias for the result
+                    from: 'profileimages',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'profileImage'
                 }
             },
             {
                 $lookup: {
-                    from: 'joiningdates', // Ensure the collection name is correct
-                    localField: 'joiningDates', // Field in User schema
-                    foreignField: '_id', // Reference field in JoiningDate collection
-                    as: 'joiningDates' // Alias for the result
+                    from: 'joiningdates',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'joiningDates'
                 }
             },
             {
-                // Stage 3: Sort users by first_name and last_name
                 $sort: {
-                    first_name: 1, // Ascending order for first_name
-                    last_name: 1  // Ascending order for last_name
-                }
-            },
-            {
-                // Stage 4: Project the fields (optional, can filter out unnecessary fields)
-                $project: {
                     first_name: 1,
-                    last_name: 1,
-                    user_type: 1,
-                    profileImage: { $arrayElemAt: ['$profileImage', 0] }, // Extract single profile image
-                    joiningDates: { $arrayElemAt: ['$joiningDates', 0] } // Extract single joining date
+                    last_name: 1
                 }
             }
-        ];
-
-        // Execute the aggregation pipeline
-        const verifiedUsers = await User.aggregate(aggregationPipeline);
-
-        // Get the count of verified users excluding 'Ex_employee' and 'Unverified'
+        ]);
         const verifiedUsersCount = await User.countDocuments({
             user_type: { $nin: ['Ex_employee', 'Unverified'] }
         });
-
-        // Respond with the filtered user data and count
         res.status(200).json({
             users: verifiedUsers,
             count: verifiedUsersCount
@@ -260,40 +226,38 @@ router.get('/users_verified', authenticateToken, async (req, res) => {
 
 // Employee Promotion API
 router.post('/promotion-users', authenticateToken, async (req, res) => {
-    const { user_id, user_type } = req.body;
-    console.log(user_id, user_type);
-    
+    const { user_id, user_type, user_role_id } = req.body;
 
-    if (!user_id || !user_type) {
+    console.log(" user_id, user_type, user_role_id",  user_id, user_type, user_role_id);
+    
+    if (!user_id || !user_type, !user_role_id) {
         return res.status(400).json({ message: 'user_id and user_type are required' });
     }
-
     if (user_type === 'SuperAdmin') {
         return res.status(400).json({ message: 'Cannot promote user to SuperAdmin role' });
     }
-
     try {
         // Step 1: Fetch the role from the Role collection
         const role = await Role.findOne({
-            role_name: user_type,
+            _id: user_role_id,
+            role_name: { $ne: 'SuperAdmin' },
         });
-
         if (!role || role.role_name === 'SuperAdmin') {
             return res.status(404).json({ message: 'Role not found or role is SuperAdmin' });
         }
-
         // Step 2: Update user details with the new role
-        const updatedUser = await User.findOneAndUpdate(
-            { _id: user_id }, // Find the user by user_id (Mongo _id)
-            { $set: { user_type: role.role_name, Role_id: role._id } }, // Update user_type and Role_id
-            { new: true } // Return the updated user document
+        let data = await User.updateOne(
+            { _id: user_id },
+            {
+                $set: {
+                    Role_id: role._id, 
+                    user_type: role.role_name,
+                },
+            }
         );
-
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.status(200).json({ message: 'User promoted successfully', data: updatedUser });
+        console.log("log thedat aok", data);
+        
+        res.status(200).json({ message: 'User promoted successfully' });
     } catch (error) {
         console.error('Error promoting user:', error);
         res.status(500).json({ message: 'Internal server error' });

@@ -459,127 +459,125 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
 });
 
 
-//*-------------------------------Get all profile of users Api---------------------------------------*//
-router.get('/getallusers', authenticateToken, async (req, res) => {
+/**
+ *Get all profile of users Api 
+ */
+ router.get('/getallusers', authenticateToken, async (req, res) => {
   try {
-    const today = moment().format('YYYY-MM-DD'); // Format the date to match your database
+    const today = moment().format('YYYY-MM-DD');
 
-    const aggregationPipeline = [
-      {
-        $match: {
-          user_type: { $nin: ['Unverified', 'SuperAdmin'] } 
-        }
-      },
-      {
-        $lookup: {
-          from: 'usertimes', // Name of the related collection (UserTime)
-          localField: '_id', // Reference field in User model
-          foreignField: 'user_id', // Reference field in UserTime model
-          as: 'userTimes'
-        }
-      },
-      {
-        $lookup: {
-          from: 'joiningdates', // Name of the related collection (JoiningDate)
-          localField: '_id', // Reference field in User model
-          foreignField: 'user_id', // Reference field in JoiningDate model
-          as: 'joiningDates'
-        }
-      },
-      {
-        $lookup: {
-          from: 'profileimages', // Name of the related collection (ProfileImage)
-          localField: '_id', // Reference field in User model
-          foreignField: 'user_id', // Reference field in ProfileImage model
-          as: 'profileImage'
-        }
-      },
-      {
-        $lookup: {
-          from: 'userdetails', // Name of the related collection (UserDetails)
-          localField: '_id', // Reference field in User model
-          foreignField: 'user_id', // Reference field in UserDetails model
-          as: 'userDetails'
-        }
-      },
-      {
-        $lookup: {
-          from: 'attendances', // Name of the related collection (Attendance)
-          localField: '_id', // Reference field in User model
-          foreignField: 'user_id', // Reference field in Attendance model
-          as: 'attendances',
-          pipeline: [
-            { $match: { date: today } }, // Filter by today's date
-            { $project: { checkin_status: 1, _id: 0 } } // Fetch only checkin_status
-          ]
-        }
-      },
-      {
-        $addFields: {
-          // Adding a field to map user type priority
-          userTypePriority: {
-            $switch: {
-              branches: [
-                { case: { $eq: ['$user_type', 'Founder'] }, then: 1 },
-                { case: { $eq: ['$user_type', 'Admin'] }, then: 2 },
-                { case: { $eq: ['$user_type', 'HumanResource'] }, then: 3 },
-                { case: { $eq: ['$user_type', 'Accounts'] }, then: 4 },
-                { case: { $eq: ['$user_type', 'Department_Head'] }, then: 5 },
-                { case: { $eq: ['$user_type', 'Employee'] }, then: 6 },
-                { case: { $eq: ['$user_type', 'Task_manager'] }, then: 7 },
-                { case: { $eq: ['$user_type', 'Social_Media_Manager'] }, then: 8 },
-                { case: { $eq: ['$user_type', 'Ex_employee'] }, then: 9 },
-              ],
-              default: 999 // Default priority for unknown user types
+    const users = await User.aggregate([
+        {
+            $match: {
+                user_type: { $nin: ['Unverified', 'SuperAdmin'] }
             }
-          }
+        },
+        {
+            $lookup: {
+                from: 'usertimes',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'userTimes'
+            }
+        },
+        {
+            $lookup: {
+                from: 'joiningdates',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'joiningDates'
+            }
+        },
+        {
+            $lookup: {
+                from: 'resignations',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'resignations',
+                pipeline: [
+                    {
+                        $match: { status: 'Approved' }
+                    },
+                    {
+                        $project: {
+                            status: 1,
+                            last_working_day: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $lookup: {
+                from: 'profileimages',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'profileImage'
+            }
+        },
+        {
+            $lookup: {
+                from: 'userdetails',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'userDetails'
+            }
+        },
+        {
+            $lookup: {
+                from: 'attendances',
+                localField: '_id',
+                foreignField: 'user_id',
+                as: 'attendances',
+                pipeline: [
+                    {
+                        $match: { date: today }
+                    },
+                    {
+                        $project: {
+                            checkin_status: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                userTypePriority: {
+                    Founder: 1,
+                    Admin: 2,
+                    HumanResource: 3,
+                    Accounts: 4,
+                    Department_Head: 5,
+                    Employee: 6,
+                    Task_manager: 7,
+                    Social_Media_Manager: 8,
+                    Ex_employee: 9
+                }
+            }
+        },
+        {
+            $addFields: {
+                priority: {
+                    $ifNull: [{ $arrayElemAt: [{ $objectToArray: "$userTypePriority" }, 0] }, 999]
+                }
+            }
+        },
+        {
+            $sort: {
+                priority: 1,
+                first_name: 1,
+                last_name: 1
+            }
         }
-      },
-      {
-        $sort: { userTypePriority: 1 } // Sort by the priority of user types
-      },
-      {
-        $project: {
-          _id: 1,
-          user_id: 1,
-          address: 1,
-          city: 1,
-          pincode: 1,
-          state: 1,
-          country: 1,
-          phone: 1,
-          gender: 1,
-          date_of_birth: 1,
-          forte: 1,
-          other_skills: 1,
-          pan_card_no: 1,
-          passport_no: 1,
-          aadhar_no: 1,
-          nationality: 1,
-          religion: 1,
-          marital_status: 1,
-          employment_of_spouse: 1,
-          no_of_children: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          role: 1,
-          userTimes: 1,
-          joiningDates: 1,
-          profileImage: 1,
-          userDetails: 1,
-          attendances: 1
-        }
-      }
-    ];
-
-    const users = await User.aggregate(aggregationPipeline);
-
+    ]);
     res.status(200).json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 

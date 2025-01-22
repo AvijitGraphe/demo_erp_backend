@@ -1,6 +1,4 @@
 const express = require('express');
-const sequelize = require('../config/database'); // Adjust the path as needed
-const { Op } = require('sequelize');
 const LeaveType = require('../Models/LeaveType');
 const Role = require('../Models/Role');
 const LeaveBalance = require('../Models/LeaveBalance');
@@ -10,9 +8,11 @@ const ProfileImage = require('../Models/ProfileImage');
 const JoiningDate = require('../Models/JoiningDate');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
-const nodemailer = require('nodemailer'); // Import nodemailer
+const nodemailer = require('nodemailer');
 
 const mongoose = require('mongoose');
+const { ObjectId } = require('mongodb');
+
 
 
 
@@ -21,54 +21,49 @@ const mongoose = require('mongoose');
 // API to add multiple leave types with transaction
 router.post('/add-leave-types', authenticateToken, async (req, res) => {
     const { leaveTypes } = req.body;
-    // Validate the leaveTypes array
     if (!Array.isArray(leaveTypes) || leaveTypes.length === 0) {
         return res.status(400).json({ message: 'Invalid input, provide an array of leave types.' });
     }
     try {
-        // Add leave types without using transactions
         const createdLeaveTypes = await Promise.all(
             leaveTypes.map(async (leaveType) => {
                 const { name, description, total_days, Role_id, accrual_type, salary_deduction } = leaveType;
-                // Ensure required fields are provided
+
                 if (!name || !Role_id || !accrual_type) {
                     throw new Error(`Missing required fields for leave type: ${JSON.stringify(leaveType)}`);
                 }
-                // Validate accrual_type value
                 if (!['MonthlyAquired', 'YearlyAquired'].includes(accrual_type)) {
                     throw new Error(`Invalid accrual_type value for leave type: ${JSON.stringify(leaveType)}`);
                 }
-                // Create the leave type
-                const newLeaveType = await LeaveType.create({
-                    name,
-                    description,
-                    total_days,
-                    Role_id,
-                    accrual_type,
-                    salary_deduction: salary_deduction || false, 
-                });
-                // Fetch all users with the specified Role_id
-                const users = await User.find({ Role_id });
-                // Ensure LeaveBalance is created for each user
+                const newLeaveType = await LeaveType.create(
+                    {
+                        name,
+                        description,
+                        total_days,
+                        Role_id,
+                        accrual_type,
+                        salary_deduction: salary_deduction || false,
+                    }
+                );
+                const users = await User.find({ Role_id : Role_id });
                 await Promise.all(
                     users.map(async (user) => {
-                        // Check if LeaveBalance already exists for this user and leave type
                         const existingLeaveBalance = await LeaveBalance.findOne({
-                            user_id: user._id, //user_id
-                            leave_type_id: newLeaveType._id, 
+                            user_id: user._id,
+                            leave_type_id: newLeaveType._id,
                         });
                         if (!existingLeaveBalance) {
-                            // Create LeaveBalance with initial values
-                            await LeaveBalance.create({
-                                user_id: user._id,
-                                leave_type_id: newLeaveType._id,
-                                name: newLeaveType.name,
-                                total_days: newLeaveType.total_days,
-                                earned_days: accrual_type === 'YearlyAquired' ? newLeaveType.total_days : 0,
-                                arrear_days: 0,
-                            });
+                            await LeaveBalance.create(
+                                {
+                                    user_id: user._id,
+                                    leave_type_id: newLeaveType._id,
+                                    name: newLeaveType.name,
+                                    total_days: newLeaveType.total_days,
+                                    earned_days: accrual_type === 'YearlyAquired' ? newLeaveType.total_days : 0,
+                                    arrear_days: 0,
+                                }
+                            );
                         } else if (accrual_type === 'YearlyAquired') {
-                            // Update the earned_days for YearlyAquired leave types
                             existingLeaveBalance.earned_days += newLeaveType.total_days;
                             await existingLeaveBalance.save();
                         }
@@ -77,7 +72,6 @@ router.post('/add-leave-types', authenticateToken, async (req, res) => {
                 return newLeaveType;
             })
         );
-        // Send a successful response
         res.status(201).json({
             message: 'Leave types added successfully!',
             leaveTypes: createdLeaveTypes,
@@ -90,16 +84,28 @@ router.post('/add-leave-types', authenticateToken, async (req, res) => {
 
 
 
+
 // API to get all leave types with associated roles
 router.get('/get-all-leave-types', authenticateToken, async (req, res) => {
     try {
+        // const leaveTypes = await LeaveType.find()
+        // .populate('Role_id', 'Role_id role_name');
         const leaveTypes = await LeaveType.find()
-            .populate({
-                path: 'Role_id', 
-                select: 'Role_id role_name', 
-            });
-
-        res.status(200).json(leaveTypes);
+        .populate({
+            path: 'Role_id',               
+            select: 'Role_id role_name',     
+            model: 'Role',                  
+            options: {                   
+                lean: true                  
+            }
+        })
+        .exec();
+        const result = leaveTypes.map(leaveType => ({
+            ...leaveType.toObject(),
+            role: leaveType.Role_id,
+            Role_id: undefined
+        }));
+        res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching leave types with roles:', error);
         res.status(500).json({
@@ -114,9 +120,8 @@ router.get('/get-all-leave-types', authenticateToken, async (req, res) => {
 // API to update a leave type
 router.put('/update-leave-type/:id', authenticateToken, async (req, res) => {
     const { id } = req.params; // Leave type ID from URL
-    const { name, description, total_days, Role_id, accrual_type, salary_deduction } = req.body; // Updated fields
+    const { name, description, total_days, Role_id, accrual_type, salary_deduction } = req.body;
     try {
-        // Validate if leave type exists
         const leaveType = await LeaveType.findById(id);
         if (!leaveType) {
             return res.status(404).json({
@@ -126,12 +131,14 @@ router.put('/update-leave-type/:id', authenticateToken, async (req, res) => {
         }
         // Validate accrual_type value
         if (accrual_type && !['MonthlyAquired', 'YearlyAquired'].includes(accrual_type)) {
-            throw new Error(`Invalid accrual_type value: ${accrual_type}`);
+            return res.status(400).json({
+                success: false,
+                message: `Invalid accrual_type value: ${accrual_type}`,
+            });
         }
         // Check if `accrual_type` is being updated and take necessary actions
         const wasYearlyAquired = leaveType.accrual_type === 'YearlyAquired';
         const isYearlyAquired = accrual_type === 'YearlyAquired';
-
         // Update leave type in MongoDB
         const updatedLeaveType = await LeaveType.findByIdAndUpdate(id, {
             name,
@@ -140,18 +147,20 @@ router.put('/update-leave-type/:id', authenticateToken, async (req, res) => {
             Role_id,
             accrual_type,
             salary_deduction,
-        }, { new: true });  
-
+        }, { new: true });
+        if (!updatedLeaveType) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to update leave type',
+            });
+        }
         // Update LeaveBalance for associated users
         const leaveBalances = await LeaveBalance.find({ leave_type_id: id });
-
         await Promise.all(
             leaveBalances.map(async (leaveBalance) => {
                 leaveBalance.name = name;
                 leaveBalance.total_days = total_days;
-
-                // If switching to `YearlyAquired`, reset `earned_days` to match `total_days`
-                if (isYearlyAquired && wasYearlyAquired) {
+                if (isYearlyAquired && !wasYearlyAquired) {
                     leaveBalance.earned_days = total_days;
                 }
                 // Save the updated LeaveBalance
@@ -172,6 +181,7 @@ router.put('/update-leave-type/:id', authenticateToken, async (req, res) => {
         });
     }
 });
+
 
 
 
@@ -1429,76 +1439,150 @@ router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req,
 // // API to fetch all leave balances grouped by users
 router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async (req, res) => {
     try {
-        // Aggregation pipeline to fetch all active users with leave balance details
+        // const users = await User.aggregate([
+        //     {
+        //         $match: {
+        //             Is_active: true,
+        //             user_type: { $in: ['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] },
+        //         },
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: 'profileimages',
+        //             localField: '_id',
+        //             foreignField: 'user_id',
+        //             as: 'profileImage',
+        //             pipeline: [
+        //                 { $project: { image_url: 1 } }
+        //             ]
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: 'joiningdates',
+        //             localField: '_id',
+        //             foreignField: 'user_id',
+        //             as: 'joiningDates',
+        //             pipeline: [
+        //                 { $project: { joining_date: 1 } }
+        //             ]
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: 'leavebalances',
+        //             localField: '_id',
+        //             foreignField: 'user_id',
+        //             as: 'leaveBalances',
+        //             // pipeline: [
+        //             //     // {
+        //             //     //     $lookup: {
+        //             //     //         from: 'leavetypes',
+        //             //     //         localField: '_id',
+        //             //     //         foreignField: '_id',
+        //             //     //         as: 'leaveType',
+        //             //     //         pipeline: [
+        //             //     //             { $project: { name: 1 } }
+        //             //     //         ]
+        //             //     //     }
+        //             //     // },
+        //             //     { $project: { total_days: 1} }
+        //             // ]
+        //         }
+        //     },
+        //     {
+        //         $project: {
+        //             _id: 1,
+        //             first_name: 1,
+        //             last_name: 1,
+        //             profileImage: { $arrayElemAt: ['$profileImage', 0] },  
+        //             joiningDate: { $arrayElemAt: ['$joiningDates', 0] },  
+        //             leaveBalances: 1
+        //         }
+        //     },
+        //     {
+        //         $sort: { first_name: 1, last_name: 1 }
+        //     }
+        // ]);
+        
         const users = await User.aggregate([
             {
                 $match: {
-                    Is_active: true, // Filter active users
-                    user_type: { $in: ['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] },
-                },
+                    Is_active: true,
+                    user_type: { 
+                        $in: ['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] 
+                    },
+                }
             },
             {
                 $lookup: {
-                    from: 'profileimages', // Assuming 'profileimages' collection exists
-                    localField: '_id', // Assuming 'user_id' in the User model
-                    foreignField: 'user_id', // Assuming ProfileImage has 'user_id' field
+                    from: 'profileimages',
+                    localField: '_id',
+                    foreignField: 'user_id',
                     as: 'profileImage',
-                },
+                    pipeline: [
+                        { $project: { image_url: 1 } }  // Ensure you're getting only image_url
+                    ]
+                }
             },
             {
                 $lookup: {
-                    from: 'joiningdates', // Assuming 'joiningdates' collection exists
-                    localField: '_id', // Assuming 'user_id' in the User model
-                    foreignField: 'user_id', // Assuming JoiningDate has 'user_id' field
+                    from: 'joiningdates',
+                    localField: '_id',
+                    foreignField: 'user_id',
                     as: 'joiningDates',
-                },
+                    pipeline: [
+                        { $project: { joining_date: 1 } }  // Ensure you're getting only the joining_date field
+                    ]
+                }
             },
             {
                 $lookup: {
-                    from: 'leavebalances', // Assuming 'leavebalances' collection exists
-                    localField: '_id', // Assuming 'user_id' in the User model
-                    foreignField: 'user_id', // Assuming LeaveBalance has 'user_id' field
+                    from: 'leavebalances',  // Assuming 'leavebalances' is the collection name for the LeaveBlance model
+                    localField: '_id',
+                    foreignField: 'user_id',
                     as: 'leaveBalances',
-                },
-            },
-            {
-                $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $unwind: { path: '$joiningDates', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $unwind: { path: '$leaveBalances', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $lookup: {
-                    from: 'leavetypes', // Assuming 'leavetypes' collection exists
-                    localField: 'leaveBalances.Leave_type_Id', // Assuming 'Leave_type_Id' in LeaveBalance
-                    foreignField: '_id', // Assuming '_id' in LeaveType
-                    as: 'leaveBalances.leaveType',
-                },
-            },
-            {
-                $unwind: { path: '$leaveBalances.leaveType', preserveNullAndEmptyArrays: true },
+                    pipeline: [
+                        { $lookup: {  // Nested lookup to get leave type info
+                            from: 'leavetypes',  // Collection name for LeaveType model
+                            localField: 'leave_type_id',  // Join using leave_type_id
+                            foreignField: '_id',  // Match with _id from LeaveType
+                            as: 'leaveTypeDetails'
+                        }},
+                        { $unwind: { path: '$leaveTypeDetails', preserveNullAndEmptyArrays: true } }, // Unwind to merge leaveType details
+                        { 
+                            $project: { 
+                                name: 1, 
+                                total_days: 1, 
+                                earned_days: 1, 
+                                arrear_days: 1,
+                                leaveTypeName: { $ifNull: ['$leaveTypeDetails.name', 'N/A'] } // Include leave type name, default to 'N/A' if not found
+                            } 
+                        }
+                    ]
+                }
             },
             {
                 $project: {
-                    user_id: 1,
+                    _id: 1,
                     first_name: 1,
                     last_name: 1,
-                    profileImage: { image_url: 1 },
-                    joiningDates: { joining_date: 1 },
-                    leaveBalances: {
-                        leave_balance_id: 1,
-                        total_days: 1,
-                        earned_days: 1,
-                        arrear_days: 1,
-                        leaveType: { name: 1 },
-                    },
-                },
+                    profileImage: { $arrayElemAt: ['$profileImage', 0] },  // Get the first profile image
+                    joiningDate: { $arrayElemAt: ['$joiningDates', 0] },  // Get the first joining date
+                    leaveBalances: 1  // Get the leaveBalances array with details
+                }
             },
+            {
+                $sort: { first_name: 1, last_name: 1 }
+            }
         ]);
+        
+        // Log the aggregated user data
+        console.log("Aggregated Users with Join Date, Profile, and Leave Balances:", users);
+     
+        
 
+ 
         res.status(200).json({
             success: true,
             data: users,

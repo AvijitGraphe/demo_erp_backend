@@ -31,8 +31,8 @@ const UserSchema = new Schema({
   },
   user_type: {
     type: String,
-    enum:['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager', 'Unverified', 'Admin'],
-    default: 'Department_Head',
+    enum:['Founder','Admin','SuperAdmin','HumanResource','Accounts','Department_Head','Employee','Social_Media_Manager','Task_manager','Ex_employee','Unverified'],
+    default: 'Unverified',
   },
 }, {
   timestamps: true,

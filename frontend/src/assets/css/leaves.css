@@ -1,0 +1,54 @@
+
+.p-accordion-header-link{
+  background-color: #d2e4ea;
+  border-bottom-width: 0;
+  padding: 10px 15px;
+  border-radius: 0;
+  color: #000;
+}
+.p-accordion-header-link:hover{
+  color: #000;
+}
+.p-accordion-tab-active .p-accordion-header-link{
+  background-color: #14a8b6;
+  color: #fff !important;
+}
+.AddLeavebalance .p-accordion-content table{
+  margin-bottom: 0;
+  text-align: center;
+}
+.AddLeavebalance .p-accordion-content table tr th:first-child{
+  text-align: left;
+}
+
+
+
+.custom-calendar {
+  width: 100%; /* Adjust width as needed */
+  padding: 5px; /* Adjust padding */
+  font-size: 14px; /* Reduce font size */
+}
+
+.custom-calendar .p-datepicker {
+  padding: 0.5rem; /* Reduce padding inside the calendar */
+}
+
+.custom-calendar .p-datepicker-inline {
+  width: 100%; /* Ensure inline calendar adjusts to the container */
+}
+
+.custom-calendar .p-datepicker-header {
+  padding: 0.5rem; /* Reduce padding in the header */
+}
+
+.custom-calendar .p-datepicker-table {
+  width: 100%; /* Ensure the table adjusts to the container */
+}
+
+.custom-calendar .p-datepicker-table td {
+  padding: 0.3rem; /* Adjust cell padding */
+}
+
+.custom-calendar .p-datepicker-calendar tr th{
+  text-align: center !important;
+}
