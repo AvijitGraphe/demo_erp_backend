@@ -21,116 +21,143 @@ const { ObjectId } = mongoose.Types;
 
 router.get('/Employee-report-attendance', authenticateToken, async (req, res) => {
     const { userId, month, year } = req.query;
-    console.log(userId, month, year);
-
+      
     if (!userId || !month || !year) {
         return res.status(400).json({ message: 'userId, month, and year are required' });
     }
 
+    
     try {
-        // Convert userId to ObjectId
-        const userObjectId = new ObjectId(userId); // Use 'new' keyword to instantiate ObjectId
-
-        // Ensure month is zero-padded to 2 digits (e.g., '01' for January)
-        const formattedMonth = String(month).padStart(2, '0');
-        const formattedYear = String(year);
-
-        // Parse the start and end of the month
-        const startDate = moment(`${formattedYear}-${formattedMonth}-01`, 'YYYY-MM-DD').startOf('month').toDate();
-        const endDate = moment(startDate).endOf('month').toDate();
+        // Parse month and year
+        const startDate = moment(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
+        const endDate = moment(startDate).endOf('month').format('YYYY-MM-DD');
         const isCurrentMonth = moment().isSame(moment(startDate), 'month');
 
-        // Aggregation Pipeline to fetch and calculate attendance statistics
+        // Fetch user details including profile image, role, attendances, and overtime
         const userDetails = await User.aggregate([
-            {
-                $match: { _id: userObjectId } // Match using ObjectId
-            },
+            { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+
+            // Lookup profile image
             {
                 $lookup: {
-                    from: 'attendances', 
+                    from: 'profileimages',
                     localField: '_id',
                     foreignField: 'user_id',
-                    as: 'attendance'
-                }
+                    as: 'profileImage',
+                },
             },
+            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+
+            // Lookup role
             {
-                $unwind: {
-                    path: '$attendance',
-                    preserveNullAndEmptyArrays: true // Keep users without attendance records
-                }
+                $lookup: {
+                    from: 'roles',
+                    localField: 'role_id',
+                    foreignField: '_id',
+                    as: 'role',
+                },
             },
+            { $unwind: { path: '$role', preserveNullAndEmptyArrays: true } },
+
+            // Lookup user times
             {
-                $match: {
-                    'attendance.date': { $gte: startDate, $lte: endDate } // Filter by the date range of the month
-                }
+                $lookup: {
+                    from: 'usertimes',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'userTimes',
+                },
             },
+
+            // Lookup attendance records
             {
-                $group: {
-                    _id: null,
-                    totalPresentDays: { $sum: { $cond: [{ $eq: ['$attendance.checkin_status', true] }, 1, 0] } },
-                    totalAbsentDays: { $sum: { $cond: [{ $eq: ['$attendance.checkin_status', false] }, 1, 0] } },
-                    lateDays: {
-                        $addToSet: {
-                            $cond: [
-                                { $gt: ['$attendance.start_time', '09:00:00'] }, '$attendance.date', null
-                            ]
-                        }
-                    },
-                    totalOvertimeMinutes: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$attendance.attendance_status', 'Full-Day'] },
-                                {
-                                    $let: {
-                                        vars: {
-                                            totalTime: { $split: ['$attendance.total_time', ' '] },
-                                            hours: { $toInt: { $arrayElemAt: [{ $split: [{ $arrayElemAt: ['$totalTime', 0] }, 'h'] }, 0] } },
-                                            minutes: { $toInt: { $arrayElemAt: [{ $split: [{ $arrayElemAt: ['$totalTime', 1] }, 'm'] }, 0] } }
-                                        },
-                                        in: { $add: [{ $multiply: ['$vars.hours', 60] }, '$vars.minutes'] }
-                                    }
-                                },
-                                0
-                            ]
-                        }
-                    }
-                }
+                $lookup: {
+                    from: 'attendances',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'attendances',
+                    pipeline: [
+                        { $match: { date: { $gte: startDate, $lte: endDate } } },
+                    ],
+                },
             },
+
+            // Lookup overtime records
             {
-                $project: {
-                    totalDaysInMonth: { $literal: moment(startDate).daysInMonth() },
-                    totalPresentDays: 1,
-                    totalAbsentDays: 1,
-                    lateDays: { $size: { $ifNull: ['$lateDays', []] } }, // Safeguard for null values
-                    totalOvertimeHours: { $divide: ['$totalOvertimeMinutes', 60] }
-                }
-            }
+                $lookup: {
+                    from: 'overtimes',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'overtimes',
+                    pipeline: [
+                        { $match: { overtime_date: { $gte: startDate, $lte: endDate }, status: 'Approved' } },
+                    ],
+                },
+            },
         ]);
 
-        if (!userDetails || userDetails.length === 0) {
+        if (!userDetails.length) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const {
+        const user = userDetails[0]; // Since we expect only one user, take the first result
+        const { attendances, userTimes, overtimes } = user;
+        const startTime = userTimes?.[0]?.start_time || '09:00:00';
+
+        // Calculate statistics
+        const totalDaysInMonth = moment(startDate).daysInMonth();
+        const weekdays = [...Array(totalDaysInMonth).keys()].map((i) =>
+            moment(startDate).add(i, 'days')
+        );
+        const workingDays = weekdays.filter(
+            (date) => ![0, 6].includes(date.day()) // Exclude weekends (Sunday: 0, Saturday: 6)
+        );
+
+        const totalPresentDays = attendances.length;
+        const totalAbsentDays =
+            isCurrentMonth
+                ? workingDays.filter((date) => date.isBefore(moment()) && !attendances.some((att) => att.date === date.format('YYYY-MM-DD'))).length
+                : workingDays.length - totalPresentDays;
+
+        const lateDays = attendances.filter(
+            (attendance) => attendance.start_time > startTime
+        ).map((attendance) => attendance.date);
+
+        const totalLateCount = lateDays.length;
+
+        // Calculate total overtime in hours
+        const totalOvertimeMinutes = overtimes?.reduce((sum, overtime) => sum + overtime.total_time, 0) || 0;
+        const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
+
+
+        console.log("log the data ", 
+            user,
             totalDaysInMonth,
             totalPresentDays,
             totalAbsentDays,
+            totalLateCount,
             lateDays,
-            totalOvertimeHours
-        } = userDetails[0]; // Aggregation returns an array, so we take the first element
+            totalOvertimeHours, )
+
+
 
         res.status(200).json({
+            userDetails: user,
             totalDaysInMonth,
             totalPresentDays,
             totalAbsentDays,
-            lateDays,
-            totalOvertimeHours: totalOvertimeHours.toFixed(2) // Format the overtime in hours
+            totalLateCount,
+            lateDays, // Include late days in the response
+            totalOvertimeHours, // Include total overtime in hours
         });
+
+
     } catch (error) {
         console.error(`Error fetching user details: ${error.message}`);
         res.status(500).json({ message: 'Error fetching user details', error: error.message });
     }
 });
+
 
 
 

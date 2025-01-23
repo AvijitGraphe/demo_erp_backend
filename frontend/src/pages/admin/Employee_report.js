@@ -31,6 +31,8 @@ import moment from 'moment';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { format, set } from 'date-fns'; // Install date-fns if not already installed
+
+
 const Employee_report = () => {
     const { accessToken } = useAuth(); // Get the access token from the context
     const navigate = useNavigate();
@@ -88,6 +90,7 @@ const Employee_report = () => {
 
     // Fetch attendance data
     const fetchAttendanceData = async () => {
+        
         if (!selectedEmployee || !selectedDate) {
             console.warn('Employee and date must be selected before fetching data.');
             return;
@@ -101,6 +104,7 @@ const Employee_report = () => {
                 params: { userId: selectedEmployee.value, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+            console.log("log the data ok", response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
