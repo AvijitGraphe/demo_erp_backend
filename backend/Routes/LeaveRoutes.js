@@ -1439,79 +1439,18 @@ router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req,
 // // API to fetch all leave balances grouped by users
 router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async (req, res) => {
     try {
-        // const users = await User.aggregate([
-        //     {
-        //         $match: {
-        //             Is_active: true,
-        //             user_type: { $in: ['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] },
-        //         },
-        //     },
-        //     {
-        //         $lookup: {
-        //             from: 'profileimages',
-        //             localField: '_id',
-        //             foreignField: 'user_id',
-        //             as: 'profileImage',
-        //             pipeline: [
-        //                 { $project: { image_url: 1 } }
-        //             ]
-        //         }
-        //     },
-        //     {
-        //         $lookup: {
-        //             from: 'joiningdates',
-        //             localField: '_id',
-        //             foreignField: 'user_id',
-        //             as: 'joiningDates',
-        //             pipeline: [
-        //                 { $project: { joining_date: 1 } }
-        //             ]
-        //         }
-        //     },
-        //     {
-        //         $lookup: {
-        //             from: 'leavebalances',
-        //             localField: '_id',
-        //             foreignField: 'user_id',
-        //             as: 'leaveBalances',
-        //             // pipeline: [
-        //             //     // {
-        //             //     //     $lookup: {
-        //             //     //         from: 'leavetypes',
-        //             //     //         localField: '_id',
-        //             //     //         foreignField: '_id',
-        //             //     //         as: 'leaveType',
-        //             //     //         pipeline: [
-        //             //     //             { $project: { name: 1 } }
-        //             //     //         ]
-        //             //     //     }
-        //             //     // },
-        //             //     { $project: { total_days: 1} }
-        //             // ]
-        //         }
-        //     },
-        //     {
-        //         $project: {
-        //             _id: 1,
-        //             first_name: 1,
-        //             last_name: 1,
-        //             profileImage: { $arrayElemAt: ['$profileImage', 0] },  
-        //             joiningDate: { $arrayElemAt: ['$joiningDates', 0] },  
-        //             leaveBalances: 1
-        //         }
-        //     },
-        //     {
-        //         $sort: { first_name: 1, last_name: 1 }
-        //     }
-        // ]);
-        
         const users = await User.aggregate([
             {
                 $match: {
                     Is_active: true,
-                    user_type: { 
-                        $in: ['HumanResource', 'Accounts', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] 
-                    },
+                    user_type: { $in: [
+                        'HumanResource',
+                        'Accounts',
+                        'Department_Head',
+                        'Employee',
+                        'Social_Media_Manager',
+                        'Task_manager',
+                    ] },
                 }
             },
             {
@@ -1521,43 +1460,52 @@ router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async 
                     foreignField: 'user_id',
                     as: 'profileImage',
                     pipeline: [
-                        { $project: { image_url: 1 } }  // Ensure you're getting only image_url
+                        { $project: { image_url: 1 } },
                     ]
                 }
             },
             {
                 $lookup: {
-                    from: 'joiningdates',
+                    from: 'joiningdates', 
                     localField: '_id',
                     foreignField: 'user_id',
                     as: 'joiningDates',
                     pipeline: [
-                        { $project: { joining_date: 1 } }  // Ensure you're getting only the joining_date field
+                        { $project: { joining_date: 1 } }, 
                     ]
                 }
             },
             {
                 $lookup: {
-                    from: 'leavebalances',  // Assuming 'leavebalances' is the collection name for the LeaveBlance model
+                    from: 'leaveblances', 
                     localField: '_id',
                     foreignField: 'user_id',
                     as: 'leaveBalances',
                     pipeline: [
-                        { $lookup: {  // Nested lookup to get leave type info
-                            from: 'leavetypes',  // Collection name for LeaveType model
-                            localField: 'leave_type_id',  // Join using leave_type_id
-                            foreignField: '_id',  // Match with _id from LeaveType
-                            as: 'leaveTypeDetails'
-                        }},
-                        { $unwind: { path: '$leaveTypeDetails', preserveNullAndEmptyArrays: true } }, // Unwind to merge leaveType details
                         { 
-                            $project: { 
-                                name: 1, 
-                                total_days: 1, 
-                                earned_days: 1, 
+                            $project: {
+                                leave_balance_id: 1,
+                                total_days: 1,
+                                earned_days: 1,
                                 arrear_days: 1,
-                                leaveTypeName: { $ifNull: ['$leaveTypeDetails.name', 'N/A'] } // Include leave type name, default to 'N/A' if not found
-                            } 
+                                leave_type_id: 1  // Make sure the leave_type_id field exists in your leave balances
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'leavetypes',
+                                localField: 'leave_type_id',
+                                foreignField: '_id',
+                                as: 'leaveType',
+                                pipeline: [
+                                    { $project: { name: 1 } }
+                                ]
+                            }
+                        },
+                        {
+                            $addFields: {
+                                leaveType: { $arrayElemAt: ['$leaveType', 0] } // Flatten the leaveType array to just the first item
+                            }
                         }
                     ]
                 }
@@ -1567,22 +1515,15 @@ router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async 
                     _id: 1,
                     first_name: 1,
                     last_name: 1,
-                    profileImage: { $arrayElemAt: ['$profileImage', 0] },  // Get the first profile image
-                    joiningDate: { $arrayElemAt: ['$joiningDates', 0] },  // Get the first joining date
-                    leaveBalances: 1  // Get the leaveBalances array with details
+                    profileImage: { $arrayElemAt: ['$profileImage', 0] },
+                    joiningDate: { $arrayElemAt: ['$joiningDates', 0] }, 
+                    leaveBalances: 1
                 }
             },
             {
                 $sort: { first_name: 1, last_name: 1 }
             }
         ]);
-        
-        // Log the aggregated user data
-        console.log("Aggregated Users with Join Date, Profile, and Leave Balances:", users);
-     
-        
-
- 
         res.status(200).json({
             success: true,
             data: users,
