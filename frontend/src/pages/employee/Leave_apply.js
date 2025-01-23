@@ -55,6 +55,7 @@ const Leave_apply = () => {
                 }
             );
             console.log("log the data is now ", response.data)
+            
             if (response.data.success) {
                 const combinedRequests = [
                     ...response.data.data.Pending,

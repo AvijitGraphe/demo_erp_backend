@@ -42,6 +42,8 @@ const Overtime = () => {
                 params,
             });
 
+            console.log("log the data", response)
+
             const { Pending, Approved, Rejected } = response.data;
             setData([...Pending, ...Approved, ...Rejected]);
         } catch (error) {
@@ -61,6 +63,7 @@ const Overtime = () => {
             
             return;
         }
+        console.log("log the data", selectedOvertime)
 
         try {
             const payload = {
@@ -70,7 +73,7 @@ const Overtime = () => {
             };
 
             await axios.put(
-                `${config.apiBASEURL}/overtimeRoutes/update-overtime-status/${selectedOvertime.overtime_id}`,
+                `${config.apiBASEURL}/overtimeRoutes/update-overtime-status/${selectedOvertime._id}`,
                 payload,
                 {
                     headers: { Authorization: `Bearer ${accessToken}` },
@@ -157,8 +160,8 @@ const Overtime = () => {
                                         {data.map((row, index) => (
                                             <tr key={index}>
                                                 <td>{index + 1}</td>
-                                                <td>{row.requester?.first_name} {row.requester?.last_name}</td>
-                                                <td>{new Date(row.ovetime_date).toLocaleDateString('en-GB')}</td>
+                                                <td>{row.first_name} {row.last_name}</td>
+                                                <td>{new Date(row.overtime_date).toLocaleDateString('en-GB')}</td>
                                                 <td>{row.start_time}</td>
                                                 <td>{row.end_time}</td>
                                                 <td>{row.total_time}</td>
@@ -167,7 +170,7 @@ const Overtime = () => {
                                                         {row.status}
                                                     </Badge>
                                                 </td>
-                                                <td>{row.approver?.first_name} {row.approver?.last_name}</td>
+                                                <td>{row.approver_first_name} {row.approverlast_name}</td>
                                                 <td>{row.reason || 'NA'}</td>
                                                 <td>
                                                     {row.status === 'Pending' && (

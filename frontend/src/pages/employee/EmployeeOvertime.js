@@ -35,6 +35,7 @@ const EmployeeOvertime = () => {
                 params,
             });
 
+            console.log("log the data", response.data)
             const { Pending, Approved, Rejected } = response.data;
             setData([...Pending, ...Approved, ...Rejected]);
         } catch (error) {
@@ -113,7 +114,7 @@ const EmployeeOvertime = () => {
                                                             {row.requester?.first_name} {row.requester?.last_name}
                                                         </td>
                                                         <td>
-                                                            {new Date(row.ovetime_date).toLocaleDateString('en-GB')}
+                                                            {new Date(row.overtime_date).toLocaleDateString('en-GB')}
                                                         </td>
                                                         <td>{row.start_time}</td>
                                                         <td>{row.end_time}</td>
@@ -134,7 +135,7 @@ const EmployeeOvertime = () => {
                                                             </span>
                                                         </td>
                                                         <td>
-                                                            {row.approver?.first_name} {row.approver?.last_name}
+                                                            {row.approverDetails?.first_name} {row.approverDetails?.last_name}
                                                         </td>
                                                         <td>{row.reason || "N/A"}</td>
                                                         <td>
@@ -144,7 +145,7 @@ const EmployeeOvertime = () => {
                                                                     icon="pi pi-pencil"
                                                                     title="Edit"
                                                                     size="sm"
-                                                                    onClick={() => handleEdit(row.overtime_id)}
+                                                                    onClick={() => handleEdit(row._id)}
                                                                 />
 
                                                             )}

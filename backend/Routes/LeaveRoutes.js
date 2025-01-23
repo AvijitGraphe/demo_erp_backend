@@ -1257,84 +1257,113 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
 router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     const { start_date, end_date } = req.query;
+
     try {
+        // Build the match conditions based on the user_id and optional date range
         const matchConditions = { user_id: new mongoose.Types.ObjectId(user_id) };
+        
         if (start_date && end_date) {
             matchConditions.updatedAt = {
                 $gte: new Date(start_date),
                 $lte: new Date(end_date),
             };
         }
+
         const leaveRequests = await LeaveRequest.aggregate([
             { $match: matchConditions },
+            
+            // Lookup for 'requestor' (User details)
             {
                 $lookup: {
-                    from: 'users',
-                    localField: 'requestor',
-                    foreignField: '_id',
-                    as: 'requestorDetails',
+                    from: 'users',  // 'users' collection
+                    localField: 'user_id',  // 'user_id' in 'LeaveRequest' collection
+                    foreignField: '_id',  // '_id' in 'users' collection
+                    as: 'requestor',
                     pipeline: [
-                        { $project: { first_name: 1, last_name: 1, email: 1 } },
-                        {
-                            $lookup: {
-                                from: 'profileimages',
-                                localField: '_id',
-                                foreignField: 'user_id',
-                                as: 'profileImage',
-                                pipeline: [{ $project: { image_url: 1 } }],
-                            },
-                        },
-                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },  // Select only first_name, last_name, email
                     ],
                 },
             },
+            { $unwind: { path: '$requestor', preserveNullAndEmptyArrays: true } },
+
+            // Lookup for 'profileImage' (Profile image of the requestor)
             {
                 $lookup: {
-                    from: 'users',
-                    localField: 'approver',
-                    foreignField: '_id',
+                    from: 'profileimages',  // 'profileimages' collection
+                    localField: 'requestor._id',  // 'requestor._id' is the foreign key in 'profileimages'
+                    foreignField: 'user_id',
+                    as: 'profileImage',
+                    pipeline: [
+                        { $project: { image_url: 1 } },  // Select only 'image_url'
+                    ],
+                },
+            },
+            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+
+            // Lookup for 'approver' (User details)
+            {
+                $lookup: {
+                    from: 'users',  // 'users' collection
+                    localField: 'approver',  // 'approver' in 'LeaveRequest' collection
+                    foreignField: '_id',  // '_id' in 'users' collection
                     as: 'approverDetails',
                     pipeline: [
-                        { $project: { first_name: 1, last_name: 1, email: 1 } },
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },  // Select only first_name, last_name, email
                     ],
                 },
             },
+            { $unwind: { path: '$approverDetails', preserveNullAndEmptyArrays: true } },
+
+            // Lookup for 'leaveType' (Leave type details)
             {
                 $lookup: {
-                    from: 'leavetypes',
-                    localField: 'leaveType',
-                    foreignField: '_id',
+                    from: 'leavetypes',  // 'leavetypes' collection
+                    localField: 'leaveType',  // 'leaveType' in 'LeaveRequest' collection
+                    foreignField: '_id',  // '_id' in 'leavetypes' collection
                     as: 'leaveTypeDetails',
                     pipeline: [
-                        { $project: { name: 1, description: 1 } },
+                        { $project: { name: 1, description: 1 } },  // Select name and description of leave type
                     ],
                 },
             },
             { $unwind: { path: '$leaveTypeDetails', preserveNullAndEmptyArrays: true } },
-            { $sort: { Status: 1, createdAt: -1 } },
+
+            // Group by Status
             {
                 $group: {
                     _id: '$Status',
-                    requests: { $push: '$$ROOT' },
+                    requests: { $push: '$$ROOT' },  // Collect all leave requests under their status
                 },
             },
+
+            // Project the final output
             {
                 $project: {
-                    _id: 0,
-                    status: '$_id',
-                    requests: 1,
+                    _id: 0,  // Exclude the '_id' field
+                    status: '$_id',  // Rename '_id' to 'status'
+                    requests: 1,  // Include the requests array
                 },
             },
+
+            // Sort the grouped requests by status
             { $sort: { status: 1 } },
         ]);
+
+        // Initialize the response object
         const groupedRequests = {
             Pending: [],
             Approved: [],
             Rejected: [],
         };
+
+        // Loop through the aggregated result and group by status
         leaveRequests.forEach((group) => {
             groupedRequests[group.status] = group.requests;
         });
+
+        console.log("log the data", groupedRequests);
+        
+        // Send back the grouped requests
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1344,14 +1373,14 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
         res.status(500).json({
             success: false,
             message: 'Failed to fetch leave requests',
-        error: error.message,
+            error: error.message,
         });
     }
 });
 
 
 
-// api to display user leave balances
+
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
 

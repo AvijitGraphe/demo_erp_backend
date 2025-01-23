@@ -11,7 +11,6 @@ const mongoose = require('mongoose');
 // POST endpoint 
 router.post('/add-overtime', authenticateToken, async (req, res) => {
   try {
-    const { user_id, start_time, end_time, total_time, overtime_date } = req.body;
     // Validate required fields
     if (!user_id || !start_time || !end_time || !total_time || !overtime_date) {
       return res.status(400).json({ message: 'Missing required fields.' });
@@ -163,8 +162,8 @@ router.get('/allovertime', authenticateToken, async (req, res) => {
           status: 1,
           overtime_date: 1,
           reason: 1,
-          requester_first_name: '$requester.first_name',
-          requester_last_name: '$requester.last_name',
+          first_name: '$requester.first_name',
+          last_name: '$requester.last_name',
           approver_first_name: '$approver.first_name',
           approver_last_name: '$approver.last_name'
         }
@@ -188,105 +187,245 @@ router.get('/allovertime', authenticateToken, async (req, res) => {
 
 
 
+// router.get('/overtime/user/:user_id', authenticateToken, async (req, res) => {
+//   const { user_id } = req.params;
+//   const { monthYear } = req.query;
+
+//   try {
+//       // Build the match conditions based on user_id
+//       const matchConditions = { user_id: new mongoose.Types.ObjectId(user_id) };
+
+//       // If monthYear is provided, filter by the month and year
+//       if (monthYear) {
+//           const [year, month] = monthYear.split('-'); // Extract year and month from the input
+//           if (year && month) {
+//               const startDate = new Date(`${year}-${month}-01T00:00:00.000Z`); // First day of the month
+//               const endDate = new Date(new Date(startDate).setMonth(startDate.getMonth() + 1)); // First day of the next month
+//               matchConditions.overtime_date = {
+//                   $gte: startDate,
+//                   $lt: endDate,
+//               };
+//           } else {
+//               return res.status(400).json({ message: 'Invalid monthYear format. Use YYYY-MM.' });
+//           }
+//       }
+
+//       // Aggregate the overtime records by user_id, and filter by date if monthYear is provided
+//       const overtimeRecords = await Overtime.aggregate([
+//           { $match: matchConditions },
+
+//           // Lookup for the 'requester' details (User)
+//           {
+//               $lookup: {
+//                   from: 'users',  // 'users' collection
+//                   localField: 'user_id',  // 'user_id' in Overtime collection
+//                   foreignField: '_id',  // '_id' in 'users' collection
+//                   as: 'requester',
+//                   pipeline: [
+//                       { $project: { first_name: 1, last_name: 1 } },  // Select first_name, last_name
+//                   ],
+//               },
+//           },
+//           { $unwind: { path: '$requester', preserveNullAndEmptyArrays: true } },
+
+//           // Lookup for the 'approver' details (User)
+//           {
+//               $lookup: {
+//                   from: 'users',  // 'users' collection
+//                   localField: 'approver',  // 'approver' in Overtime collection
+//                   foreignField: '_id',  // '_id' in 'users' collection
+//                   as: 'approverDetails',
+//                   pipeline: [
+//                       { $project: { first_name: 1, last_name: 1 } },  // Select first_name, last_name
+//                   ],
+//               },
+//           },
+//           { $unwind: { path: '$approverDetails', preserveNullAndEmptyArrays: true } },
+
+//           // Group the records by status
+//           {
+//               $group: {
+//                   _id: '$status',  // Group by status field
+//                   records: { $push: '$$ROOT' },  // Collect all records under each status
+//               },
+//           },
+
+//           // Project the final output to match the structure
+//           {
+//               $project: {
+//                   _id: 0,  // Remove _id field from final output
+//                   status: '$_id',  // Rename _id to 'status'
+//                   records: 1,  // Include the records
+//               },
+//           },
+
+//           // Sort by status
+//           { $sort: { status: 1 } },
+//       ]);
+
+//       // Separate records by status
+//       const groupedRecords = {
+//           Pending: [],
+//           Approved: [],
+//           Rejected: [],
+//       };
+
+//       // Loop through the aggregation result and classify the records by status
+//       overtimeRecords.forEach((group) => {
+//           if (group.status === 'Pending') {
+//               groupedRecords.Pending = group.records;
+//           } else if (group.status === 'Approved') {
+//               groupedRecords.Approved = group.records;
+//           } else if (group.status === 'Rejected') {
+//               groupedRecords.Rejected = group.records;
+//           }
+//       });
+
+//       console.log("log the data ok ", )
+//       // Return the response with grouped records
+//       res.status(200).json({
+//           Pending: groupedRecords.Pending,
+//           Approved: groupedRecords.Approved,
+//           Rejected: groupedRecords.Rejected,
+//       });
+//   } catch (error) {
+//       console.error('Error fetching overtime records for user:', error);
+//       res.status(500).json({
+//           message: 'Internal server error',
+//           error: error.message,
+//       });
+//   }
+// });
+
+  
+
+
+
+
+//get overtime 
+
+
 router.get('/overtime/user/:user_id', authenticateToken, async (req, res) => {
   const { user_id } = req.params;
   const { monthYear } = req.query;
 
   try {
-      // Build a dynamic filter object
-      const filter = { user_id };
+      // Build the match conditions based on user_id
+      const matchConditions = { user_id: new mongoose.Types.ObjectId(user_id) };
 
-      // Filter by month and year for overtime_date
+      // If monthYear is provided, filter by the month and year
       if (monthYear) {
-          const [year, month] = monthYear.split('-'); 
-
-          if (year && month && !isNaN(year) && !isNaN(month) && month >= 1 && month <= 12) {
-              const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0)); 
-              const endOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)); 
-
-              // Log the generated dates for debugging
-              console.log(`Filtering overtime records for user ${user_id} in the range:`);
-              console.log(`Start of the month: ${startOfMonth}`);
-              console.log(`End of the month: ${endOfMonth}`);
-
-              // Add the date range to the filter
-              filter.overtime_date = {
-                  $gte: startOfMonth, 
-                  $lt: endOfMonth,   
+          const [year, month] = monthYear.split('-'); // Extract year and month from the input
+          if (year && month) {
+              const startDate = new Date(`${year}-${month}-01T00:00:00.000Z`); // First day of the month
+              const endDate = new Date(new Date(startDate).setMonth(startDate.getMonth() + 1)); // First day of the next month
+              matchConditions.overtime_date = {
+                  $gte: startDate,
+                  $lt: endDate,
               };
           } else {
               return res.status(400).json({ message: 'Invalid monthYear format. Use YYYY-MM.' });
           }
       }
 
-      // Fetch overtime records from MongoDB
-    const userOvertimeRecords = await Overtime.aggregate([
-        { $match: filter }, 
-        {
-            $lookup: {
-                from: 'users', 
-                localField: 'requester',  
-                foreignField: '_id', 
-                as: 'requester'  
-            }
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'approver',
-                foreignField: '_id',
-                as: 'approver'
-            }
-        },
-    
-        // Unwind the requester and approver arrays if needed (in case the lookup results in arrays)
-        { $unwind: { path: '$requester', preserveNullAndEmptyArrays: true } },
-        { $unwind: { path: '$approver', preserveNullAndEmptyArrays: true } },
-    
-        // Group the overtime records by status and count them
-        {
-            $group: {
-                _id: '$status',  // Group by the status field
-                count: { $sum: 1 },  // Count the number of records for each status
-                records: { $push: '$$ROOT' }  // Optionally push all the records into an array for each status
-            }
-        },
-    
-        // Optionally, sort by the status or count if necessary
-        { $sort: { _id: 1 } },  // Sort by status, or you can use count for sorting
-    
-        // Optionally, project the fields to control the final structure of the response
-        {
-            $project: {
-                _id: 1,  // Show status
-                count: 1,  // Show count
-                records: 1,  // Show the actual overtime records in each group
-            }
-        }
-    ]);
-    
-      // Separate records by status
-      const pendingRecords = userOvertimeRecords.filter(record => record.status === 'Pending');
-      const approvedRecords = userOvertimeRecords.filter(record => record.status === 'Approved');
-      const rejectedRecords = userOvertimeRecords.filter(record => record.status === 'Rejected');
+      // Aggregate the overtime records by user_id, and filter by date if monthYear is provided
+      const overtimeRecords = await Overtime.aggregate([
+          { $match: matchConditions },
 
-      // Structure the response
+          // Lookup for the 'requester' details (User)
+          {
+              $lookup: {
+                  from: 'users',  // 'users' collection
+                  localField: 'user_id',  // 'user_id' in Overtime collection
+                  foreignField: '_id',  // '_id' in 'users' collection
+                  as: 'requester',
+                  pipeline: [
+                      { $project: { first_name: 1, last_name: 1 } },  // Select first_name, last_name
+                  ],
+              },
+          },
+          { $unwind: { path: '$requester', preserveNullAndEmptyArrays: true } },
+
+          // Lookup for the 'approver' details (User)
+          {
+              $lookup: {
+                  from: 'users',  // 'users' collection
+                  localField: 'approved_by',  // 'approved_by' in Overtime collection (approver)
+                  foreignField: '_id',  // '_id' in 'users' collection
+                  as: 'approverDetails',
+                  pipeline: [
+                      { $project: { first_name: 1, last_name: 1 } },  // Select first_name, last_name
+                  ],
+              },
+          },
+          { $unwind: { path: '$approverDetails', preserveNullAndEmptyArrays: true } },
+
+          // Group the records by status
+          {
+              $group: {
+                  _id: '$status',  // Group by status field
+                  records: { $push: '$$ROOT' },  // Collect all records under each status
+              },
+          },
+
+          // Project the final output to match the structure
+          {
+              $project: {
+                  _id: 0,  // Remove _id field from final output
+                  status: '$_id',  // Rename _id to 'status'
+                  records: 1,  // Include the records
+              },
+          },
+
+          // Sort by status
+          { $sort: { status: 1 } },
+      ]);
+
+      // Separate records by status
+      const groupedRecords = {
+          Pending: [],
+          Approved: [],
+          Rejected: [],
+      };
+
+      // Loop through the aggregation result and classify the records by status
+      overtimeRecords.forEach((group) => {
+          if (group.status === 'Pending') {
+              groupedRecords.Pending = group.records;
+          } else if (group.status === 'Approved') {
+              groupedRecords.Approved = group.records;
+          } else if (group.status === 'Rejected') {
+              groupedRecords.Rejected = group.records;
+          }
+      });
+
+      // Adding approver's name to each record in the Approved status
+      groupedRecords.Approved.forEach((record) => {
+          if (record.approverDetails) {
+              record.approver_name = `${record.approverDetails.first_name} ${record.approverDetails.last_name}`;
+          }
+      });
+
+      console.log("log the data ok ", groupedRecords);
+      // Return the response with grouped records
       res.status(200).json({
-          Pending: pendingRecords,
-          Approved: approvedRecords,
-          Rejected: rejectedRecords,
+          Pending: groupedRecords.Pending,
+          Approved: groupedRecords.Approved,
+          Rejected: groupedRecords.Rejected,
       });
   } catch (error) {
       console.error('Error fetching overtime records for user:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      res.status(500).json({
+          message: 'Internal server error',
+          error: error.message,
+      });
   }
 });
 
-  
-//get overtime 
+
+
 router.get('/overtime/:overtime_id', authenticateToken, async (req, res) => {
     const { overtime_id } = req.params;
-    console.log("log the overtimel", overtime_id)
     try {
         // If overtime_id is a string, we need to convert it to ObjectId for MongoDB
         const overtimeRecord = await Overtime.findById(overtime_id);
@@ -303,6 +442,10 @@ router.get('/overtime/:overtime_id', authenticateToken, async (req, res) => {
 });
 
   
+
+
+
+
 
 router.get('/dashboardovertime', authenticateToken, async (req, res) => {
   try {

@@ -33,7 +33,6 @@ const AddOvertime = ({onSuccess}) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         // Validate required fields
         if (!userId || !startTime || !endTime || totalTime <= 0 || !startDate) {
             setError("All fields are required.");
@@ -59,7 +58,7 @@ const AddOvertime = ({onSuccess}) => {
                     start_time: formatTimeForMySQL(startTime),
                     end_time: formatTimeForMySQL(endTime),
                     total_time: totalTime,
-                    ovetime_date: startDate.toISOString().split("T")[0], // Extract only the date part
+                    overtime_date: startDate.toISOString().split("T")[0], // Extract only the date part
                 },
                 {
                     headers: {
@@ -67,7 +66,6 @@ const AddOvertime = ({onSuccess}) => {
                     },
                 }
             );
-           
             setError(null); // Clear errors on success
             onSuccess();
         } catch (err) {

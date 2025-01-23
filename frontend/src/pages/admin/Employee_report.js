@@ -239,8 +239,6 @@ const Employee_report = () => {
 
 
 
-
-
     // Event handler for "Apply" button
     const handleApply = () => {
         fetchAttendanceData();
@@ -285,8 +283,6 @@ const Employee_report = () => {
     };
 
 
-
-
     const handleSubmit = async () => {
         const formattedStartTime = startTime ? startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
         const formattedEndTime = endTime ? endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
@@ -323,8 +319,6 @@ const Employee_report = () => {
 
         }
     };
-
-
 
 
     const handleEditClick = (attendance) => {
@@ -379,11 +373,6 @@ const Employee_report = () => {
         }
     };
     
-
-
-
-
-
 
     return (
         <>

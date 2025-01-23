@@ -36,12 +36,14 @@ const EditOvertime = ({ overtime_id, onSuccess }) => {
                 );
                 const data = response.data;
         
+                console.log("log the data", data)
                 setOvertimeData(data);
         
-                setStartDate(new Date(data.ovetime_date));
+                setStartDate(new Date(data.overtime_date));
                 setStartTime(parseTime(data.start_time));
                 setEndTime(parseTime(data.end_time));
                 setTotalTime(data.total_time);
+
                 setStatus(data.status);
             } catch (err) {
                 console.error("Error fetching overtime record:", err);
