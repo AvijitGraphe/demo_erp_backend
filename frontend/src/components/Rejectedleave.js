@@ -40,7 +40,7 @@ const Rejectedleave = ({ rejectedLeaves }) => {
                                                     <div className="ms-3">
                                                         <p className="mb-0 text-dark">
                                                             <b>
-                                                                {requestor.first_name} {requestor.last_name}
+                                                                {requestor[0].first_name} {requestor[0].last_name}
                                                             </b>
                                                         </p>
                                                         <p className="text-muted mb-0">
@@ -53,7 +53,7 @@ const Rejectedleave = ({ rejectedLeaves }) => {
                                         <td>
                                             <div>
                                                 <p className="mb-2 text-primary fw-bold">
-                                                    {leaveType?.name || 'N/A'}
+                                                    {leaveType[0]?.name || 'N/A'}
                                                 </p>
                                                 <span className='d-block'>
                                                     {parsedDates.map((date, index) => (

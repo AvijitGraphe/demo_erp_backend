@@ -21,6 +21,9 @@ const Approvedleave = ({ approvedLeaves }) => {
                     <tbody>
                         {Array.isArray(approvedLeaves) && approvedLeaves.length > 0 ? (
                             approvedLeaves.map((request) => {
+
+                                console.log("log the data ok", request);
+
                                 const { requestor, leaveType, dates } = request;
                                 const parsedDates = Array.isArray(dates)
                                     ? dates
@@ -41,7 +44,7 @@ const Approvedleave = ({ approvedLeaves }) => {
                                                     <div className="ms-3">
                                                         <p className="mb-0 text-dark">
                                                             <b>
-                                                                {requestor.first_name} {requestor.last_name}
+                                                                {requestor[0].first_name} {requestor[0].last_name}
                                                             </b>
                                                         </p>
                                                         <p className="text-muted mb-0">
@@ -54,7 +57,7 @@ const Approvedleave = ({ approvedLeaves }) => {
                                         <td>
                                             <div>
                                                 <p className="mb-2 text-primary fw-bold">
-                                                    {leaveType?.name || 'N/A'}
+                                                    {leaveType[0]?.name || 'N/A'}
                                                 </p>
                                                 <span className='d-block'>
                                                     {parsedDates.map((date, index) => (

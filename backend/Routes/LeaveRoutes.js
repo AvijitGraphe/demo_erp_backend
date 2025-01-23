@@ -642,6 +642,9 @@ router.post('/add-leave', authenticateToken, async (req, res) => {
 //update the leave tyep 
 router.put('/update-leave-type', authenticateToken, async (req, res) => {
     const { leave_request_id, new_leave_type_id } = req.body;
+
+
+    console.log("log the data is now ", leave_request_id, new_leave_type_id )
     try {
       // Fetch the leave request to be updated
       const leaveRequest = await LeaveRequest.findById(leave_request_id);
@@ -1086,7 +1089,6 @@ router.delete('/delete-leave', authenticateToken, async (req, res) => {
 //upadte the leave statsu
 router.put('/update-leave-status', authenticateToken, async (req, res) => {
     const { Leave_request_id, Approved_By, Status, Comment } = req.body;
-
     // Validate the status
     if (!['Approved', 'Rejected'].includes(Status)) {
         return res.status(400).json({
@@ -1094,7 +1096,6 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
             message: "Invalid status. Status must be 'Approved' or 'Rejected'.",
         });
     }
-
     try {
         // Fetch the leave request
         const leaveRequest = await LeaveRequest.findOne({
@@ -1121,14 +1122,11 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
                 await leaveBalance.save(); // Save the updated leave balance
             }
         }
-
         // Update the leave request with the new status, approved_by, and comment
         leaveRequest.Status = Status;
         leaveRequest.Approved_By = Approved_By || leaveRequest.Approved_By;
         leaveRequest.Comment = Comment || leaveRequest.Comment;
-
         await leaveRequest.save(); // Save the updated leave request
-
         res.status(200).json({
             success: true,
             message: `Leave request has been ${Status.toLowerCase()} successfully.`,

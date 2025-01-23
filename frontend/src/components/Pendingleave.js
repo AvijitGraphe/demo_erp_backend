@@ -45,11 +45,15 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     };
 
     const handleSave = async (id) => {
-        const leaveRequest = leaveRequests.find((leave) => leave.Leave_request_id === id);
+        console.log("log thre ata", id)
+      
+        const leaveRequest = leaveRequests.find((leave) => leave._id === id);
+
+        console.log("log the ids", leaveRequest)
+
         if (!leaveRequest) return;
 
         const { Status, Comment } = leaveRequest;
-
         try {
             const response = await axios.put(
                 `${config.apiBASEURL}/leaveRoutes/update-leave-status`,
@@ -75,7 +79,6 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     };
 
     // Fetch leave balances for the selected user
-
     const fetchLeaveBalances = async (user_id) => {
         console.log("log the data", user_id)
         try {
@@ -105,19 +108,17 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
             setErrorMessage('Please select a leave type.');
             return;
         }
-
         try {
             const response = await axios.put(
                 `${config.apiBASEURL}/leaveRoutes/update-leave-type`,
                 {
-                    leave_request_id: selectedRequest.Leave_request_id,
+                    leave_request_id: selectedRequest._id,
                     new_leave_type_id: selectedLeaveType.leave_type_id,
                 },
                 {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
-
             // Check for status 200
             if (response.status === 200) {
                 fetchLeaveRequests(); // Refresh leave requests
@@ -154,7 +155,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                     {leaveRequests.map((request) => {
                         const parsedDates = JSON.parse(request.dates); // Parse JSON string to array
                         return (
-                            <tr key={request.Leave_request_id}>
+                            <tr key={request._id}>
                                 <td>
                                     <Link to="">
                                         <div className="d-flex align-items-center justify-content-start">
@@ -243,7 +244,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                                         outlined
                                         className='ms-2 border-0'
                                         severity="success"
-                                        onClick={() => handleSave(request.Leave_request_id)}
+                                        onClick={() => handleSave(request._id)}
                                     />
 
                                 </td>
@@ -259,20 +260,18 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                 header="Change Leave Type"
                 style={{ width: '350px' }}
                 modal
-                onHide={() => setShowDialog(false)} // This ensures the dialog closes when you click outside or press "X".
+                onHide={() => setShowDialog(false)} 
 
                 footer={
                     <div>
                         {errorMessage && (
                             <div className="text-danger d-flex text-start justify-content-start align-items-center">
-                                {/* <i className="pi pi-exclamation-triangle me-2"></i> */}
                                 <small>{errorMessage}</small>
                             </div>
                         )}
 
                     </div>
                 }
-
             >
                 <div>
                     <Dropdown
