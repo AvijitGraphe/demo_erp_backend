@@ -274,12 +274,8 @@ router.post('/add-leave', authenticateToken, async (req, res) => {
         if (!leaveType) {
             return res.status(404).json({ success: false, message: 'Invalid leave type' });
         }
-
-        console.log(user_id, Leave_type_Id);
         // Fetch the leave balance
         const leaveBalance = await LeaveBalance.findOne({ user_id, leave_type_id: Leave_type_Id });
-
-        console.log(leaveBalance);
         if (!leaveBalance || leaveBalance.earned_days <= 0) {
             return res.status(400).json({ success: false, message: 'Insufficient leave balance for the selected leave type' });
         }
@@ -1243,9 +1239,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
         leaveRequests.forEach((group) => {
             groupedRequests[group.status] = group.requests;
         });
-
-
-        console.log("log the data", groupedRequests)
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1364,46 +1357,45 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
 
-
-    console.log("log the data", user_id);
-    
     try {
-        // Fetch leave balances for the given user_id with associated leave type details
         const leaveBalances = await LeaveBalance.aggregate([
             {
-                $match: { user_id: user_id } 
+                $match: {
+                    user_id: new mongoose.Types.ObjectId(user_id),
+                }
             },
             {
                 $lookup: {
-                    from: 'leavetypes',
-                    let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } }, 
+                    from: 'leavetypes', 
+                    localField: 'Leave_type_Id',
+                    foreignField: '_id',
+                    as: 'leaveType',
                     pipeline: [
                         { 
-                            $match: { 
-                                $expr: { $eq: ["$_id", "$$leaveTypeId"] } 
-                            }
-                        },
-                        { 
                             $project: { 
-                                _id: 1, 
+                                _id: 1,
                                 name: 1, 
-                                description: 1 
+                                accrual_type: 1
                             }
                         }
-                    ],
-                    as: 'leaveType',
+                    ]
                 }
             },
+            {
+                $unwind: {
+                    path: '$leaveType',
+                    preserveNullAndEmptyArrays: true 
+                }
+            }
         ]);
-        
-        console.log(leaveBalances);
+
+        // If no leave balances are found for the user
         if (!leaveBalances || leaveBalances.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'No leave balances found for the specified user.',
             });
         }
-        // Return leave balances
         res.status(200).json({
             success: true,
             data: leaveBalances,
@@ -1417,6 +1409,8 @@ router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req,
         });
     }
 });
+
+
 
 
 
