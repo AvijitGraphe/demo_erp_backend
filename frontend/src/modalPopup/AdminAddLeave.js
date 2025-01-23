@@ -14,7 +14,7 @@ function AdminAddLeave({ onSuccess }) {
     const [leaves, setLeaves] = useState([]);
     const [leaveType, setLeaveType] = useState('');
     const [leaveTypeId, setLeaveTypeId] = useState('');
-    const [selectedDates, setSelectedDates] = useState([]); // For selected dates
+    const [selectedDates, setSelectedDates] = useState([]);
     const [leaveBalance, setLeaveBalance] = useState(0);
     const [leaveReason, setLeaveReason] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -51,17 +51,16 @@ function AdminAddLeave({ onSuccess }) {
                     setErrorMessage("Failed to fetch leave balances.");
                 }
             };
-
+    
             fetchLeaveBalances();
         }
     }, [selectedUserId, accessToken]);
+    
 
     const handleLeaveTypeChange = (e) => {
-        const selectedLeaveTypeId = parseInt(e.target.value, 10);
+        const selectedLeaveTypeId = e.target.value;
         setLeaveTypeId(selectedLeaveTypeId);
-
         const selectedLeaveTypeData = leaves.find((type) => type.leave_type_id === selectedLeaveTypeId);
-
         if (selectedLeaveTypeData) {
             setLeaveType(selectedLeaveTypeData.name);
             setLeaveBalance(selectedLeaveTypeData.total_days || 0);
@@ -132,15 +131,18 @@ function AdminAddLeave({ onSuccess }) {
                     <Col lg={5} md={6} className="mb-3">
                         <div className="mb-2">
                             <Form.Label>Employee <span className='text-danger'>*</span></Form.Label>
-                            <Form.Select
-                                aria-label="Select User"
-                                onChange={(e) => setSelectedUserId(e.target.value)}
-                                value={selectedUserId || ""}
-                                required
-                            >
+                                <Form.Select
+                                    aria-label="Select User"
+                                    onChange={(e) => {
+                                        const selectedId = e.target.value;
+                                        setSelectedUserId(selectedId);
+                                    }}
+                                    value={selectedUserId || ""}
+                                    required
+                                >
                                 <option value="">Select User</option>
                                 {users.map((user) => (
-                                    <option key={user.user_id} value={user.user_id}>
+                                    <option key={user._id} value={user._id}>
                                         {`${user.first_name} ${user.last_name}`}
                                     </option>
                                 ))}
@@ -154,7 +156,7 @@ function AdminAddLeave({ onSuccess }) {
                                 value={leaveTypeId || ""}
                                 required
                             >
-                                <option value="">Select Leave Type</option>
+                                <option value="" disabled>Select Leave Type</option>
                                 {Array.isArray(leaves) && leaves.map((leave) => (
                                     <option key={leave.leave_type_id} value={leave.leave_type_id}>
                                         {leave.name}
