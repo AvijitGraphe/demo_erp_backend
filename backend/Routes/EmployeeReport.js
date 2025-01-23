@@ -26,7 +26,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         return res.status(400).json({ message: 'userId, month, and year are required' });
     }
 
-    
     try {
         // Parse month and year
         const startDate = moment(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
@@ -58,6 +57,17 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 },
             },
             { $unwind: { path: '$role', preserveNullAndEmptyArrays: true } },
+
+            // Lookup user joining date
+            {
+                $lookup: {
+                    from: 'joiningdates',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'joiningDates',
+                },
+            },
+            { $unwind: { path: '$joiningDates', preserveNullAndEmptyArrays: true } },
 
             // Lookup user times
             {
@@ -101,7 +111,7 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         }
 
         const user = userDetails[0]; // Since we expect only one user, take the first result
-        const { attendances, userTimes, overtimes } = user;
+        const { attendances, userTimes, overtimes, joiningDates } = user;
         const startTime = userTimes?.[0]?.start_time || '09:00:00';
 
         // Calculate statistics
@@ -129,7 +139,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         const totalOvertimeMinutes = overtimes?.reduce((sum, overtime) => sum + overtime.total_time, 0) || 0;
         const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
 
-
         console.log("log the data ", 
             user,
             totalDaysInMonth,
@@ -137,12 +146,15 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
             totalAbsentDays,
             totalLateCount,
             lateDays,
-            totalOvertimeHours, )
-
-
+            totalOvertimeHours,
+            joiningDates // Log the joining date as well
+        );
 
         res.status(200).json({
-            userDetails: user,
+            userDetails: {
+                ...user,
+                joining_date: joiningDates?.joining_date, // Add the joining date to the response
+            },
             totalDaysInMonth,
             totalPresentDays,
             totalAbsentDays,
@@ -150,7 +162,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
             lateDays, // Include late days in the response
             totalOvertimeHours, // Include total overtime in hours
         });
-
 
     } catch (error) {
         console.error(`Error fetching user details: ${error.message}`);

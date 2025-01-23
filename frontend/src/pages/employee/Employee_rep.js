@@ -59,6 +59,7 @@ const Employee_rep = () => {
                 params: { userId: userId, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+            console.log("log the data ", response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -257,7 +258,7 @@ const Employee_rep = () => {
                                     <div className="jdate">
                                         <span>Date of Joining : </span>
                                         <b>
-                                            {new Date(attendanceData.userDetails.joiningDates[0].joining_date).toLocaleDateString('en-GB', {
+                                            {new Date(attendanceData.userDetails.joiningDates.joining_date).toLocaleDateString('en-GB', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -397,9 +398,9 @@ const Employee_rep = () => {
                                             { title: 'In Progress', icon: <RiProgress3Line />, count: getTaskCountByStatus('InProgress') },
                                             { title: 'In Review', icon: <GrInProgress />, count: getTaskCountByStatus('InReview') },
                                             { title: 'In Changes', icon: <GrInProgress />, count: getTaskCountByStatus('InChanges') },
-                                            { title: 'Missed Deadlines', icon: <BsFire />, count: taskStats.data.missedAndOnTimeCounts.missedCount },
+                                            // { title: 'Missed Deadlines', icon: <BsFire />, count: taskStats.data.missedAndOnTimeCounts.missedCount },
                                             { title: 'Completed', icon: <LiaTasksSolid />, count: getTaskCountByStatus('Completed') },
-                                            { title: 'On Time', icon: <TbTimeDuration10 />, count: taskStats.data.missedAndOnTimeCounts.onTimeCount },
+                                            // { title: 'On Time', icon: <TbTimeDuration10 />, count: taskStats.data.missedAndOnTimeCounts.onTimeCount },
                                         ].map(({ title, icon, count }, idx) => (
                                             <li key={idx} className='dashboard_card'>
                                                 <Card className="shadow-0">
