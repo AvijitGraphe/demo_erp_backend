@@ -1148,112 +1148,6 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
 });
 
 
-// router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
-//     try {
-//         const { start_date, end_date, search_query } = req.query;
-//         const matchConditions = {};
-//         if (start_date && end_date) {
-//             matchConditions.updatedAt = {
-//                 $gte: new Date(start_date),
-//                 $lte: new Date(end_date),
-//             };
-//         }
-//         const userMatchConditions = {};
-//         if (search_query) {
-//             userMatchConditions.$or = [
-//                 { first_name: { $regex: search_query, $options: 'i' } },
-//                 { last_name: { $regex: search_query, $options: 'i' } },
-//             ];
-//         }
-//         // MongoDB aggregation pipeline
-//         const leaveRequests = await LeaveRequest.aggregate([
-//             {
-//                 $match: matchConditions,  
-//             },
-//             {
-//                 $lookup: {
-//                     from: 'users',
-//                     localField: 'user_id',
-//                     foreignField: '_id',
-//                     as: 'requestor',
-//                     pipeline: [
-//                         { $match: userMatchConditions },  
-//                         { $project: { first_name: 1, last_name: 1, email: 1 } },
-//                         {
-//                             $lookup: {
-//                                 from: 'profileimages',
-//                                 localField: '_id',
-//                                 foreignField: 'user_id',
-//                                 as: 'profileImage',
-//                                 pipeline: [{ $project: { image_url: 1 } }],
-//                             },
-//                         },
-//                         { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
-//                     ],
-//                 },
-//             },
-//             {
-//                 $lookup: {
-//                     from: 'leavetypes', // The 'leavetypes' collection name
-//                     localField: 'Leave_type_Id', // Field in the LeaveRequest model
-//                     foreignField: '_id', // Field in the LeaveType model
-//                     as: 'leaveType', // Result will be placed in the 'leaveType' field
-//                     pipeline: [
-//                         { 
-//                             $project: { 
-//                                 _id: 1,  // Including '_id' in the result
-//                                 name: 1, // Including the 'name' field from LeaveType model
-//                                 description: 1 // Optionally, include the 'description'
-//                             }
-//                         }
-//                     ]
-//                 }
-//             },
-//             {
-//                 $group: {
-//                     _id: '$Status',
-//                     requests: { $push: '$$ROOT' },  
-//                 },
-//             },
-//             {
-//                 $project: {  
-//                     _id: 0,
-//                     status: '$_id',  
-//                     requests: 1,
-//                 },
-//             },
-//             {
-//                 $sort: { status: 1 }, 
-//             },
-//         ]);
-        
-//         // Grouping by status
-//         const groupedRequests = {
-//             Pending: [],
-//             Approved: [],
-//             Rejected: [],
-//         };
-//         leaveRequests.forEach((group) => {
-//             groupedRequests[group.status] = group.requests;
-//         });
-//         console.log("log the dat ok groupedRequests", groupedRequests)
-//         res.status(200).json({
-//             success: true,
-//             data: groupedRequests,
-//         });
-//     } catch (error) {
-//         console.error('Error fetching leave requests by status:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Failed to fetch leave requests',
-//             error: error.message,
-//         });
-//     }
-// });
-
-
-
-//get leave request by user id wise 
 
 
 router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
@@ -1469,40 +1363,46 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
 // api to display user leave balances
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
+
+
+    console.log("log the data", user_id);
+    
     try {
         // Fetch leave balances for the given user_id with associated leave type details
         const leaveBalances = await LeaveBalance.aggregate([
             {
-                $match: { user_id:user_id}, // Match user_id
+                $match: { user_id: user_id } 
             },
             {
                 $lookup: {
-                    from: 'leavetypes', // The name of the LeaveType collection in MongoDB
-                    localField: 'leave_type_id', // The field in LeaveBalance that references LeaveType
-                    foreignField: '_id', // The _id of the LeaveType collection
-                    as: 'leaveType', // The alias for the populated field
-                },
-            },
-            {
-                $unwind: '$leaveType', // Unwind the array if it's present
-            },
-            {
-                $project: {
-                    'leaveType.Leave_type_Id': 1,
-                    'leaveType.name': 1,
-                    'leaveType.accrual_type': 1,
-                    'earned_days': 1, // Include earned_days or any other leave balance field
-                },
+                    from: 'leavetypes',
+                    let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } }, 
+                    pipeline: [
+                        { 
+                            $match: { 
+                                $expr: { $eq: ["$_id", "$$leaveTypeId"] } 
+                            }
+                        },
+                        { 
+                            $project: { 
+                                _id: 1, 
+                                name: 1, 
+                                description: 1 
+                            }
+                        }
+                    ],
+                    as: 'leaveType',
+                }
             },
         ]);
-
+        
+        console.log(leaveBalances);
         if (!leaveBalances || leaveBalances.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'No leave balances found for the specified user.',
             });
         }
-
         // Return leave balances
         res.status(200).json({
             success: true,

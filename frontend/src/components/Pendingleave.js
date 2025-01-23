@@ -17,7 +17,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     const [leaveBalances, setLeaveBalances] = useState([]);
     const [showDialog, setShowDialog] = useState(false);
     const [selectedLeaveType, setSelectedLeaveType] = useState(null);
-    const [errorMessage, setErrorMessage] = useState(''); // State to hold error message
+    const [errorMessage, setErrorMessage] = useState(''); 
     useEffect(() => {
         setLeaveRequests(pendingLeaves);
     }, [pendingLeaves]);
@@ -77,6 +77,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     // Fetch leave balances for the selected user
 
     const fetchLeaveBalances = async (user_id) => {
+        console.log("log the data", user_id)
         try {
             const response = await axios.get(
                 `${config.apiBASEURL}/leaveRoutes/fetch-user-leave-balances/${user_id}`,
@@ -84,6 +85,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
+            console.log("log the leave balnce ok", response.data)
             setLeaveBalances(response.data.data); // Set leave balances array
         } catch (error) {
             console.error('Error fetching leave balances:', error);
@@ -91,11 +93,13 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     };
 
     const handleOpenDialog = (request) => {
+        console.log("all the resqurst", request)
         setSelectedRequest(request);
-        fetchLeaveBalances(request.requestor.User_id);
+        fetchLeaveBalances(request.user_id);
         setShowDialog(true);
     };
 
+    //handel leave save
     const handleSaveLeaveType = async () => {
         if (!selectedRequest || !selectedLeaveType) {
             setErrorMessage('Please select a leave type.');
