@@ -40,6 +40,7 @@ const Leave_apply = () => {
         }
     };
 
+    //Get Leve lists
     const fetchLeaveRequests = async () => {
         try {
             const { startDate, endDate } = dateRange;
@@ -53,6 +54,7 @@ const Leave_apply = () => {
                     params: { start_date: startDate, end_date: endDate },
                 }
             );
+            console.log("log the data is now ", response.data)
             if (response.data.success) {
                 const combinedRequests = [
                     ...response.data.data.Pending,
@@ -166,11 +168,9 @@ const Leave_apply = () => {
                         {leaveBalances.map((leave) => {
                             const maxDays = leave.total_days; // Use total_days from the API data
                             const remainingDays = leave.earned_days;
-
                             // Determine if carry-over exists
                             const carryOverDays = remainingDays > maxDays ? remainingDays - maxDays : 0;
                             const adjustedRemainingDays = remainingDays > maxDays ? maxDays : remainingDays;
-
                             return (
                                 <Col key={leave.leave_balance_id} md={6} lg={4} className="dashboard_card mb-3">
                                     <Card>
@@ -359,7 +359,6 @@ const Leave_apply = () => {
                     onSuccess={handleLeaveRequestSuccess}
                 />
             </Dialog>
-
             <Dialog visible={videoDialogVisible} className='fadeInUp_dilog'
                 onHide={() => setVideoDialogVisible(false)} style={{ width: '320px' }} closable={false}>
                 <video src={successVideo} autoPlay loop muted style={{ width: '100%' }} />

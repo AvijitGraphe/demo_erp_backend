@@ -26,7 +26,8 @@ function EmpLeaverequest({ onSuccess }) {
                 const response = await axios.get(`${config.apiBASEURL}/leaveRoutes/fetch-leave-balances/${userId}`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
-                setLeaves(response.data); // Set leave balances array
+                console.log("log the data is now", response.data)
+                setLeaves(response.data);
             } catch (error) {
                 console.error("Error fetching leave balances:", error);
                 setErrorMessage("Failed to fetch leave balances.");
@@ -36,46 +37,45 @@ function EmpLeaverequest({ onSuccess }) {
         fetchLeaveBalances();
     }, [userId, accessToken]);
 
+    //handle leave change
     const handleLeaveTypeChange = (e) => {
-        const selectedLeaveTypeId = parseInt(e.target.value, 10); // Parse the ID as an integer
+        const selectedLeaveTypeId = e.target.value;
         setLeaveTypeId(selectedLeaveTypeId);
-
         const selectedLeaveTypeData = leaves.find((type) => type.leave_type_id === selectedLeaveTypeId);
-
         if (selectedLeaveTypeData) {
-            setLeaveType(selectedLeaveTypeData.name); // Set the leave name
-            setLeaveBalance(selectedLeaveTypeData.total_days || 0); // Set the leave balance
+            setLeaveType(selectedLeaveTypeData.name);
+            setLeaveBalance(selectedLeaveTypeData.total_days || 0);
         } else {
-            setLeaveType(''); // Reset if no valid selection
-            setLeaveBalance(0); // Reset the balance
+            setLeaveType('');
+            setLeaveBalance(0);
         }
     };
+    
 
+    //date range 
     const handleDateSelection = (dates) => {
-        const validDates = dates.filter(date => date.getDay() !== 0); // Exclude Sundays
+        const validDates = dates.filter(date => date.getDay() !== 0);
         setSelectedDates(validDates);
-        setTotalDays(validDates.length); // Update total days
+        setTotalDays(validDates.length);
     };
 
     const handleSave = async (event) => {
         event.preventDefault();
-
         if (totalDays > leaveBalance) {
             setErrorMessage("The number of days exceeds the available leave balance.");
             return;
         }
 
+        console.log("log tjhe data ok", userId, leaveTypeId, selectedDates, totalDays, leaveReason)
         setLoading(true);
-
         try {
             const dates = selectedDates.map(date =>
                 new Date(date).toLocaleDateString('en-CA')
-            ); // Format selected dates as 'YYYY-MM-DD'
-
+            ); 
             const response = await axios.post(`${config.apiBASEURL}/leaveRoutes/add-leave`, {
                 user_id: userId,
                 Leave_type_Id: leaveTypeId,
-                dates,
+                dates: selectedDates,
                 Total_days: totalDays,
                 reason: leaveReason,
             }, {
@@ -115,18 +115,18 @@ function EmpLeaverequest({ onSuccess }) {
                         <div className="mb-2">
                             <Form.Label>Leave Type <span className='text-danger'>*</span></Form.Label>
                             <Form.Select
-                                aria-label="Select Leave Type"
-                                onChange={handleLeaveTypeChange}
-                                value={leaveTypeId || ""} // Use leaveTypeId to set the selected value
-                                required
-                            >
-                                <option value="">Select Leave Type</option>
-                                {Array.isArray(leaves) && leaves.map((leave) => (
-                                    <option key={leave.leave_type_id} value={leave.leave_type_id}>
-                                        {leave.name}
-                                    </option>
-                                ))}
-                            </Form.Select>
+                                    aria-label="Select Leave Type"
+                                    onChange={handleLeaveTypeChange}
+                                    value={leaveTypeId || ""}
+                                    required
+                                >
+                                    <option value="" disabled>Select Leave Type</option>
+                                    {Array.isArray(leaves) && leaves.map((leave) => (
+                                        <option key={leave.leave_type_id} value={leave.leave_type_id}>
+                                            {leave.name}
+                                        </option>
+                                    ))}
+                                </Form.Select>
                         </div>
                         <div className="mb-2">
                             <Form.Label>Number of Days</Form.Label>

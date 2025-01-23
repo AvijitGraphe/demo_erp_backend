@@ -50,6 +50,9 @@ const All_leaves = () => {
                 },
 
             });
+
+            console.log("log the data ok...!!!", response.data)
+
             if (response.data.success) {
                 setLeaveData(response.data.data);
             } else {

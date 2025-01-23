@@ -28,7 +28,6 @@ const Add_leavebalance = () => {
     // handelupdate
     const handleUpdateArrears = async () => {
         if (!selectedBalance || newArrears === '') {
-            
             showMessage('warning', 'Please enter a valid arrear days value.');
             return;
         }
@@ -36,7 +35,7 @@ const Add_leavebalance = () => {
             const response = await axios.put(
                 `${config.apiBASEURL}/leaveRoutes/update-arrear-days`,
                 {
-                    leave_balance_id: selectedBalance.leave_balance_id,
+                    leave_balance_id: selectedBalance._id,
                     arrear_days: newArrears,
                 },
                 {
@@ -52,7 +51,6 @@ const Add_leavebalance = () => {
         } catch (error) {
             console.error('Error updating arrear days:', error);
             showMessage('error', 'Failed to update arrear days. Please try again.');
-            
         }
     };
 

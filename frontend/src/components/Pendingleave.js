@@ -166,7 +166,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                                             <div className="ms-3">
                                                 <p className="mb-0 text-dark">
                                                     <b>
-                                                        {`${request.requestor.first_name} ${request.requestor.last_name}`}
+                                                        {`${request.requestor[0]?.first_name} ${request.requestor[0]?.last_name}`}
                                                     </b>
                                                 </p>
                                                 <p className="text-muted mb-0">
@@ -179,7 +179,7 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
                                 <td>
                                     <div>
                                         <p className="mb-2 text-primary fw-bold">
-                                            {request.leaveType.name}
+                                            {request.leaveType[0].name}
                                         </p>
                                         <span className='d-block'>
                                             {parsedDates.map((date, index) => (

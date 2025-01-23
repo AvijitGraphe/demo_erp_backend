@@ -314,19 +314,13 @@ router.post('/add-leave', authenticateToken, async (req, res) => {
         }).select('email first_name last_name');
 
         // Prepare email data
-        const emailRecipients = users.map((user) => user.email).join(',');// Convert to a comma-separated string
-       
-       
-        console.log(emailRecipients);
-
-
+        const emailRecipients = users.map((user) => user.email).join(',');
         if(!emailRecipients){
             return res.status(400).json({
                 success: false,
                 message: 'No recipients Find',
             });
         }
-
         const mailOptions = {
             from: process.env.GMAIL_USER,
             to: emailRecipients,
@@ -631,7 +625,6 @@ router.post('/add-leave', authenticateToken, async (req, res) => {
                     `,
 
         };
-
         // Send email
         await transporter.sendMail(mailOptions);
         res.status(200).json({
@@ -1155,109 +1148,210 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
 });
 
 
+// router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
+//     try {
+//         const { start_date, end_date, search_query } = req.query;
+//         const matchConditions = {};
+//         if (start_date && end_date) {
+//             matchConditions.updatedAt = {
+//                 $gte: new Date(start_date),
+//                 $lte: new Date(end_date),
+//             };
+//         }
+//         const userMatchConditions = {};
+//         if (search_query) {
+//             userMatchConditions.$or = [
+//                 { first_name: { $regex: search_query, $options: 'i' } },
+//                 { last_name: { $regex: search_query, $options: 'i' } },
+//             ];
+//         }
+//         // MongoDB aggregation pipeline
+//         const leaveRequests = await LeaveRequest.aggregate([
+//             {
+//                 $match: matchConditions,  
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'users',
+//                     localField: 'user_id',
+//                     foreignField: '_id',
+//                     as: 'requestor',
+//                     pipeline: [
+//                         { $match: userMatchConditions },  
+//                         { $project: { first_name: 1, last_name: 1, email: 1 } },
+//                         {
+//                             $lookup: {
+//                                 from: 'profileimages',
+//                                 localField: '_id',
+//                                 foreignField: 'user_id',
+//                                 as: 'profileImage',
+//                                 pipeline: [{ $project: { image_url: 1 } }],
+//                             },
+//                         },
+//                         { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+//                     ],
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'leavetypes', // The 'leavetypes' collection name
+//                     localField: 'Leave_type_Id', // Field in the LeaveRequest model
+//                     foreignField: '_id', // Field in the LeaveType model
+//                     as: 'leaveType', // Result will be placed in the 'leaveType' field
+//                     pipeline: [
+//                         { 
+//                             $project: { 
+//                                 _id: 1,  // Including '_id' in the result
+//                                 name: 1, // Including the 'name' field from LeaveType model
+//                                 description: 1 // Optionally, include the 'description'
+//                             }
+//                         }
+//                     ]
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: '$Status',
+//                     requests: { $push: '$$ROOT' },  
+//                 },
+//             },
+//             {
+//                 $project: {  
+//                     _id: 0,
+//                     status: '$_id',  
+//                     requests: 1,
+//                 },
+//             },
+//             {
+//                 $sort: { status: 1 }, 
+//             },
+//         ]);
+        
+//         // Grouping by status
+//         const groupedRequests = {
+//             Pending: [],
+//             Approved: [],
+//             Rejected: [],
+//         };
+//         leaveRequests.forEach((group) => {
+//             groupedRequests[group.status] = group.requests;
+//         });
+//         console.log("log the dat ok groupedRequests", groupedRequests)
+//         res.status(200).json({
+//             success: true,
+//             data: groupedRequests,
+//         });
+//     } catch (error) {
+//         console.error('Error fetching leave requests by status:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch leave requests',
+//             error: error.message,
+//         });
+//     }
+// });
+
+
+
+//get leave request by user id wise 
+
+
 router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
     try {
         const { start_date, end_date, search_query } = req.query;
-
-        // Build the filtering conditions for leave requests
-        const whereConditions = {};
-
+        const matchConditions = {};
         if (start_date && end_date) {
-            whereConditions.updatedAt = {
-                $gte: new Date(start_date), 
-                $lte: new Date(end_date),    // Less than or equal to end date
+            matchConditions.updatedAt = {
+                $gte: new Date(start_date),
+                $lte: new Date(end_date),
             };
         }
 
-        // Build user search conditions for first name and last name
-        const userWhereConditions = {};
+        const userMatchConditions = {};
         if (search_query) {
-            userWhereConditions.$or = [
-                { 'requestor.first_name': { $regex: search_query, $options: 'i' } },
-                { 'requestor.last_name': { $regex: search_query, $options: 'i' } },
+            userMatchConditions.$or = [
+                { first_name: { $regex: search_query, $options: 'i' } },
+                { last_name: { $regex: search_query, $options: 'i' } },
             ];
         }
 
-        // Perform an aggregation query to fetch leave requests along with user, profile image, leave type, and approver details
         const leaveRequests = await LeaveRequest.aggregate([
             {
-                $match: whereConditions,  // Apply date range filter
+                $match: matchConditions,
             },
             {
                 $lookup: {
-                    from: 'users',  // Assuming 'users' is the collection for the User model
-                    localField: 'user_id',  // Field in LeaveRequest that references User
-                    foreignField: '_id',  // Field in User that matches the reference
-                    as: 'requestor',  // Join with User data and alias as 'requestor'
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: '_id',
+                    as: 'requestor',
+                    pipeline: [
+                        { $match: userMatchConditions },
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: '_id',
+                                foreignField: 'user_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }],
+                            },
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                    ],
                 },
             },
             {
-                $unwind: '$requestor',  // Unwind the requestor array to access individual user data
-            },
-            {
                 $lookup: {
-                    from: 'profileimages',  // Assuming 'profileimages' is the collection for ProfileImage
-                    localField: 'requestor.profileImage',  // Field in requestor that references ProfileImage
-                    foreignField: '_id',
-                    as: 'requestor.profileImage',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users',  // Assuming 'users' is the collection for the approver
-                    localField: 'Approved_By',  // Field in LeaveRequest that references approver
-                    foreignField: '_id',
-                    as: 'approver',
-                },
-            },
-            {
-                $unwind: { path: '$approver', preserveNullAndEmptyArrays: true },  // Optional: If there might be cases without an approver
-            },
-            {
-                $lookup: {
-                    from: 'leavetypes',  // Assuming 'leavetypes' is the collection for LeaveType
-                    localField: 'Leave_type_Id',  // Field in LeaveRequest that references LeaveType
-                    foreignField: '_id',
+                    from: 'leavetypes',
+                    let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } }, // Convert Leave_type_Id to ObjectId
+                    pipeline: [
+                        { 
+                            $match: { 
+                                $expr: { $eq: ["$_id", "$$leaveTypeId"] } // Match converted ObjectId with _id
+                            }
+                        },
+                        { 
+                            $project: { 
+                                _id: 1, 
+                                name: 1, 
+                                description: 1 
+                            }
+                        }
+                    ],
                     as: 'leaveType',
+                }
+            },
+            {
+                $group: {
+                    _id: '$Status',
+                    requests: { $push: '$$ROOT' },
                 },
             },
             {
-                $unwind: '$leaveType',  // Unwind leaveType array to access individual leave type data
-            },
-            {
-                $match: userWhereConditions,  // Apply search query for first_name and last_name
-            },
-            {
-                $project: {  // Project required fields
-                    'requestor.first_name': 1,
-                    'requestor.last_name': 1,
-                    'requestor.email': 1,
-                    'requestor.profileImage.image_url': 1,
-                    'approver.first_name': 1,
-                    'approver.last_name': 1,
-                    'approver.email': 1,
-                    'leaveType.name': 1,
-                    'leaveType.description': 1,
-                    'Status': 1,
-                    'updatedAt': 1,
+                $project: {
+                    _id: 0,
+                    status: '$_id',
+                    requests: 1,
                 },
             },
             {
-                $sort: { Status: 1, createdAt: -1 },  // Sort by Status and then by creation date
+                $sort: { status: 1 },
             },
         ]);
 
-        // Group leave requests by status
         const groupedRequests = {
             Pending: [],
             Approved: [],
             Rejected: [],
         };
 
-        leaveRequests.forEach((request) => {
-            groupedRequests[request.Status].push(request);
+        leaveRequests.forEach((group) => {
+            groupedRequests[group.status] = group.requests;
         });
 
+
+        console.log("log the data", groupedRequests)
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1274,99 +1368,88 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
 
 
 
-//get leave request by user id wise 
+
 router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     const { start_date, end_date } = req.query;
-
     try {
-        // Build the filtering conditions
-        const whereConditions = { user_id };
-
+        const matchConditions = { user_id: new mongoose.Types.ObjectId(user_id) };
         if (start_date && end_date) {
-            whereConditions.updatedAt = {
-                $gte: new Date(start_date),  // Greater than or equal to start date
-                $lte: new Date(end_date),    // Less than or equal to end date
+            matchConditions.updatedAt = {
+                $gte: new Date(start_date),
+                $lte: new Date(end_date),
             };
         }
-
-        // Perform aggregation to fetch leave requests along with user, profile image, leave type, and approver details
         const leaveRequests = await LeaveRequest.aggregate([
-            {
-                $match: whereConditions,  // Match by user_id and optional date range
-            },
+            { $match: matchConditions },
             {
                 $lookup: {
-                    from: 'users',  // Join with the 'users' collection
-                    localField: 'user_id',  // Field in LeaveRequest that references User
-                    foreignField: '_id',  // Field in User that matches the reference
-                    as: 'requestor',  // Alias for the requester user data
-                },
-            },
-            {
-                $unwind: '$requestor',  // Unwind the requestor array to get individual user data
-            },
-            {
-                $lookup: {
-                    from: 'profileimages',  // Join with 'profileimages' collection for profile image
-                    localField: 'requestor.profileImage',  // Field in requestor that references ProfileImage
+                    from: 'users',
+                    localField: 'requestor',
                     foreignField: '_id',
-                    as: 'requestor.profileImage',
+                    as: 'requestorDetails',
+                    pipeline: [
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: '_id',
+                                foreignField: 'user_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }],
+                            },
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                    ],
                 },
             },
             {
                 $lookup: {
-                    from: 'users',  // Join with 'users' collection for approver details
-                    localField: 'Approved_By',  // Field in LeaveRequest that references approver
+                    from: 'users',
+                    localField: 'approver',
                     foreignField: '_id',
-                    as: 'approver',
+                    as: 'approverDetails',
+                    pipeline: [
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },
+                    ],
                 },
-            },
-            {
-                $unwind: { path: '$approver', preserveNullAndEmptyArrays: true },  // Unwind approver array (optional if not required)
             },
             {
                 $lookup: {
-                    from: 'leavetypes',  // Join with 'leavetypes' collection for leave type details
-                    localField: 'Leave_type_Id',  // Field in LeaveRequest that references LeaveType
+                    from: 'leavetypes',
+                    localField: 'leaveType',
                     foreignField: '_id',
-                    as: 'leaveType',
+                    as: 'leaveTypeDetails',
+                    pipeline: [
+                        { $project: { name: 1, description: 1 } },
+                    ],
+                },
+            },
+            { $unwind: { path: '$leaveTypeDetails', preserveNullAndEmptyArrays: true } },
+            { $sort: { Status: 1, createdAt: -1 } },
+            {
+                $group: {
+                    _id: '$Status',
+                    requests: { $push: '$$ROOT' },
                 },
             },
             {
-                $unwind: '$leaveType',  // Unwind leaveType array to get individual leave type data
-            },
-            {
-                $project: {  // Select required fields
-                    'requestor.first_name': 1,
-                    'requestor.last_name': 1,
-                    'requestor.email': 1,
-                    'requestor.profileImage.image_url': 1,
-                    'approver.first_name': 1,
-                    'approver.last_name': 1,
-                    'approver.email': 1,
-                    'leaveType.name': 1,
-                    'leaveType.description': 1,
-                    'Status': 1,
-                    'updatedAt': 1,
+                $project: {
+                    _id: 0,
+                    status: '$_id',
+                    requests: 1,
                 },
             },
-            {
-                $sort: { Status: 1, createdAt: -1 },  // Sort by Status (ascending) and createdAt (descending)
-            },
+            { $sort: { status: 1 } },
         ]);
-
-        // Group leave requests by their status (Pending, Approved, Rejected)
         const groupedRequests = {
             Pending: [],
             Approved: [],
             Rejected: [],
         };
-
-        leaveRequests.forEach((request) => {
-            groupedRequests[request.Status].push(request);
+        leaveRequests.forEach((group) => {
+            groupedRequests[group.status] = group.requests;
         });
-
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1376,10 +1459,11 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
         res.status(500).json({
             success: false,
             message: 'Failed to fetch leave requests',
-            error: error.message,
+        error: error.message,
         });
     }
 });
+
 
 
 // api to display user leave balances
@@ -1484,11 +1568,11 @@ router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async 
                     pipeline: [
                         { 
                             $project: {
-                                leave_balance_id: 1,
+                                _id: 1,
                                 total_days: 1,
                                 earned_days: 1,
                                 arrear_days: 1,
-                                leave_type_id: 1  // Make sure the leave_type_id field exists in your leave balances
+                                leave_type_id: 1  
                             }
                         },
                         {
@@ -1504,7 +1588,7 @@ router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async 
                         },
                         {
                             $addFields: {
-                                leaveType: { $arrayElemAt: ['$leaveType', 0] } // Flatten the leaveType array to just the first item
+                                leaveType: { $arrayElemAt: ['$leaveType', 0] } 
                             }
                         }
                     ]
@@ -1558,9 +1642,7 @@ router.put('/update-arrear-days', authenticateToken, async (req, res) => {
         }
         // Update the arrear_days
         leaveBalance.arrear_days = arrear_days;
-        // Save the updated leave balance
         await leaveBalance.save();
-
         return res.status(200).json({
             success: true,
             message: 'Arrear days updated successfully.',
