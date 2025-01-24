@@ -92,21 +92,23 @@ const AddSubTask = ({ taskId, ProjectId, BrandId, User_Id, onSuccess }) => {
     };
 
     const handleSubmit = async () => {
-        try {
-            const response = await axios.post(
-                `${config.apiBASEURL}/projectRoutes/subtask_add`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-            onSuccess();
-        } catch (error) {
-            console.error('Failed to create subtask:', error);
-        }
+
+        console.log("log the data", formData)
+        // try {
+        //     const response = await axios.post(
+        //         `${config.apiBASEURL}/projectRoutes/subtask_add`,
+        //         formData,
+        //         {
+        //             headers: {
+        //                 Authorization: `Bearer ${accessToken}`,
+        //                 'Content-Type': 'application/json',
+        //             },
+        //         }
+        //     );
+        //     onSuccess();
+        // } catch (error) {
+        //     console.error('Failed to create subtask:', error);
+        // }
     };
 
     return (

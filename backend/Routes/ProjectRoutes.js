@@ -698,8 +698,12 @@ router.post('/project-user-role', authenticateToken, async (req, res) => {
 router.get('/viewproject-user-role', authenticateToken, async (req, res) => {
     try {
         // Fetch all project user roles from MongoDB
-        const roles = await ProjectUserRole.find();  // Using Mongoose's find() method
-
+        const rollog = await ProjectUserRole.find();  // Using Mongoose's find() method
+        const roles = rollog.map(role => ({
+            project_role_id: role._id,  // Rename _id to project_role_id
+            project_role_name: role.project_role_name,
+            __v: role.__v
+        }));
         res.status(200).json(roles);  // Send the roles as a JSON response
     } catch (error) {
         res.status(500).json({ error: 'Error retrieving project user roles' });
@@ -1305,7 +1309,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
         return res.status(400).json({ message: 'Invalid task ID format' });
     }
 
-    console.log("Fetching task with taskId:", taskId);
+
 
     try {
         // Step 2: Perform aggregation to fetch all task data with related data
@@ -1343,7 +1347,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             {
               $lookup: {
                 from: 'users',
-                localField: 'assignee_id',
+                localField: 'task_user_id',
                 foreignField: '_id',
                 as: 'assignee'
               }
@@ -1374,14 +1378,17 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             // Project all task fields and related data
             {
               $project: {
-                _id: 1,
-                // : 1 , // Include all fields of task
+                task_id: '$_id',
+                task_description:1, 
                 task_name: 1, // Add all task fields that you need
+                task_startdate: 1,
+                task_deadline: 1,
                 description: 1, // Add description if available
                 status: 1, // Add status field
                 start_date: 1, // Add start date
                 end_date: 1, // Add end date
                 priority: 1, // Add priority field
+                updatedAt:1,
                 'project.project_name': 1,
                 'project.brand.brand_name': 1,
                 'assignee.first_name': 1,
