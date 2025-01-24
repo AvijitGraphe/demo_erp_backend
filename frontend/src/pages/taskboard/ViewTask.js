@@ -53,6 +53,8 @@ const ViewTask = () => {
                     },
                 }
             );
+
+            console.log("log the darta +++++", response.data)
             setTask(response.data);
             setLoading(false);
         } catch (err) {
@@ -71,6 +73,7 @@ const ViewTask = () => {
                     },
                 }
             );
+
             const logs = response.data.logs || [];
 
             const formattedEvents = logs.map((log) => ({

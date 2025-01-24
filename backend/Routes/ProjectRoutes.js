@@ -1295,123 +1295,7 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
 // Fetch task and its subtasks
 
-// router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
-//     const { taskId } = req.params;
-//     console.log("log the data taskId", taskId)
-//     try {
-//         const task = await Tasks.aggregate([
-//             { 
-//               $match: { 
-//                 _id: new mongoose.Types.ObjectId(`${taskId}`) 
-//               } 
-//             },
 
-//             {
-//               $lookup: {
-//                 from: 'projects',
-//                 localField: 'project_id',
-//                 foreignField: '_id',
-//                 as: 'project'
-//               }
-//             },
-//             { $unwind: '$project' },
-          
-//             // Lookup for brand within project
-//             {
-//               $lookup: {
-//                 from: 'brands',
-//                 localField: 'project.brand_id',
-//                 foreignField: '_id',
-//                 as: 'project.brand'
-//               }
-//             },
-//             { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
-          
-//             // Lookup for assignee (user)
-//             {
-//               $lookup: {
-//                 from: 'users',
-//                 localField: 'assignee_id',
-//                 foreignField: '_id',
-//                 as: 'assignee'
-//               }
-//             },
-//             { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
-          
-//             // Lookup for profile image of assignee
-//             {
-//               $lookup: {
-//                 from: 'profile_images',
-//                 localField: 'assignee.profile_image_id',
-//                 foreignField: '_id',
-//                 as: 'assignee.profileImage'
-//               }
-//             },
-//             { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
-          
-//             // Lookup for subtasks
-//             {
-//               $lookup: {
-//                 from: 'subtasks',
-//                 localField: '_id',
-//                 foreignField: 'task_id',
-//                 as: 'subtasks'
-//               }
-//             },
-          
-//             // Unwind subtasks with preserveNullAndEmptyArrays for tasks that don't have subtasks
-//             {
-//               $unwind: { 
-//                 path: '$subtasks', 
-//                 preserveNullAndEmptyArrays: true 
-//               }
-//             },
-          
-//             // Lookup for project roles in subtasks
-//             {
-//               $lookup: {
-//                 from: 'project_user_roles',
-//                 localField: 'subtasks.project_role_id',
-//                 foreignField: '_id',
-//                 as: 'subtasks.projectRole'
-//               }
-//             },
-//             { $unwind: { path: '$subtasks.projectRole', preserveNullAndEmptyArrays: true } },
-          
-//             // Final projection of the required fields
-//             {
-//               $project: {
-//                 task_id: 1,
-//                 'project.project_name': 1,
-//                 'project.brand.brand_name': 1,
-//                 'assignee.first_name': 1,
-//                 'assignee.last_name': 1,
-//                 'assignee.email': 1,
-//                 'assignee.profileImage.image_url': 1,
-//                 'subtasks.subtask_id': 1,
-//                 'subtasks.subtask_name': 1,
-//                 'subtasks.sub_task_description': 1,
-//                 'subtasks.status': 1,
-//                 'subtasks.priority': 1,
-//                 'subtasks.sub_task_startdate': 1,
-//                 'subtasks.sub_task_deadline': 1,
-//                 'subtasks.missed_deadline': 1,
-//                 'subtasks.projectRole.project_role_name': 1
-//               }
-//             }
-//         ]);
-          
-//         console.log("log the is now ", task);
-
-//         if (task.length === 0) {
-//             return res.status(404).json({ message: 'Task not found' });
-//         }
-//         res.status(200).json(task[0]);
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ message: 'Server error', error: error.message });
-//     }
-// });
 
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
@@ -1490,7 +1374,8 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             // Project all task fields and related data
             {
               $project: {
-                _id: 1, // Include all fields of task
+                _id: 1,
+                // : 1 , // Include all fields of task
                 task_name: 1, // Add all task fields that you need
                 description: 1, // Add description if available
                 status: 1, // Add status field
