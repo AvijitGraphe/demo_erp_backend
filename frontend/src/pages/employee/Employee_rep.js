@@ -485,9 +485,12 @@ const Employee_rep = () => {
                                             </thead>
                                             <tbody>
                                                 {attendanceData.userDetails.attendances.map((attendance, index) => {
-                                                    const isFullDay = attendance.Attendance_status === "Full-Day";
-                                                    const isHalfDay = attendance.Attendance_status === "Half-Day";
-                                                    const isStarted = attendance.Attendance_status === "Started";
+                                                    console.log("log the data attendance ", attendance )
+                                                    const isFullDay = attendance.attendance_status === "Full-Day";
+                                                    const isHalfDay = attendance.attendance_status === "Half-Day";
+                                                    const isStarted = attendance.attendance_status === "Started";
+
+                                                    console.log("logn the data", isFullDay, isHalfDay,isStarted)
 
                                                     return (
                                                         <tr key={index}>

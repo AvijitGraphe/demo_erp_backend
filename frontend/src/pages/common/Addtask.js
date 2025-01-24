@@ -30,7 +30,7 @@ const AddTask = () => {
         task_deadline: "",
         task_type: "Graphe",
         priority: "Low",
-        userDetails: null, // New field to store the selected user details
+        userDetails: null, 
     });
 
     const [taskForms, setTaskForms] = useState([createEmptyTaskForm()]);
@@ -44,6 +44,8 @@ const AddTask = () => {
                     `${config.apiBASEURL}/projectRoutes/fetch-all-users`,
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                 );
+                console.log("log the data", usersResponse.data)
+
                 setUsers(usersResponse.data);
             } catch (error) {
                 console.error("Error fetching users:", error);
@@ -52,6 +54,7 @@ const AddTask = () => {
         fetchData();
     }, [accessToken]);
 
+    //fetchbrandandprojects
     const fetchBrandsAndProjects = async (search) => {
         try {
             const response = await axios.get(
@@ -62,10 +65,11 @@ const AddTask = () => {
                 const projects = response.data.projects;
                 const uniqueBrands = Array.from(
                     new Map(
-                        projects.map((project) => [
-                            project.brand.brand_name,
-                            { id: project.brand_id, name: project.brand.brand_name },
-                        ])
+                        projects.map((project) =>   [
+                            project.brand._id,
+                            { id: project.brand._id, name: project.brand.brand_name },
+                        ]
+                    )
                     ).values()
                 );
                 setBrands(uniqueBrands);
@@ -76,6 +80,7 @@ const AddTask = () => {
         }
     };
 
+    //search brands
     const searchBrands = (event) => {
         const query = event.query.toLowerCase();
         const filteredBrands = brands.filter((brand) =>
@@ -84,14 +89,13 @@ const AddTask = () => {
         setBrandSuggestions(filteredBrands);
     };
 
+    //handel task changes 
     const handleTaskFormChange = async (index, key, value) => {
         const updatedForms = [...taskForms];
         updatedForms[index][key] = value;
 
-        // Check if either `user_id` or `task_startdate` is being changed
         if (key === "user_id" || key === "task_startdate") {
             const { user_id, task_startdate } = updatedForms[index];
-
             if (user_id && task_startdate) {
                 try {
                     const response = await axios.get(
@@ -101,64 +105,59 @@ const AddTask = () => {
                             params: {
                                 user_id: user_id,
                                 start_date: task_startdate
-                            }, // Pass query parameters here
+                            },
                         }
                     );
-
                     const usersData = response.data;
-
-                    // Find the user details using the user_id
+                    console.log("log the usedetails ok", usersData);
                     const userDetails = usersData.find(
-                        (user) => user.user_id === parseInt(user_id, 10)
+                        (user) => user.user_id === user_id
                     );
-
                     updatedForms[index].userDetails = userDetails || null;
                 } catch (error) {
                     console.error("Error fetching user details:", error);
-                    updatedForms[index].userDetails = null; // Clear details on error
+                    updatedForms[index].userDetails = null;
                 }
             } else {
-                // Clear details if inputs are incomplete
                 updatedForms[index].userDetails = null;
             }
         }
-
-        // Update the state outside the conditional block
         setTaskForms(updatedForms);
     };
+    
 
-
-
+    //addtaskform
     const addTaskForm = () => {
         setTaskForms([createEmptyTaskForm(), ...taskForms]);
     };
 
+    //removetaskform
     const removeTaskForm = (index) => {
         const updatedForms = taskForms.filter((_, i) => i !== index);
         setTaskForms(updatedForms);
     };
 
+    //save task the data
     const handleTaskSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault();  
+        
+        console.log("log the data ok", taskForms)
         const tasksWithBrandAndProject = taskForms.map((task) => ({
             ...task,
             brand_id: selectedBrand?.id || "",
             project_id: selectedProject || "",
         }));
-
         try {
             await axios.post(
                 `${config.apiBASEURL}/projectRoutes/add-tasks`,
                 { tasks: tasksWithBrandAndProject },
                 { headers: { Authorization: `Bearer ${accessToken}` } }
             );
-
             // Show video dialog
             setVideoDialogVisible(true);
             setTimeout(() => {
                 // Hide video dialog after 5 seconds
                 setVideoDialogVisible(false);
-
                 // Navigate to the admin task board
                 navigate("/dashboard/task_board_admin");
             }, 5000);
@@ -201,9 +200,9 @@ const AddTask = () => {
                                             value={selectedProject}
                                             onChange={(e) => setSelectedProject(e.target.value)}
                                         >
-                                            <option value="">Select Project</option>
+                                            <option value="" disabled>Select Project</option>
                                             {projects.map((project) => (
-                                                <option key={project.project_id} value={project.project_id}>
+                                                <option key={project._id} value={project._id}>
                                                     {project.project_name}
                                                 </option>
                                             ))}
@@ -328,12 +327,13 @@ const AddTask = () => {
                                                                 <Form.Group>
                                                                     <Form.Label>Assign To</Form.Label>
                                                                     <Form.Select
-                                                                        value={task.user_id}
+                                                                        value={task._id}
                                                                         onChange={(e) => handleTaskFormChange(index, 'user_id', e.target.value)}
                                                                     >
-                                                                        <option value="">Select User</option>
+                                                                        <option value="" disabled>Select User</option>
                                                                         {users.map((user) => (
-                                                                            <option key={user.user_id} value={user.user_id}>
+                                                                           
+                                                                            <option key={user._id} value={user._id}>
                                                                                 {user.first_name} {user.last_name}
                                                                             </option>
                                                                         ))}
@@ -345,7 +345,7 @@ const AddTask = () => {
                                                                     <Form.Label>Start Date and Time</Form.Label>
                                                                     <Calendar
                                                                         value={task.task_startdate}
-                                                                        onChange={(e) => handleTaskFormChange(index, 'task_startdate', e.value)}
+                                                                        onChange={(e) => handleTaskFormChange(index, 'task_startdate', e.target.value)}
                                                                         showTime
                                                                         hourFormat="12" // Use "12" for 12-hour format with AM/PM
                                                                         dateFormat="dd-mm-yy"

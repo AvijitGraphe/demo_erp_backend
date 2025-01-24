@@ -13,7 +13,10 @@ const UserTaskLimits = require('../Models/UserTaskLimits');
 const moment = require('moment');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
+
+
 const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 
 
 // Helper function to calculate total time in days
@@ -45,87 +48,86 @@ router.get('/fetch-all-users', authenticateToken, async (req, res) => {
   
 
 
-//Fetch all users with task data 
+
+
 router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
     try {
         const { user_id, start_date } = req.query;
-
-        console.log("user_id, start_date", user_id, start_date);
-
         if (!start_date) {
             return res.status(400).json({ message: "start_date is required." });
         }
-
         const dayStart = new Date(start_date);
-        dayStart.setHours(0, 0, 0, 0); // Start of the day
+        dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(start_date);
-        dayEnd.setHours(23, 59, 59, 999); // End of the day
-
-        console.log("dayStart", dayStart);
-        console.log("dayEnd", dayEnd);
-
+        dayEnd.setHours(23, 59, 59, 999);
         const userCondition = {
-            user_type: { $in: ['Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] },
+            user_type: { $in: ['Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] }
         };
 
         if (user_id) {
-            console.log("Converting user_id to ObjectId:", user_id);
-            userCondition.user_id = new mongoose.Types.ObjectId(user_id); 
+            userCondition._id = new ObjectId(user_id);
         }
 
-        console.log("User query condition:", userCondition);
-
-        // Fetch users using the updated condition
         const users = await User.aggregate([
             { $match: userCondition },
-            { $lookup: {
-                from: 'usertasklimits',
-                localField: 'user_id',
-                foreignField: 'user_id',
-                as: 'taskLimit'
-            }},
-            { $unwind: { path: '$taskLimit', preserveNullAndEmptyArrays: true } },
-            { $lookup: {
-                from: 'profileimages',
-                localField: 'user_id',
-                foreignField: 'user_id',
-                as: 'profileImage'
-            }},
-            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
-            { $project: {
-                user_id: 1,
-                first_name: 1,
-                last_name: 1,
-                email: 1,
-                user_type: 1,
-                max_tasks_per_day: { $ifNull: ['$taskLimit.max_tasks_per_day', 0] },
-                profile_image: { $ifNull: ['$profileImage.image_url', null] }
-            }}
+            { 
+                $lookup: {
+                    from: 'usertasklimits',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'taskLimit'
+                }
+            },
+            { 
+                $lookup: {
+                    from: 'profileimages',
+                    localField: '_id',
+                    foreignField: 'user_id',
+                    as: 'profileImage'
+                }
+            },
+            { 
+                $project: {
+                    user_id: 1,
+                    first_name: 1,
+                    last_name: 1,
+                    email: 1,
+                    user_type: 1,
+                    taskLimit: { $arrayElemAt: ['$taskLimit.max_tasks_per_day', 0] },
+                    profileImage: { $arrayElemAt: ['$profileImage.image_url', 0] }
+                }
+            }
         ]);
+
+        console.log("log the data", users)
+        // Fetch tasks for the specified date and group 
         const tasksToday = await Tasks.aggregate([
-            { $match: {
-                status: { $in: ['Todo', 'InProgress', 'InChanges'] },
-                task_startdate: { $gte: dayStart, $lte: dayEnd },
-                task_user_id: new mongoose.Types.ObjectId(user_id) // Ensure correct field
-            }},
-            { $group: {
-                _id: '$task_user_id',
-                taskCount: { $sum: 1 }
-            }}
+            { 
+                $match: {
+                    status: { $in: ['Todo', 'InProgress', 'InChanges'] }, // Include Todo, InProgress, and InChanges
+                    task_startdate: { $gte: dayStart, $lte: dayEnd }
+                }
+            },
+            { 
+                $group: {
+                    _id: '$task_user_id', // Group by user
+                    taskCount: { $sum: 1 } // Count the number of tasks
+                }
+            }
         ]);
 
-        console.log("tasksToday", tasksToday);
-
+        // Map task counts by user_id for easy access
         const taskCountMap = {};
         tasksToday.forEach(task => {
-            taskCountMap[task._id] = task.taskCount;
+            taskCountMap[task._id.toString()] = task.taskCount;
         });
 
-        console.log("taskCountMap", taskCountMap)
-
+        // Build the response by merging user data with task counts and limits
         const response = users.map(user => {
-            const userId = user.user_id;
-            const taskLimit = user.max_tasks_per_day || 0;
+
+
+            const userId = user._id.toString();
+            const taskLimit = user.taskLimit || 0;
             const taskCount = taskCountMap[userId] || 0;
             const remainingTasks = taskLimit - taskCount;
 
@@ -137,18 +139,18 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
                 user_type: user.user_type,
                 max_tasks_per_day: taskLimit,
                 tasks_today: taskCount,
-                remaining_tasks: remainingTasks > 0 ? remainingTasks : 0,
+                remaining_tasks: remainingTasks > 0 ? remainingTasks : 0, // Ensure non-negative value
                 limit_exceeded: taskCount >= taskLimit,
-                profile_image: user.profile_image,
+                profile_image: user.profileImage || null // Include profile image URL
             };
         });
-
         res.status(200).json(response);
     } catch (error) {
         console.error('Error fetching all users with task details:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 
 
@@ -595,13 +597,11 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
 
 
 
-//*---------------------------------------------------project scearch by brand name ----------------------------------------*/
+//*---------project scearch by brand name ------------------*/
 router.get('/projects-by-brand', authenticateToken, async (req, res) => {
     const { brand_name } = req.query;
 
-
-    console.log("log ythe brand", brand_name);
-    
+    console.log("log the brand search ok!", brand_name);
 
     try {
         if (!brand_name) {
@@ -612,62 +612,32 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
         const projects = await Projects.aggregate([
             {
                 $lookup: {
-                    from: 'brands', // The collection name for the Brand model
-                    localField: 'brand_id', // The field in Project referencing the Brand
-                    foreignField: '_id', // The _id field in the Brand collection
-                    as: 'brand', // Alias for the populated brand
-                },
+                    from: 'brands',          // The collection to join with
+                    localField: 'brand_id',   // Field in Projects collection to join on
+                    foreignField: '_id',      // Field in Brands collection to join on
+                    as: 'brand'              // The name of the field to store the joined data
+                }
             },
             {
-                $unwind: {
-                    path: '$brand', // Unwind the brand array to a single object
-                    preserveNullAndEmptyArrays: true, // Preserve projects that may not have a brand
-                },
+                $unwind: { 
+                    path: '$brand',            
+                    preserveNullAndEmptyArrays: true 
+                }
             },
             {
                 $match: {
-                    'brand.brand_name': { $regex: brand_name, $options: 'i' }, // Case-insensitive match for the brand_name
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users', // Assuming a User model for the project lead
-                    localField: 'lead_id', // The field in Project referencing the lead
-                    foreignField: '_id', // The _id field in the User collection
-                    as: 'lead', // Alias for the populated lead
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users', // For project members, assuming 'users' is the collection name
-                    localField: 'member_id', // The field in Project referencing member ids
-                    foreignField: '_id', // The _id field in the User collection
-                    as: 'members', // Alias for the populated members
-                },
+                    'brand.brand_name': { $regex: new RegExp(brand_name, 'i') } 
+                }
             },
             {
                 $project: {
-                    _id: 1, // Include project ID
-                    project_name: 1, // Include project name
-                    description: 1, // Include description
-                    status: 1, // Include project status
-                    priority: 1, // Include priority
-                    start_date: 1, // Include start date
-                    end_date: 1, // Include end date
-                    brand: 1, // Include the brand details
-                    lead: { // Include lead details
-                        _id: 1,
-                        first_name: 1,
-                        last_name: 1,
-                    },
-                    members: { // Include member details
-                        _id: 1,
-                        first_name: 1,
-                        last_name: 1,
-                    },
-                },
-            },
+                    _id: 1,
+                    project_name: 1,
+                    brand: 1  
+                }
+            }
         ]);
+        
 
         if (projects.length === 0) {
             return res.status(404).json({ message: 'No projects found for the specified brand' });
@@ -682,6 +652,7 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 
 
@@ -789,10 +760,12 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
     if (!Array.isArray(tasks) || tasks.length === 0) {
         return res.status(400).json({ error: "Tasks must be a non-empty array." });
     }
-    console.log("tasks", tasks)
+
+
+    console.log("log the data task****", tasks)
+
     try {
         const addedTasks = [];
-
         for (const task of tasks) {
             const {
                 user_id,
@@ -805,39 +778,51 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 task_type,
                 priority
             } = task;
-
-            // Parse task_startdate to set start and end of the day
             const startDate = new Date(task_startdate);
             startDate.setHours(0, 0, 0, 0); // Start of the task date
             const endDate = new Date(task_startdate);
             endDate.setHours(23, 59, 59, 999); // End of the task date
 
             // Fetch the user's task limit
-            const user = await User.findOne({ user_id }).populate('taskLimit', 'max_tasks_per_day');
+            const user = await User.aggregate([
+                { $match: { _id: new mongoose.Types.ObjectId(user_id) } },
+                { 
+                    $lookup: {
+                        from: 'tasklimits',
+                        localField: '_id',
+                        foreignField: 'user_id',
+                        as: 'taskLimit'
+                    }
+                },
+                { $unwind: { path: '$taskLimit', preserveNullAndEmptyArrays: true } }
+            ]);
+            
+            console.log("log the data is now", user);
+
             if (!user) {
                 console.error(`User with ID ${user_id} not found.`);
-                continue; // Skip this task
+                continue; // Skip this task if user not found
             }
 
             const taskLimit = user.taskLimit?.max_tasks_per_day || 0;
 
             // Fetch the user's current task count for the specified date
             const taskCount = await Tasks.countDocuments({
-                task_user_id: user_id,
-                status: { $in: ['Todo', 'InProgress', 'InChanges'] },
+                task_user_id:new mongoose.Types.ObjectId(user_id),
+                status: { $in: ['Todo', 'InProgress', 'InChanges'] }, 
                 task_startdate: { $gte: startDate, $lte: endDate }
             });
 
             if (taskCount >= taskLimit) {
                 console.log(`User ${user_id} has reached their task limit (${taskLimit}) for ${task_startdate}. Task skipped.`);
-                continue; // Skip this task
+                continue; 
             }
 
-            // Add the task to the database
-            const newTask = new Tasks({
+            // Add the task
+            const newTask = await Tasks.create({
                 project_id,
                 brand_id,
-                task_user_id: user_id,
+                task_user_id: new mongoose.Types.ObjectId(user_id),
                 task_name,
                 task_description,
                 task_startdate,
@@ -847,44 +832,46 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 status: 'Todo',
             });
 
-            await newTask.save(); // Save the task
-
+            console.log("log the data newTask")
             // Fetch users to notify, excluding the task creator's user_id
             const usersToNotify = await User.find({
                 user_type: { $in: ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'] },
-                user_id: { $ne: user_id }
+                _id: { $ne: new mongoose.Types.ObjectId(user_id) }, // Exclude the task creator's user_id
             });
 
-            // Add the task creator's ID to the notification list
-            const userIds = new Set(usersToNotify.map(user => user.user_id));
+            // Map the user IDs and include only unique IDs
+            const userIds = new Set(usersToNotify.map(user => user._id.toString()));
+
+            // Add the task creator's ID to the set
             userIds.add(user_id);
 
             // Process each user ID to add task positions
             for (const id of userIds) {
-                const maxPosition = await UserTaskPositions.findOne({ user_id: id, column: 'Todo' })
-                    .sort({ position: -1 })
-                    .limit(1);
+                const maxPosition = await UserTaskPositions.findOne({
+                    user_id:new mongoose.Types.ObjectId(id),
+                    column: 'Todo',
+                }).sort({ position: -1 });
 
                 const position = (maxPosition?.position || 0) + 1;
 
-                const newTaskPosition = new UserTaskPositions({
-                    user_id: id,
-                    task_id: newTask._id,
+                await UserTaskPositions.create({
+                    user_id:new mongoose.Types.ObjectId(id),
+                    task_id: newTask._id, // Ensure you're referring to the correct task ID
                     column: 'Todo',
                     position,
                 });
-
-                await newTaskPosition.save(); // Save the task position
             }
 
             addedTasks.push(newTask);
         }
 
+        console.log(" log the data ", addedTasks);
         res.status(201).json({
             message: 'Tasks added successfully.',
             tasks: addedTasks,
         });
     } catch (error) {
+        console.error('Error adding tasks:', error);
         res.status(500).json({ error: 'Error adding tasks', details: error.message });
     }
 });

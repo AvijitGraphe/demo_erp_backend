@@ -51,6 +51,7 @@ const AddProjects = () => {
                         headers: { Authorization: `Bearer ${accessToken}` },
                     }
                 );
+                console.log("logn the data", data)
                 setUsers(data);
             } catch (error) {
                 console.error("Error fetching users:", error);
@@ -198,7 +199,7 @@ const AddProjects = () => {
                                                         value={projectData.brand_id}
                                                         options={brands.map((brand) => ({
                                                             label: brand.brand_name,
-                                                            value: brand.brand_id,
+                                                            value: brand._id,
                                                         }))}
                                                         onChange={handleChange}
                                                         placeholder="Select a brand"
@@ -261,7 +262,7 @@ const AddProjects = () => {
                                                 value={projectData.lead_id}
                                                 options={users.map((user) => ({
                                                     label: `${user.first_name} ${user.last_name}`,
-                                                    value: user.user_id,
+                                                    value: user._id,
                                                 }))}
                                                 onChange={handleChange}
                                                 placeholder="Select a project lead"
@@ -291,7 +292,7 @@ const AddProjects = () => {
                                                 value={projectData.member_id}
                                                 options={users.map((user) => ({
                                                     label: `${user.first_name} ${user.last_name}`,
-                                                    value: user.user_id,
+                                                    value: user._id,
                                                 }))}
                                                 onChange={(e) =>
                                                     setProjectData({ ...projectData, member_id: e.value })
@@ -301,6 +302,8 @@ const AddProjects = () => {
                                                 display="chip"
                                             />
                                         </Col>
+
+                                        
                                         <Col md={6} lg={6} className="px-2 mb-3">
                                             <label className="mb-2">Project Files (URL)</label>
                                             <InputTextarea

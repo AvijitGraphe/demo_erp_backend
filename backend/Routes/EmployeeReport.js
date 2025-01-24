@@ -13,24 +13,22 @@ const router = express.Router();
 const LeaveBalance = require('../Models/LeaveBalance');
 const Tasks = require('../Models/Tasks');
 const mongoose = require('mongoose');
-
-
-
-
 const { ObjectId } = mongoose.Types;
 
 router.get('/Employee-report-attendance', authenticateToken, async (req, res) => {
     const { userId, month, year } = req.query;
-      
+
     if (!userId || !month || !year) {
         return res.status(400).json({ message: 'userId, month, and year are required' });
     }
 
     try {
-        // Parse month and year
-        const startDate = moment(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
-        const endDate = moment(startDate).endOf('month').format('YYYY-MM-DD');
+        // Parse month and year, and calculate the correct start and end dates
+        const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();  // Convert to Date object
+        const endDate = moment(startDate).endOf('month').toDate();  // Convert to Date object
         const isCurrentMonth = moment().isSame(moment(startDate), 'month');
+
+        console.log("log the data", startDate, endDate, isCurrentMonth);
 
         // Fetch user details including profile image, role, attendances, and overtime
         const userDetails = await User.aggregate([
@@ -87,7 +85,7 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                     foreignField: 'user_id',
                     as: 'attendances',
                     pipeline: [
-                        { $match: { date: { $gte: startDate, $lte: endDate } } },
+                        { $match: { date: { $gte: startDate, $lte: endDate } } }, // Compare Date objects
                     ],
                 },
             },
@@ -112,7 +110,7 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
 
         const user = userDetails[0]; // Since we expect only one user, take the first result
         const { attendances, userTimes, overtimes, joiningDates } = user;
-        const startTime = userTimes?.[0]?.start_time || '09:00:00';
+        const startTime = userTimes?.[0]?.start_time || '09:00:00'; // Default to 09:00 if no start time
 
         // Calculate statistics
         const totalDaysInMonth = moment(startDate).daysInMonth();
@@ -130,7 +128,7 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 : workingDays.length - totalPresentDays;
 
         const lateDays = attendances.filter(
-            (attendance) => attendance.start_time > startTime
+            (attendance) => moment(attendance.start_time, 'HH:mm:ss').isAfter(moment(startTime, 'HH:mm:ss')) // Ensure correct time comparison
         ).map((attendance) => attendance.date);
 
         const totalLateCount = lateDays.length;
@@ -168,6 +166,7 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         res.status(500).json({ message: 'Error fetching user details', error: error.message });
     }
 });
+
 
 
 
