@@ -1041,186 +1041,146 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 });
 
 
+//fetch  all data
 
-//--------------------------Taskboard fetc task api-------------------//
-// GET API to fetch tasks for Kanban board specific to the requesting user
-// router.put('/update-task-deadline', authenticateToken, async (req, res) => {
-//     const { task_id, new_deadline } = req.body;
 
-//     if (!task_id || !new_deadline) {
-//         return res.status(400).json({ error: 'Missing required fields: task_id, new_deadline' });
-//     }
 
-//     const session = await mongoose.startSession(); // Start a session for the transaction
-//     session.startTransaction(); // Begin the transaction
 
-//     try {
-//         // Find the task by ID
-//         const task = await Task.findOne({ _id: task_id }).session(session);
-        
-//         if (!task) {
-//             return res.status(404).json({ error: 'Task not found' });
-//         }
 
-//         // Update the task deadline
-//         task.task_deadline = new_deadline;
-//         await task.save({ session });
-
-//         // Commit the transaction
-//         await session.commitTransaction();
-//         session.endSession(); // End the session
-
-//         res.status(200).json({
-//             message: 'Task deadline updated successfully',
-//             task: {
-//                 task_id: task_id,
-//                 new_deadline: new_deadline
-//             }
-//         });
-//     } catch (error) {
-//         // Rollback the transaction if an error occurs
-//         if (session.inTransaction()) {
-//             await session.abortTransaction();
-//         }
-//         session.endSession(); // End the session
-
-//         res.status(500).json({
-//             error: 'Failed to update task deadline',
-//             details: error.message
-//         });
-//     } finally {
-//         // Ensure transaction is closed
-//         if (session.inTransaction()) {
-//             await session.abortTransaction();
-//         }
-//         session.endSession(); // End the session
-//     }
-// });
-
-//*-----------------------Fetch Specific Task by ID -----------------------*/
-
+//get the all routes
 router.get('/tasks/kanban', authenticateToken, async (req, res) => {
-    console.log("log the data", )
     try {
-        // Fetch query parameters
         const { user_id, brand_id, task_type, start_date, end_date } = req.query;
 
         if (!user_id) {
             return res.status(400).json({ message: 'User ID is required' });
         }
 
-        // Build dynamic query filters
-        const query = { user_id };
-
-        // Apply brand filter if provided
+        // Build dynamic filter for MongoDB
+        const filter = { user_id };
         if (brand_id) {
-            query['task.project.brand_id'] = brand_id;
+            filter['task.project.brand_id'] = brand_id;
         }
-
-        // Apply task type filter if provided
         if (task_type) {
-            query['task.task_type'] = task_type;
+            filter['task.task_type'] = task_type;
         }
-
-        // Apply date range filter if provided
         if (start_date || end_date) {
-            const dateRange = {};
-            if (start_date) {
-                dateRange['$gte'] = new Date(`${start_date}T00:00:00`);
-            }
-            if (end_date) {
-                dateRange['$lte'] = new Date(`${end_date}T23:59:59`);
-            }
-            query['task.task_startdate'] = dateRange;
+        filter['task.task_startdate'] = filter['task.task_startdate'] || {};
+        if (start_date) {
+            filter['task.task_startdate'].$gte = new Date(`${start_date}T00:00:00`);
         }
+        if (end_date) {
+            filter['task.task_startdate'].$lte = new Date(`${end_date}T23:59:59`);
+        }
+        }
+        
+        
 
-        // Fetch user tasks and populate the necessary fields
+
+        console.log("log the filter", filter)
+        //
+        // log the filter {
+        //     user_id: '679098963c7b531b81339070',
+        //     'task.task_startdate': {
+        //       '$gte': 2024-12-31T18:30:00.000Z,
+        //       '$lte': 2025-01-31T18:29:59.000Z
+        //     }
+        //   }
+
+          
+
+        // Fetch tasks with aggregation pipeline
         const userTasks = await UserTaskPositions.aggregate([
+            { $match: { user_id:new mongoose.Types.ObjectId('679098963c7b531b81339070') } },
+            
             {
-                $match: query
+              $lookup: {
+                from: 'tasks',
+                localField: 'task_id',
+                foreignField: '_id',
+                as: 'task',
+              },
             },
+            { $unwind: '$task' },
+        
             {
-                $lookup: {
-                    from: 'tasks',
-                    localField: 'task_id',
-                    foreignField: '_id',
-                    as: 'task'
+              $match: {
+                'task.task_startdate': {
+                  '$gte': new Date('2024-12-31T18:30:00.000Z'),
+                  '$lte': new Date('2025-01-31T18:29:59.000Z')
                 }
+              }
             },
+          
+            // The rest of your lookup stages
             {
-                $unwind: '$task'  // Unwind the task array to get the task document
+              $lookup: {
+                from: 'projects',
+                localField: 'task.project_id',
+                foreignField: '_id',
+                as: 'task.project',
+              },
             },
+            { $unwind: { path: '$task.project', preserveNullAndEmptyArrays: true } },
             {
-                $lookup: {
-                    from: 'projects',
-                    localField: 'task.project_id',
-                    foreignField: '_id',
-                    as: 'project'
-                }
+              $lookup: {
+                from: 'brands',
+                localField: 'task.project.brand_id',
+                foreignField: '_id',
+                as: 'task.project.brand',
+              },
             },
+            { $unwind: { path: '$task.project.brand', preserveNullAndEmptyArrays: true } },
             {
-                $unwind: '$project'  // Unwind the project array to get the project document
+              $lookup: {
+                from: 'users',
+                localField: 'task.assignee_id',
+                foreignField: '_id',
+                as: 'task.assignee',
+              },
             },
+            { $unwind: { path: '$task.assignee', preserveNullAndEmptyArrays: true } },
             {
-                $lookup: {
-                    from: 'brands',
-                    localField: 'project.brand_id',
-                    foreignField: '_id',
-                    as: 'brand'
-                }
+              $lookup: {
+                from: 'profileimages',
+                localField: 'task.assignee.profile_image_id',
+                foreignField: '_id',
+                as: 'task.assignee.profileImage',
+              },
             },
+            { $unwind: { path: '$task.assignee.profileImage', preserveNullAndEmptyArrays: true } },
+            
             {
-                $unwind: '$brand'  // Unwind the brand array to get the brand document
+              $project: {
+                task_id: '$task._id',
+                task_name: '$task.task_name',
+                status: '$task.status',
+                priority: '$task.priority',
+                priority_flag: '$task.priority_flag',
+                missed_deadline: '$task.missed_deadline',
+                task_description: '$task.task_description',
+                position: 1,
+                task_deadline: '$task.task_deadline',
+                assignee_name: {
+                  $concat: [
+                    { $ifNull: ['$task.assignee.first_name', 'N/A'] },
+                    ' ',
+                    { $ifNull: ['$task.assignee.last_name', ''] },
+                  ],
+                },
+                assignee_email: '$task.assignee.email',
+                profile_image: '$task.assignee.profileImage.image_url',
+                project_name: '$task.project.project_name',
+                brand_name: '$task.project.brand.brand_name',
+                column: 1,
+              },
             },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'task.user_id',
-                    foreignField: '_id',
-                    as: 'assignee'
-                }
-            },
-            {
-                $unwind: '$assignee'  // Unwind the assignee array to get the user document
-            },
-            {
-                $lookup: {
-                    from: 'profileimages',
-                    localField: 'assignee.profile_image_id',
-                    foreignField: '_id',
-                    as: 'profileImage'
-                }
-            },
-            {
-                $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true }  // Unwind the profileImage
-            },
-            {
-                $project: {
-                    task_id: '$task._id',
-                    task_name: '$task.task_name',
-                    status: '$task.status',
-                    priority: '$task.priority',
-                    priority_flag: '$task.priority_flag',
-                    missed_deadline: '$task.missed_deadline',
-                    task_description: '$task.task_description',
-                    position: '$position',
-                    end_date: '$task.task_deadline',
-                    assignee_name: { $concat: ['$assignee.first_name', ' ', '$assignee.last_name'] },
-                    assignee_email: '$assignee.email',
-                    profile_image: '$profileImage.image_url',
-                    project_name: '$project.project_name',
-                    brand_name: '$brand.brand_name',
-                    column: '$column' // This represents the Kanban column (status)
-                }
-            },
-            {
-                $sort: {
-                    'priority_flag': -1,  // Sort by priority flag (descending)
-                    'position': 1  // Sort by position (ascending)
-                }
-            }
+            
+            { $sort: { column: 1, 'task.priority_flag': -1, position: 1 } },
         ]);
 
+        console.log("log the data ok", userTasks);
+        
         if (!userTasks || userTasks.length === 0) {
             return res.status(200).json({
                 message: "No tasks found for the user's Kanban board",
@@ -1234,7 +1194,7 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
             });
         }
 
-        // Structure tasks into a Kanban board format
+        // Structure tasks into Kanban board format
         const kanbanBoard = {
             Todo: [],
             InProgress: [],
@@ -1243,13 +1203,35 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
             Completed: [],
         };
 
-        userTasks.forEach((taskData) => {
-            // Add the task to the appropriate column based on its status
-            if (kanbanBoard[taskData.column]) {
-                kanbanBoard[taskData.column].push(taskData);
+        userTasks.forEach((task) => {
+            const taskData = {
+                task_id: task.task_id,
+                task_name: task.task_name || 'N/A',
+                status: task.status || 'N/A',
+                priority: task.priority || 'N/A',
+                priority_flag: task.priority_flag || 'No-Priority',
+                missed_deadline: task.missed_deadline || false,
+                task_description: task.task_description || 'N/A',
+                position: task.position,
+                end_date: task.task_deadline || 'N/A',
+                assignee_name: task.assignee_name.trim(),
+                assignee_email: task.assignee_email || 'N/A',
+                profile_image: task.profile_image || null,
+                project_name: task.project_name || 'N/A',
+                brand_name: task.brand_name || 'N/A',
+            };
+
+            if (kanbanBoard[task.column]) {
+                kanbanBoard[task.column].push(taskData);
             }
         });
 
+        Object.keys(kanbanBoard).forEach((column) => {
+            kanbanBoard[column].sort((a, b) => {
+                const priorityOrder = b.priority_flag.localeCompare(a.priority_flag);
+                return priorityOrder !== 0 ? priorityOrder : a.position - b.position;
+            });
+        });
         res.status(200).json({
             message: "Tasks fetched successfully for the user's Kanban board",
             data: kanbanBoard,
@@ -1261,7 +1243,69 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
 });
 
 
+
+router.put('/update-task-deadline', authenticateToken, async (req, res) => {
+    const { task_id, new_deadline } = req.body;
+
+    if (!task_id || !new_deadline) {
+        return res.status(400).json({ error: 'Missing required fields: task_id, new_deadline' });
+    }
+
+    const session = await mongoose.startSession(); // Start a session for the transaction
+    session.startTransaction(); // Begin the transaction
+
+    try {
+        // Find the task by ID
+        const task = await Task.findOne({ _id: task_id }).session(session);
+        
+        if (!task) {
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        // Update the task deadline
+        task.task_deadline = new_deadline;
+        await task.save({ session });
+
+        // Commit the transaction
+        await session.commitTransaction();
+        session.endSession(); // End the session
+
+        res.status(200).json({
+            message: 'Task deadline updated successfully',
+            task: {
+                task_id: task_id,
+                new_deadline: new_deadline
+            }
+        });
+    } catch (error) {
+        // Rollback the transaction if an error occurs
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        session.endSession(); // End the session
+
+        res.status(500).json({
+            error: 'Failed to update task deadline',
+            details: error.message
+        });
+    } finally {
+        // Ensure transaction is closed
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        session.endSession(); // End the session
+    }
+});
+
+// *-----------------------Fetch Specific Task by ID -----------------------*/
+
+
+
+
+
+
 // Fetch task and its subtasks
+
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
     try {

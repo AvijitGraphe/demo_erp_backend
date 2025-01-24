@@ -70,6 +70,7 @@ const Taskboard_admin = () => {
     const [taskType, setTaskType] = useState(""); // Default is empty
     // Fetch tasks from the API
     const fetchTasks = async () => {
+        console.log("log the data selectedBrand", selectedBrand)
         try {
             setIsLoading(true); // Set loading state
             setColumns({}); // Reset columns
@@ -87,7 +88,6 @@ const Taskboard_admin = () => {
                 },
             });
 
-            console.log("log the data", response.data)
             const data = response.data?.data || initialColumns;
             setColumns(data);
         } catch (error) {
@@ -104,6 +104,7 @@ const Taskboard_admin = () => {
             const response = await axios.get(`${config.apiBASEURL}/projectRoutes/fetch-all-users`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+            console.log("log thr data", response.data)
             setUsers(response.data || []);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -118,6 +119,7 @@ const Taskboard_admin = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
+            console.log("log the data", response.data)
             setBrands(response.data || []);
         } catch (error) {
             console.error("Error fetching brands:", error);
