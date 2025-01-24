@@ -1076,23 +1076,16 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
         
         
 
-
-        console.log("log the filter", filter)
-        //
-        // log the filter {
-        //     user_id: '679098963c7b531b81339070',
-        //     'task.task_startdate': {
-        //       '$gte': 2024-12-31T18:30:00.000Z,
-        //       '$lte': 2025-01-31T18:29:59.000Z
-        //     }
-        //   }
-
+        console.log("log the data is now ok", filter)
           
 
         // Fetch tasks with aggregation pipeline
         const userTasks = await UserTaskPositions.aggregate([
-            { $match: { user_id:new mongoose.Types.ObjectId('679098963c7b531b81339070') } },
-            
+            { 
+                $match: { 
+                    user_id: new mongoose.Types.ObjectId(filter.user_id)
+                } 
+            },
             {
               $lookup: {
                 from: 'tasks',
@@ -1106,8 +1099,8 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
             {
               $match: {
                 'task.task_startdate': {
-                  '$gte': new Date('2024-12-31T18:30:00.000Z'),
-                  '$lte': new Date('2025-01-31T18:29:59.000Z')
+                  '$gte': new Date(filter['task.task_startdate'].$gte),
+                  '$lte': new Date(filter['task.task_startdate'].$lte)
                 }
               }
             },
@@ -1241,6 +1234,10 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+
+
+
 
 
 
