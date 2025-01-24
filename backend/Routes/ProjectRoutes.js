@@ -1295,96 +1295,240 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
 // Fetch task and its subtasks
 
+// router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
+//     const { taskId } = req.params;
+//     console.log("log the data taskId", taskId)
+//     try {
+//         const task = await Tasks.aggregate([
+//             { 
+//               $match: { 
+//                 _id: new mongoose.Types.ObjectId(`${taskId}`) 
+//               } 
+//             },
+
+//             {
+//               $lookup: {
+//                 from: 'projects',
+//                 localField: 'project_id',
+//                 foreignField: '_id',
+//                 as: 'project'
+//               }
+//             },
+//             { $unwind: '$project' },
+          
+//             // Lookup for brand within project
+//             {
+//               $lookup: {
+//                 from: 'brands',
+//                 localField: 'project.brand_id',
+//                 foreignField: '_id',
+//                 as: 'project.brand'
+//               }
+//             },
+//             { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
+          
+//             // Lookup for assignee (user)
+//             {
+//               $lookup: {
+//                 from: 'users',
+//                 localField: 'assignee_id',
+//                 foreignField: '_id',
+//                 as: 'assignee'
+//               }
+//             },
+//             { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
+          
+//             // Lookup for profile image of assignee
+//             {
+//               $lookup: {
+//                 from: 'profile_images',
+//                 localField: 'assignee.profile_image_id',
+//                 foreignField: '_id',
+//                 as: 'assignee.profileImage'
+//               }
+//             },
+//             { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
+          
+//             // Lookup for subtasks
+//             {
+//               $lookup: {
+//                 from: 'subtasks',
+//                 localField: '_id',
+//                 foreignField: 'task_id',
+//                 as: 'subtasks'
+//               }
+//             },
+          
+//             // Unwind subtasks with preserveNullAndEmptyArrays for tasks that don't have subtasks
+//             {
+//               $unwind: { 
+//                 path: '$subtasks', 
+//                 preserveNullAndEmptyArrays: true 
+//               }
+//             },
+          
+//             // Lookup for project roles in subtasks
+//             {
+//               $lookup: {
+//                 from: 'project_user_roles',
+//                 localField: 'subtasks.project_role_id',
+//                 foreignField: '_id',
+//                 as: 'subtasks.projectRole'
+//               }
+//             },
+//             { $unwind: { path: '$subtasks.projectRole', preserveNullAndEmptyArrays: true } },
+          
+//             // Final projection of the required fields
+//             {
+//               $project: {
+//                 task_id: 1,
+//                 'project.project_name': 1,
+//                 'project.brand.brand_name': 1,
+//                 'assignee.first_name': 1,
+//                 'assignee.last_name': 1,
+//                 'assignee.email': 1,
+//                 'assignee.profileImage.image_url': 1,
+//                 'subtasks.subtask_id': 1,
+//                 'subtasks.subtask_name': 1,
+//                 'subtasks.sub_task_description': 1,
+//                 'subtasks.status': 1,
+//                 'subtasks.priority': 1,
+//                 'subtasks.sub_task_startdate': 1,
+//                 'subtasks.sub_task_deadline': 1,
+//                 'subtasks.missed_deadline': 1,
+//                 'subtasks.projectRole.project_role_name': 1
+//               }
+//             }
+//         ]);
+          
+//         console.log("log the is now ", task);
+
+//         if (task.length === 0) {
+//             return res.status(404).json({ message: 'Task not found' });
+//         }
+//         res.status(200).json(task[0]);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Server error', error: error.message });
+//     }
+// });
+
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
+
+    // Step 1: Validate the taskId format
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+        return res.status(400).json({ message: 'Invalid task ID format' });
+    }
+
+    console.log("Fetching task with taskId:", taskId);
+
     try {
+        // Step 2: Perform aggregation to fetch all task data with related data
         const task = await Tasks.aggregate([
-            { $match: { _id: new mongoose.Types.ObjectId(taskId) } }, // Match the task by ID
-            {
-                $lookup: {
-                    from: 'projects', // 'projects' is the collection name for projects
-                    localField: 'project', // Reference field in Task
-                    foreignField: '_id', // Reference field in Project
-                    as: 'project' // Output field containing the project info
-                }
+            // Match task by taskId
+            { 
+              $match: { 
+                _id: new mongoose.Types.ObjectId(taskId) 
+              } 
             },
-            { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
+
+            // Lookup project information
             {
-                $lookup: {
-                    from: 'brands', // 'brands' is the collection name for brands
-                    localField: 'project.brand', // Reference field in Project
-                    foreignField: '_id', // Reference field in Brand
-                    as: 'brand' // Output field containing the brand info
-                }
+              $lookup: {
+                from: 'projects',
+                localField: 'project_id',
+                foreignField: '_id',
+                as: 'project'
+              }
             },
-            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
+            { $unwind: '$project' },
+
+            // Lookup brand within project
             {
-                $lookup: {
-                    from: 'users', // 'users' is the collection name for users
-                    localField: 'assignee', // Reference field in Task
-                    foreignField: '_id', // Reference field in User
-                    as: 'assignee' // Output field containing the assignee info
-                }
+              $lookup: {
+                from: 'brands',
+                localField: 'project.brand_id',
+                foreignField: '_id',
+                as: 'project.brand'
+              }
+            },
+            { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
+
+            // Lookup assignee (user)
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'assignee_id',
+                foreignField: '_id',
+                as: 'assignee'
+              }
             },
             { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
+
+            // Lookup assignee's profile image
             {
-                $lookup: {
-                    from: 'profileimages', // 'profileimages' is the collection name for profile images
-                    localField: 'assignee.profileImage', // Reference field in User
-                    foreignField: '_id', // Reference field in ProfileImage
-                    as: 'profileImage' // Output field containing profile image info
-                }
+              $lookup: {
+                from: 'profile_images',
+                localField: 'assignee.profile_image_id',
+                foreignField: '_id',
+                as: 'assignee.profileImage'
+              }
             },
-            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
+
+            // Lookup subtasks related to this task
             {
-                $lookup: {
-                    from: 'subtasks', // 'subtasks' is the collection name for subtasks
-                    localField: '_id', // Reference field in Task
-                    foreignField: 'task', // Reference field in Subtask
-                    as: 'subtasks' // Output field containing the subtasks info
-                }
+              $lookup: {
+                from: 'subtasks',
+                localField: '_id',
+                foreignField: 'task_id',
+                as: 'subtasks'
+              }
             },
+
+            // Project all task fields and related data
             {
-                $lookup: {
-                    from: 'projectuserroles', // 'projectuserroles' is the collection name for project user roles
-                    localField: 'subtasks.projectRole', // Reference field in Subtask
-                    foreignField: '_id', // Reference field in ProjectUserRole
-                    as: 'subtaskRoles' // Output field containing project roles in subtasks
-                }
-            },
-            { $unwind: { path: '$subtasks', preserveNullAndEmptyArrays: true } },
-            {
-                $project: {
-                    task_id: 1,
-                    task_name: 1,
-                    task_description: 1,
-                    status: 1,
-                    priority: 1,
-                    task_deadline: 1,
-                    assignee: {
-                        first_name: 1,
-                        last_name: 1,
-                        email: 1,
-                        profileImage: { image_url: 1 }
-                    },
-                    project: { project_name: 1 },
-                    brand: { brand_name: 1 },
-                    subtasks: 1,
-                    subtaskRoles: { project_role_name: 1 }
-                }
+              $project: {
+                _id: 1, // Include all fields of task
+                task_name: 1, // Add all task fields that you need
+                description: 1, // Add description if available
+                status: 1, // Add status field
+                start_date: 1, // Add start date
+                end_date: 1, // Add end date
+                priority: 1, // Add priority field
+                'project.project_name': 1,
+                'project.brand.brand_name': 1,
+                'assignee.first_name': 1,
+                'assignee.last_name': 1,
+                'assignee.email': 1,
+                'assignee.profileImage.image_url': 1,
+                // Ensure subtasks is always an array
+                subtasks: { $ifNull: ['$subtasks', []] }, // If no subtasks, default to empty array
+              }
             }
         ]);
 
+        // Step 3: Debugging - Log task data to console
+        console.log("Returned Task Data:", task);
+
+        // Step 4: Handle empty response
         if (task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        res.status(200).json(task[0]); // Return the first (and only) task from the aggregation result
+        // Step 5: Send the task data as the response
+        res.status(200).json(task[0]);
+
     } catch (error) {
-        console.error(error);
+        // Log and return error if an exception occurs
+        console.error("Error fetching task:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+
+
 
 
 //*-----------fetch Specific Task and subtask for duplication ------------------*//
