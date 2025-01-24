@@ -257,6 +257,7 @@ const Taskboard_admin = () => {
     };
 
     const handleView = (taskId) => {
+        console.log("log the data", taskId);
         navigate(`/dashboard/view_task/${taskId}`);
     };
 
@@ -455,7 +456,6 @@ const Taskboard_admin = () => {
                                 <div className="bordHeader">
                                     <h5 className="mb-0">{columnId}</h5>
                                 </div>
-
                                 <Droppable droppableId={columnId}>
                                     {(provided) => (
                                         <div

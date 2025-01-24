@@ -1074,11 +1074,6 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
         }
         }
         
-        
-
-        console.log("log the data is now ok", filter)
-          
-
         // Fetch tasks with aggregation pipeline
         const userTasks = await UserTaskPositions.aggregate([
             { 
@@ -1104,7 +1099,6 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
                 }
               }
             },
-          
             // The rest of your lookup stages
             {
               $lookup: {
@@ -1171,8 +1165,6 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
             
             { $sort: { column: 1, 'task.priority_flag': -1, position: 1 } },
         ]);
-
-        console.log("log the data ok", userTasks);
         
         if (!userTasks || userTasks.length === 0) {
             return res.status(200).json({
