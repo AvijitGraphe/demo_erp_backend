@@ -87,6 +87,7 @@ const Taskboard_admin = () => {
                 },
             });
 
+            console.log("log the data", response.data)
             const data = response.data?.data || initialColumns;
             setColumns(data);
         } catch (error) {

@@ -813,10 +813,15 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 task_startdate: { $gte: startDate, $lte: endDate }
             });
 
-            if (taskCount >= taskLimit) {
+            console.log("log the data", taskCount);
+
+           if (taskLimit === 0) {
+            console.log(`User ${user_id} has no task limit, task will be created.`);
+            } else if (taskCount >= taskLimit) {
                 console.log(`User ${user_id} has reached their task limit (${taskLimit}) for ${task_startdate}. Task skipped.`);
-                continue; 
+                continue;
             }
+
 
             // Add the task
             const newTask = await Tasks.create({
