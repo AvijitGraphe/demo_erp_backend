@@ -11,6 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import { Col, Row, Breadcrumb, Card, Table, Badge, ListGroup } from 'react-bootstrap';
 
 const EditSubTask = ({ subtaskId, onSuccess }) => {
+
+    console.log("subtaskId", subtaskId)
+    
     const { accessToken } = useAuth();
     const [formData, setFormData] = useState({});
     const [statuses] = useState(['Todo', 'InProgress', 'Completed']);

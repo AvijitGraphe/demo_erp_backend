@@ -1300,10 +1300,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
     const { taskId } = req.params;
     try {
         const task = await Tasks.aggregate([
-            {
-                $match: { _id: new mongoose.Types.ObjectId(taskId) }
-            },
-            // Lookup for the project and brand details
+            { $match: { _id: new mongoose.Types.ObjectId(taskId) } },
             {
                 $lookup: {
                     from: 'projects',
@@ -1312,9 +1309,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                     as: 'project'
                 }
             },
-            {
-                $unwind: { path: '$project', preserveNullAndEmptyArrays: true }
-            },
+            { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'brands',
@@ -1323,10 +1318,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                     as: 'project.brand'
                 }
             },
-            {
-                $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true }
-            },
-            // Lookup for the assignee (user)
+            { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'users',
@@ -1335,53 +1327,71 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                     as: 'assignee'
                 }
             },
-            {
-                $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true }
-            },
-            // Lookup for the subtasks, including the project_role_id to fetch project_role_name
+            { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'subtasks',
-                    localField: '_id',  // Matching the task _id
-                    foreignField: 'task_id',  // Ensuring subtasks reference the correct task_id
+                    localField: '_id',
+                    foreignField: 'task_id',
                     as: 'subtasks'
                 }
             },
             {
                 $addFields: {
-                    subtasks: { $ifNull: ["$subtasks", []] }  // Ensuring subtasks is an array
+                    subtasks: { $ifNull: ["$subtasks", []] }
                 }
             },
-            // Lookup project roles for each subtask to add project_role_name
             {
                 $lookup: {
                     from: 'projectuserroles',
-                    localField: 'subtasks.project_role_id',  // Correct field in subtasks
+                    localField: 'subtasks.project_role_id',
                     foreignField: '_id',
                     as: 'projectRole'
                 }
             },
-            // Convert the projectRole array to a single object (take the first element)
             {
                 $addFields: {
                     'subtasks.projectRole': { $arrayElemAt: ["$projectRole", 0] }
                 }
             },
-            // Project the final output
+            {
+                $addFields: {
+                    task_id: "$_id",
+                    project_id: "$project._id",
+                    subtasks: {
+                        $map: {
+                            input: "$subtasks",
+                            as: "subtask",
+                            in: {
+                                $mergeObjects: [
+                                    "$$subtask",
+                                    { subtask_id: "$$subtask._id" }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
             {
                 $project: {
+                    task_id: 1,
                     task_name: 1,
                     task_startdate: 1,
                     task_deadline: 1,
                     task_user_id: 1,
+                    project_id: 1,
+                    updatedAt:1,
+                    status:1,
+                    task_description:1,
                     'project.project_name': 1,
+                    'project.project_id': "$project._id",
                     'project.brand.brand_name': 1,
                     'assignee.first_name': 1,
                     'assignee.last_name': 1,
                     'assignee.email': 1,
                     'assignee.profileImage.image_url': 1,
                     subtasks: {
-                        subtask_id: "$_id",  // Renaming _id to subtask_id
+                        subtask_id: 1,
                         subtask_name: 1,
                         sub_task_description: 1,
                         status: 1,
@@ -1399,31 +1409,29 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             }
         ]);
 
-        // Check if task exists
         if (!task || task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        // Mapping the response to ensure proper formatting of subtasks with projectRole
-        const taskData = task[0];  // Since aggregate returns an array
+        const taskData = task[0];
         taskData.subtasks = taskData.subtasks.map(subtask => {
-            // Check if the subtask's project_role_id matches the projectRole (ensuring it's valid)
             if (subtask.projectRole && subtask.project_role_id === subtask.projectRole._id.toString()) {
                 return {
                     ...subtask,
-                    projectRole: subtask.projectRole  // Include projectRole if the match is found
+                    projectRole: subtask.projectRole
                 };
             } else {
-                return subtask;  // If there's no match, return subtask without projectRole
+                return subtask;
             }
         });
 
-        res.status(200).json(taskData); // Return the task data with updated subtasks
+        res.status(200).json(taskData);
     } catch (error) {
         console.error("Error fetching task:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
 
 
 
@@ -1460,6 +1468,7 @@ router.get('/fetchtaskforedit/:taskId', async (req, res) => {
 //Fetch the subtask Edit
 router.get('/fetchsubtaskforedit/:subtask_id', async(req, res) =>{
     const { subtask_id } = req.params;
+    console.log("log the fetchsubtaskforedit", subtask_id)
     try {
         const subtask = await Subtask.findById(subtask_id);
         if (!subtask || subtask.length === 0) {
