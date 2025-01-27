@@ -1295,17 +1295,15 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
 
 
-
-
-// Fetch task and its subtasks
+//fetchspecifictask
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
-
     try {
         const task = await Tasks.aggregate([
             {
                 $match: { _id: new mongoose.Types.ObjectId(taskId) }
             },
+            // Lookup for the project and brand details
             {
                 $lookup: {
                     from: 'projects',
@@ -1328,6 +1326,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             {
                 $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true }
             },
+            // Lookup for the assignee (user)
             {
                 $lookup: {
                     from: 'users',
@@ -1339,43 +1338,36 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             {
                 $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true }
             },
-            {
-                $lookup: {
-                    from: 'profileimages',
-                    localField: 'assignee.profileImage',
-                    foreignField: '_id',
-                    as: 'assignee.profileImage'
-                }
-            },
-            {
-                $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true }
-            },
+            // Lookup for the subtasks, including the project_role_id to fetch project_role_name
             {
                 $lookup: {
                     from: 'subtasks',
-                    localField: '_id',    // Ensure that you're matching the correct task ID field
-                    foreignField: 'task_id',    // Ensure subtasks has a field 'task_id' that refers to task _id
+                    localField: '_id',  // Matching the task _id
+                    foreignField: 'task_id',  // Ensuring subtasks reference the correct task_id
                     as: 'subtasks'
                 }
             },
             {
                 $addFields: {
-                    subtasks: { $ifNull: ["$subtasks", []] } // Ensuring subtasks is an array
+                    subtasks: { $ifNull: ["$subtasks", []] }  // Ensuring subtasks is an array
                 }
             },
-            // {
-            //     $lookup: {
-            //         from: 'projectuserroles',
-            //         localField: 'subtasks.project_role_id',    // Ensure you are using the correct field for project_role_id
-            //         foreignField: '_id',
-            //         as: 'subtasks.projectRole'
-            //     }
-            // },
-            // {
-            //     $addFields: {
-            //         'subtasks.projectRole': { $ifNull: ["$subtasks.projectRole", []] }
-            //     }
-            // },
+            // Lookup project roles for each subtask to add project_role_name
+            {
+                $lookup: {
+                    from: 'projectuserroles',
+                    localField: 'subtasks.project_role_id',  // Correct field in subtasks
+                    foreignField: '_id',
+                    as: 'projectRole'
+                }
+            },
+            // Convert the projectRole array to a single object (take the first element)
+            {
+                $addFields: {
+                    'subtasks.projectRole': { $arrayElemAt: ["$projectRole", 0] }
+                }
+            },
+            // Project the final output
             {
                 $project: {
                     task_name: 1,
@@ -1388,7 +1380,8 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                     'assignee.last_name': 1,
                     'assignee.email': 1,
                     'assignee.profileImage.image_url': 1,
-                    subtasks: {    // Make sure subtasks is correctly structured in the projection
+                    subtasks: {
+                        subtask_id: "$_id",  // Renaming _id to subtask_id
                         subtask_name: 1,
                         sub_task_description: 1,
                         status: 1,
@@ -1396,23 +1389,49 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                         sub_task_startdate: 1,
                         sub_task_deadline: 1,
                         missed_deadline: 1,
-                        // projectRole: { project_role_name: 1 }
+                        project_role_id: 1,
+                        projectRole: {
+                            _id: 1,
+                            project_role_name: 1
+                        }
                     }
                 }
             }
         ]);
-        
-        // Logging the task to check the structure
-        console.log("Task data:", JSON.stringify(task, null, 2));
+
+        // Check if task exists
         if (!task || task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
-        res.status(200).json(task[0]);
+
+        // Mapping the response to ensure proper formatting of subtasks with projectRole
+        const taskData = task[0];  // Since aggregate returns an array
+        taskData.subtasks = taskData.subtasks.map(subtask => {
+            // Check if the subtask's project_role_id matches the projectRole (ensuring it's valid)
+            if (subtask.projectRole && subtask.project_role_id === subtask.projectRole._id.toString()) {
+                return {
+                    ...subtask,
+                    projectRole: subtask.projectRole  // Include projectRole if the match is found
+                };
+            } else {
+                return subtask;  // If there's no match, return subtask without projectRole
+            }
+        });
+
+        res.status(200).json(taskData); // Return the task data with updated subtasks
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching task:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+
+
+
+
+
+
+
 
 
 
