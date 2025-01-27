@@ -1300,112 +1300,112 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 // Fetch task and its subtasks
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(taskId)) {
-        return res.status(400).json({ message: 'Invalid task ID format' });
-    }
+
     try {
         const task = await Tasks.aggregate([
-            { 
-              $match: { 
-                _id: new mongoose.Types.ObjectId(taskId) 
-              } 
+            {
+                $match: { _id: new mongoose.Types.ObjectId(taskId) }
             },
             {
-              $lookup: {
-                from: 'projects',
-                localField: 'project_id',
-                foreignField: '_id',
-                as: 'project'
-              }
-            },
-            { $unwind: '$project' },
-            {
-              $lookup: {
-                from: 'brands',
-                localField: 'project.brand_id',
-                foreignField: '_id',
-                as: 'project.brand'
-              }
-            },
-            { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
-            {
-              $lookup: {
-                from: 'users',
-                localField: 'task_user_id',
-                foreignField: '_id',
-                as: 'assignee'
-              }
-            },
-            { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
-            {
-              $lookup: {
-                from: 'profile_images',
-                localField: 'assignee.profile_image_id',
-                foreignField: '_id',
-                as: 'assignee.profileImage'
-              }
-            },
-            { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
-            {
-              $lookup: {
-                from: 'subtasks',
-                localField: '_id',
-                foreignField: 'task_id',
-                as: 'subtasks'
-              }
+                $lookup: {
+                    from: 'projects',
+                    localField: 'project_id',
+                    foreignField: '_id',
+                    as: 'project'
+                }
             },
             {
-              $lookup: {
-                from: 'projectuserroles',
-                localField: 'subtasks.project_role_id',
-                foreignField: '_id',
-                as: 'projectRole'
-              }
+                $unwind: { path: '$project', preserveNullAndEmptyArrays: true }
             },
-            { $unwind: { path: '$projectRole', preserveNullAndEmptyArrays: true } },
             {
-              $project: {
-                task_id: '$_id',
-                task_description: 1, 
-                task_name: 1, 
-                task_startdate: 1,
-                task_deadline: 1,
-                description: 1,
-                status: 1,
-                start_date: 1,
-                end_date: 1,
-                priority: 1,
-                updatedAt: 1,
-                'project.project_name': 1,
-                'project_id': '$project._id',
-                'brand_id': '$project.brand._id',
-                'project.brand.brand_id': '$project.brand._id',
-                'project.brand.brand_name': 1,
-                'assignee.first_name': 1,
-                'assignee.last_name': 1,
-                'assignee.email': 1,
-                'assignee.profileImage.image_url': 1,
-                subtasks: { 
-                  $ifNull: ['$subtasks', []]  
-                },             
-              }
+                $lookup: {
+                    from: 'brands',
+                    localField: 'project.brand_id',
+                    foreignField: '_id',
+                    as: 'project.brand'
+                }
+            },
+            {
+                $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'task_user_id',
+                    foreignField: '_id',
+                    as: 'assignee'
+                }
+            },
+            {
+                $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'profileimages',
+                    localField: 'assignee.profileImage',
+                    foreignField: '_id',
+                    as: 'assignee.profileImage'
+                }
+            },
+            {
+                $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'subtasks',
+                    localField: '_id',
+                    foreignField: 'task_id',
+                    as: 'subtasks'
+                }
+            },
+            {
+                $unwind: { path: '$subtasks', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'projectuserroles',
+                    localField: 'subtasks.project_role_id',
+                    foreignField: '_id',
+                    as: 'subtasks.projectRole'
+                }
+            },
+            {
+                $project: {
+                    task_name: 1,
+                    task_status: 1,
+                    task_startdate: 1,
+                    task_deadline: 1,
+                    task_user_id: 1,
+                    'project.project_name': 1,
+                    'project.brand.brand_name': 1,
+                    'assignee.first_name': 1,
+                    'assignee.last_name': 1,
+                    'assignee.email': 1,
+                    'assignee.profileImage.image_url': 1,
+                    'subtasks.subtask_name': 1,
+                    'subtasks.sub_task_description': 1,
+                    'subtasks.status': 1,
+                    'subtasks.priority': 1,
+                    'subtasks.sub_task_startdate': 1,
+                    'subtasks.sub_task_deadline': 1,
+                    'subtasks.missed_deadline': 1,
+                    'subtasks.projectRole.project_role_name': 1
+                }
             }
         ]);
 
-        //subtask_id
-        
-        console.log("log the data ok", )
-        if (task.length === 0) {
+        console.log("log the data os is now", task);
+        if (!task || task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
         res.status(200).json(task[0]);
-
     } catch (error) {
-        console.error("Error fetching task:", error);
+        console.error(error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
 
 
 //Fetch Edit Task
@@ -1752,7 +1752,7 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
             }
         ]);
 
-        console.log("log the data tasklogs", taskLogs)
+        // console.log("log the data tasklogs", taskLogs)
         res.status(200).json({
             message: 'Task logs retrieved successfully.',
             task_id,
