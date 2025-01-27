@@ -21,6 +21,7 @@ const Employee_list = () => {
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
+
                 // Group employees by role
                 const groupedEmployees = response.data.reduce((acc, employee) => {
                     const role = employee.user_type;
@@ -30,7 +31,9 @@ const Employee_list = () => {
                     acc[role].push(employee);
                     return acc;
                 }, {});
+
                 setEmployeesByType(groupedEmployees);
+
                 // Automatically select the first employee in "Admin" role if available
                 if (groupedEmployees['Founder'] && groupedEmployees['Founder'].length > 0 && selectedEmployee === null) {
                     setSelectedEmployee(groupedEmployees['Founder'][0]);
@@ -60,7 +63,7 @@ const Employee_list = () => {
         };
 
         fetchUnverifiedCount();
-    }, [accessToken]);
+    }, [accessToken]); // Empty dependency array to run this on component mount
 
 
     return (

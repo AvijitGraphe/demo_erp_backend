@@ -475,111 +475,91 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
  */
  router.get('/getallusers', authenticateToken, async (req, res) => {
   try {
-    const today = moment().format('YYYY-MM-DD');
+    const today = moment().startOf('day').toDate();
     const users = await User.aggregate([
-        {
-            $match: {
-                user_type: { $nin: ['Unverified', 'SuperAdmin'] }
-            }
+      {
+        $match: {
+          user_type: { $nin: ['Unverified', 'SuperAdmin'] },
         },
-        {
-            $lookup: {
-                from: 'usertimes',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'userTimes'
-            }
+      },
+      {
+        $lookup: {
+          from: 'usertimes',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'userTimes',
         },
-        {
-            $lookup: {
-                from: 'joiningdates',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'joiningDates'
-            }
+      },
+      {
+        $lookup: {
+          from: 'joiningdates',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'joiningDates',
         },
-        {
-            $lookup: {
-                from: 'resignations',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'resignations',
-                pipeline: [
-                    {
-                        $match: { status: 'Approved' }
-                    },
-                    {
-                        $project: {
-                            status: 1,
-                            last_working_day: 1
-                        }
-                    }
-                ]
-            }
+      },
+      {
+        $lookup: {
+          from: 'resignations',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'resignations',
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$user_id', '$$userId'] },
+                status: 'Approved',
+              },
+            },
+            {
+              $project: { status: 1, last_working_day: 1 },
+            },
+          ],
         },
-        {
-            $lookup: {
-                from: 'profileimages',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'profileImage'
-            }
+      },
+      {
+        $lookup: {
+          from: 'profileImages',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'profileImage',
         },
-        {
-            $lookup: {
-                from: 'userdetails',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'userDetails'
-            }
+      },
+      {
+        $lookup: {
+          from: 'userdetails',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'userDetails',
         },
-        {
-            $lookup: {
-                from: 'attendances',
-                localField: '_id',
-                foreignField: 'user_id',
-                as: 'attendances',
-                pipeline: [
-                    {
-                        $match: { date: today }
-                    },
-                    {
-                        $project: {
-                            checkin_status: 1
-                        }
-                    }
-                ]
-            }
+      },
+      {
+        $lookup: {
+          from: 'attendances',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'attendances',
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$user_id', '$$userId'] },
+                date: { $gte: today, $lt: moment(today).endOf('day').toDate() },
+              },
+            },
+            {
+              $project: { checkin_status: 1, _id: 0 },
+            },
+          ],
         },
-        {
-            $addFields: {
-                userTypePriority: {
-                    Founder: 1,
-                    Admin: 2,
-                    HumanResource: 3,
-                    Accounts: 4,
-                    Department_Head: 5,
-                    Employee: 6,
-                    Task_manager: 7,
-                    Social_Media_Manager: 8,
-                    Ex_employee: 9
-                }
-            }
+      },
+      {
+        $sort: {
+          first_name: 1,
+          last_name: 1,
         },
-        {
-            $addFields: {
-                priority: {
-                    $ifNull: [{ $arrayElemAt: [{ $objectToArray: "$userTypePriority" }, 0] }, 999]
-                }
-            }
-        },
-        {
-            $sort: {
-                priority: 1,
-                first_name: 1,
-                last_name: 1
-            }
-        }
+      },
     ]);
     res.status(200).json(users);
   } catch (error) {
@@ -587,6 +567,7 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 
