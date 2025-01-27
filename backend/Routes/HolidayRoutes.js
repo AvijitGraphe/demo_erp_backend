@@ -208,89 +208,96 @@ router.get('/holidays/week', authenticateToken, async (req, res) => {
 
 // API to fetch approved leave requests based on a date range and user_id
 router.get('/birthdays-in-range', authenticateToken, async (req, res) => {
-  const { start_date, end_date } = req.query;
   try {
-    // Extract and validate query parameters
+    const { start_date, end_date } = req.query;
+
     if (!start_date || !end_date) {
       return res.status(400).json({ error: 'start_date and end_date are required' });
     }
+
     const start = moment(start_date, 'YYYY-MM-DD').startOf('day');
     const end = moment(end_date, 'YYYY-MM-DD').endOf('day');
+
     if (!start.isValid() || !end.isValid()) {
       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
     }
-
-    // Fetch the year from the start_date (not the current date)
-    const currentYear = start.format('YYYY'); // Using the year of the start_date
-    // Use aggregate instead of find() for aggregation pipeline
+    const currentYear = start.format('YYYY');
     const users = await User.aggregate([
       {
         $match: {
-          user_type: { 
+          user_type: {
             $in: [
               'Founder', 'Admin', 'SuperAdmin', 'HumanResource',
               'Accounts', 'Department_Head', 'Employee',
               'Social_Media_Manager', 'Task_manager',
-            ]
-          }
-        }
+            ],
+          },
+        },
       },
       {
         $lookup: {
-          from: 'userdetails', 
+          from: 'userdetails', // Assuming the collection name for UserDetails is 'userdetails'
           localField: '_id',
           foreignField: 'user_id',
-          as: 'userDetails'
-        }
+          as: 'userDetails',
+        },
       },
       {
         $unwind: {
           path: '$userDetails',
-          preserveNullAndEmptyArrays: false 
-        }
+          preserveNullAndEmptyArrays: false,
+        },
       },
       {
         $match: {
           'userDetails.date_of_birth': {
-            $gte: start.toDate(),
-            $lt: end.toDate()
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'profileimages', // Ensure this is the correct collection name for ProfileImage
-          localField: '_id',
-          foreignField: 'user_id', // Assuming ProfileImage has a user_id field
-          as: 'profileImage'
-        }
+            $gte: moment().startOf('day').toDate(), 
+          },
+        },
       },
       {
         $project: {
-          _id: 1,
+          user_id: 1,
           first_name: 1,
           last_name: 1,
-          userDetails: { date_of_birth: 1 },
-          profileImage: { image_url: 1 }
-        }
-      }
+          'userDetails.date_of_birth': 1,
+          profileImage: {
+            $ifNull: ['$profileImage.image_url', null],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'profileimages',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'profileImage',
+        },
+      },
     ]);
-
-    // Map results to the desired format
-    const result = users.map((user) => ({
-      user_id: user._id, // MongoDB _id
-      name: `${user.first_name} ${user.last_name}`,
-      date_of_birth: `${currentYear}-${moment(user.userDetails.date_of_birth).format('MM-DD')}`, // Convert to YYYY-MM-DD format
-      profile_image: user.profileImage.length > 0 ? user.profileImage[0].image_url : null,
-    }));
+    
+    const result = users.map((user) => {
+      const birthDate = moment(user.userDetails.date_of_birth);
+      const birthMonthDay = birthDate.format('MM-DD');
+      const birthdayInRange = moment(`${currentYear}-${birthMonthDay}`).isBetween(start, end, null, '[]');
+      if (birthdayInRange) {
+        return {
+          user_id: user._id,
+          name: `${user.first_name} ${user.last_name}`,
+          date_of_birth: `${currentYear}-${birthMonthDay}`,
+          profile_image: user.profileImage ? user.profileImage.image_url : null,
+        };
+      }
+    }).filter(user => user !== undefined);
 
     res.status(200).json(result);
-
   } catch (error) {
     console.error('Error fetching birthdays:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
 
 
 //approved-leave-requests
