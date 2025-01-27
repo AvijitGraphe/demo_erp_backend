@@ -36,8 +36,6 @@ const Employee_dash = () => {
         missed_deadlines: [],
     });
 
-
-    //UserEffect
     useEffect(() => {
         const fetchTasks = async () => {
             try {
@@ -55,6 +53,7 @@ const Employee_dash = () => {
                 setLoading(false);
             }
         };
+
         fetchTasks();
     }, [accessToken, userId]);
 
@@ -198,6 +197,7 @@ const Employee_dash = () => {
                         </Breadcrumb>
                     </Col>
                     <Col md={6} lg={6} className='mb-4 d-flex justify-content-end'>
+
                         <Button
                             label="Leaves"
                             icon="pi pi-eye"
@@ -215,6 +215,7 @@ const Employee_dash = () => {
                     </Col>
                     <Col md={12} lg={12} className='mb-4'>
                         <Card className='dashboard_week'>
+
                             <TabView>
                                 <TabPanel header="Event Calendar">
                                     <Dash_evntcal />
@@ -223,6 +224,7 @@ const Employee_dash = () => {
                         </Card>
                     </Col>
                     <Row className="mb-3">
+
                         <Col lg={6}>
                             <Card>
                                 <Card.Header>

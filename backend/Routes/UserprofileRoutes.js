@@ -77,9 +77,12 @@ router.post('/user-details', authenticateToken, async (req, res) => {
 
     let response;
 
+
+    console.log("log the existingRecord",  details_id)
     if (details_id) {
       // Update existing record
-      const existingRecord = await UserDetails.findOne({ details_id, user_id });
+      const existingRecord = await UserDetails.findOne({ _id: details_id, user_id });
+     
       if (existingRecord) {
         response = await existingRecord.updateOne(data);
         return res.status(200).json({ message: 'User details updated successfully.', data: response });
@@ -108,12 +111,16 @@ router.get('/getUserDetails', authenticateToken, async (req, res) => {
     if (!userDetails) {
       return res.status(204).end(); 
     }
-    res.status(200).json(userDetails);
+    const userDetailsResponse = userDetails.toObject();
+    userDetailsResponse.details_id = userDetailsResponse._id;
+    delete userDetailsResponse._id;
+    res.status(200).json(userDetailsResponse);
   } catch (error) {
     console.error(`Error fetching user details: ${error.message}`);
     res.status(500).json({ message: 'Error fetching user details', error: error.message });
   }
 });
+
 
 
 

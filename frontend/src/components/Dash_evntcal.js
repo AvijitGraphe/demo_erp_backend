@@ -74,42 +74,6 @@ const Dash_evntcal = () => {
     };
 
     // Fetch Approved Leave Requests
-    // const fetchApprovedLeaveRequests = async () => {
-    //     try {
-    //         const { startDate, endDate } = dateRange;
-    //         const response = await axios.get(`${config.apiBASEURL}/HolidayRoutes/approved-leave-requests`, {
-    //             headers: { Authorization: `Bearer ${accessToken}` },
-    //             params: {
-    //                 start_date: startDate.format('YYYY-MM-DD'),
-    //                 end_date: endDate.format('YYYY-MM-DD'),
-    //             },
-    //         });
-
-    //         console.log("response ++++", )
-
-    //         const leaveEvents = response.data.leaveRequests.flatMap((request) => {
-    //             const { requestor, dates } = request;
-    //             const fullName = `${requestor.first_name} ${requestor.last_name}`;
-    //             const imageUrl = requestor.profileImage?.image_url || null;
-
-    //             const parsedDates = typeof dates === 'string' ? JSON.parse(dates) : dates;
-
-    //             return parsedDates.map((date) => ({
-    //                 title: `${fullName} - Leave`,
-    //                 start: date,
-    //                 description: request.reason || 'Leave Request',
-    //                 backgroundColor: '#28a745',
-    //                 borderColor: '#28a745',
-    //                 textColor: '#fff',
-    //             }));
-    //         });
-
-    //         setEvents((prevEvents) => [...prevEvents, ...leaveEvents]);
-    //     } catch (error) {
-    //         console.error("Error fetching approved leave requests:", error);
-    //     }
-    // };
-
     const fetchApprovedLeaveRequests = async () => {
         try {
             const { startDate, endDate } = dateRange;
@@ -120,31 +84,29 @@ const Dash_evntcal = () => {
                     end_date: endDate.format('YYYY-MM-DD'),
                 },
             });
+
             const leaveEvents = response.data.leaveRequests.flatMap((request) => {
-                const { user_id, dates, reason } = request;
-                const fullName = `${user_id.first_name} ${user_id.last_name}`;
-                const imageUrl = request.requestor?.profileImage?.image_url || null;
-                // Parse the dates
+                const { requestor, dates } = request;
+                const fullName = `${requestor.first_name} ${requestor.last_name}`;
+                const imageUrl = requestor.profileImage?.image_url || null;
+
                 const parsedDates = typeof dates === 'string' ? JSON.parse(dates) : dates;
-                // Map parsed dates to the event format
-                return parsedDates.map((date) => {
-                    const eventDate = new Date(date);
-                    return {
-                        title: `${fullName} - Leave`,
-                        start: eventDate.toISOString(), 
-                        description: reason || 'Leave Request',
-                        backgroundColor: '#28a745',
-                        borderColor: '#28a745',
-                        textColor: '#fff',
-                    };
-                });
+
+                return parsedDates.map((date) => ({
+                    title: `${fullName} - Leave`,
+                    start: date,
+                    description: request.reason || 'Leave Request',
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745',
+                    textColor: '#fff',
+                }));
             });
+
             setEvents((prevEvents) => [...prevEvents, ...leaveEvents]);
         } catch (error) {
             console.error("Error fetching approved leave requests:", error);
         }
     };
-    
 
     // Fetch meetings
     const fetchMeetings = async () => {
@@ -155,38 +117,17 @@ const Dash_evntcal = () => {
                 params: { start_date: startDate, end_date: endDate, user_id: userId  },
             });
 
-            console.log("log the data response", response.data.data)
-
-
-            const meetingEvents = response.data.data.map(meeting => {
-                const eventDate = new Date(meeting.date); // Start with the meeting date
-            
-                // Parse the start and end times and adjust them to the eventDate
-                const [startHours, startMinutes] = meeting.start_time.split(':').map(num => parseInt(num, 10));
-                const [endHours, endMinutes] = meeting.end_time.split(':').map(num => parseInt(num, 10));
-            
-                // Set start date and time
-                eventDate.setHours(startHours, startMinutes);
-            
-                // Set end date and time
-                const endDate = new Date(eventDate);
-                endDate.setHours(endHours, endMinutes);
-            
-                return {
-                    id: `meeting-${meeting.meeting_id}`,
-                    title: `${meeting.purpose}- Meeting`,
-                    start: eventDate.toISOString(),
-                    end: endDate.toISOString(),
-                    description: 'Meeting',
-                    members: meeting.members,
-                    backgroundColor: '#03b2cb', // Custom color for meetings
-                    borderColor: '#03b2cb',
-                    textColor: '#fff',
-                };
-            });
-            
-            setEvents((prevEvents) => [...prevEvents, ...meetingEvents]);
-            
+            const meetingEvents = response.data.data.map(meeting => ({
+                id: `meeting-${meeting.meeting_id}`,
+                title: `${meeting.purpose}- Meeting`,
+                start: `${meeting.date}T${meeting.start_time}`, // Combine date and time
+                end: `${meeting.date}T${meeting.end_time}`,
+                description: 'Meeting',
+                members: meeting.members,
+                backgroundColor: '#03b2cb', // Custom color for meetings
+                borderColor: '#03b2cb',
+                textColor: '#fff',
+            }));
 
             setEvents((prevEvents) => [...prevEvents, ...meetingEvents]);
         } catch (error) {
