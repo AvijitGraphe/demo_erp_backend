@@ -59,7 +59,6 @@ const Employee_rep = () => {
                 params: { userId: userId, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            console.log("log the data ", response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -485,12 +484,9 @@ const Employee_rep = () => {
                                             </thead>
                                             <tbody>
                                                 {attendanceData.userDetails.attendances.map((attendance, index) => {
-                                                    console.log("log the data attendance ", attendance )
-                                                    const isFullDay = attendance.attendance_status === "Full-Day";
-                                                    const isHalfDay = attendance.attendance_status === "Half-Day";
-                                                    const isStarted = attendance.attendance_status === "Started";
-
-                                                    console.log("logn the data", isFullDay, isHalfDay,isStarted)
+                                                    const isFullDay = attendance.Attendance_status === "Full-Day";
+                                                    const isHalfDay = attendance.Attendance_status === "Half-Day";
+                                                    const isStarted = attendance.Attendance_status === "Started";
 
                                                     return (
                                                         <tr key={index}>

@@ -20,43 +20,44 @@ const imagekit = new ImageKit({
   urlEndpoint: "https://ik.imagekit.io/blackboxv2",
 });
 
-
-// Multer setup for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Route to create a new holiday
 router.post('/addholiday', authenticateToken, upload.single('image'), async (req, res) => {
   const { holiday_name, holiday_date, status } = req.body;
-  console.log("log the holiday data ",holiday_name, holiday_date, status, req.file);
+  let imageUrl = null;
+  let imagekitFileId = null;
+
   try {
-      if (!req.file) {
-          return res.status(400).json({ error: 'Image file is required' });
-      }
-      // Upload image to ImageKit
+    if (req.file) {
       const uploadResponse = await imagekit.upload({
-          file: req.file.buffer, 
-          fileName: `holiday_${Date.now()}`,
-          folder: '/Holiday-images',
+        file: req.file.buffer,
+        fileName: `holiday_${Date.now()}`,
+        folder: '/Holiday-images',
       });
-      const newHoliday = new Holiday({
-          holiday_name,
-          holiday_date,
-          image_url: uploadResponse.url,
-          imagekit_file_id: uploadResponse.fileId,
-          status,
-      });
-      await newHoliday.save(); 
-      res.status(201).json({
-          message: 'Holiday created successfully',
-      });
+      imageUrl = uploadResponse.url;
+      imagekitFileId = uploadResponse.fileId;
+    }
+
+    const newHoliday = new Holiday({
+      holiday_name,
+      holiday_date,
+      image_url: imageUrl,
+      imagekit_file_id: imagekitFileId,
+      status,
+    });
+
+    await newHoliday.save();
+    res.status(201).json({ message: 'Holiday created successfully' });
+
   } catch (error) {
-      console.error('Error creating holiday:', error);
-      res.status(500).json({
-          message: 'Internal server error',
-          details: error.message,
-      });
+    console.error('Error creating holiday:', error);
+    res.status(500).json({
+      message: 'Internal server error',
+      details: error.message,
+    });
   }
 });
+
 
 
 
@@ -301,69 +302,51 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'start_date and end_date are required' });
     }
 
-    // Convert the start and end dates to Date objects
     const start = new Date(start_date);
     const end = new Date(end_date);
 
-    const leaveRequests = await LeaveRequest.aggregate([
-      {
-        $match: {
-          Status: 'Approved',
-        },
+    const leaveRequests = await LeaveRequest.find({
+      Status: 'Approved',
+    }).populate({
+      path: 'user_id',
+      select: ['first_name', 'last_name'],
+      populate: {
+        path: 'profileImage', 
+        select: ['image_url'],
+        strictPopulate: false,
       },
-      {
-        $lookup: {
-          from: 'users', 
-          localField: 'user_id',
-          foreignField: '_id', 
-          as: 'requestor', 
-        },
-      },
-      {
-        $unwind: {
-          path: '$requestor', 
-        },
-      },
-      {
-        $lookup: {
-          from: 'profileimages', 
-          localField: 'requestor.profileImage',
-          foreignField: '_id', 
-          as: 'requestor.profileImage', 
-        },
-      },
-      {
-          $project: {
-            _id: 1, 
-            Leave_type_Id: 1, 
-            name: 1, 
-            dates: 1, 
-            Total_days: 1, 
-            reason: 1, 
-            Status: 1,
-            Comment: 1,
-            Approved_By: 1, 
-            'requestor.first_name': 1, 
-            'requestor.last_name': 1, 
-            'requestor.dates': 1, 
-            'requestor.profileImage.image_url': 1, 
-          },
-      },
-    ]);
+    });
+
     const filteredRequests = leaveRequests.filter((request) => {
       const datesArray =
         typeof request.dates === 'string' ? JSON.parse(request.dates) : request.dates;
+
       return datesArray.some((date) => {
         const dateObj = new Date(date);
         return dateObj >= start && dateObj <= end;
       });
     });
-    res.status(200).json({ filteredRequests });
+
+    // Map _id to Leave_request_id
+    const formattedRequests = filteredRequests.map(request => {
+      return {
+        ...request.toObject(),
+        Leave_request_id: request._id,  // Convert _id to Leave_request_id
+        _id: undefined,  // Remove the original _id field if needed
+      };
+    });
+
+    res.json({ leaveRequests: formattedRequests });
   } catch (error) {
     console.error('Error fetching leave requests:', error);
     res.status(500).json({ error: 'An error occurred while fetching leave requests.' });
   }
 });
+
+
+
+
+
 
 
 

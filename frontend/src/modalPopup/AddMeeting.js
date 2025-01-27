@@ -25,6 +25,8 @@ const AddMeeting = ({ onSuccess, fetchmeetings }) => {
                 const response = await axios.get(`${config.apiBASEURL}/meetingRoutes/fetch-all-users`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
+
+                console.log("log the data ",response.data)
                 setUsers(response.data); // Populate users array
             } catch (error) {
                 console.error('Error fetching users:', error);

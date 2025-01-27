@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 
 // POST endpoint 
 router.post('/add-overtime', authenticateToken, async (req, res) => {
+  const { user_id, start_time, end_time, total_time, overtime_date } = req.body; 
   try {
     // Validate required fields
     if (!user_id || !start_time || !end_time || !total_time || !overtime_date) {
@@ -17,14 +18,13 @@ router.post('/add-overtime', authenticateToken, async (req, res) => {
     }
     // Create a new overtime record
     const newOvertime = new Overtime({
-      user_id,
+      user_id, // user_id is now defined
       start_time,
       end_time,
       total_time,
       status: 'Pending',
       overtime_date,
     });
-    // Save the overtime record to the database
     await newOvertime.save();
     return res.status(201).json({
       message: 'Overtime record created successfully.',
@@ -35,6 +35,7 @@ router.post('/add-overtime', authenticateToken, async (req, res) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 // PUT endpoint to edit overtime if status is Pending
@@ -442,10 +443,6 @@ router.get('/overtime/:overtime_id', authenticateToken, async (req, res) => {
 });
 
   
-
-
-
-
 
 router.get('/dashboardovertime', authenticateToken, async (req, res) => {
   try {

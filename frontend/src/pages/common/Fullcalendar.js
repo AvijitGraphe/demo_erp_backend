@@ -30,7 +30,6 @@ const Fullcalendar = () => {
             const response = await axios.get(`${config.apiBASEURL}/HolidayRoutes/holidays`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-
             return response.data.map(holiday => ({
                 id: `holiday-${holiday.holiday_id}`,
                 title: `Holiday - ${holiday.holiday_name}`,
@@ -71,41 +70,46 @@ const Fullcalendar = () => {
         }
     };
 
+
     const fetchApprovedLeaveRequests = async (startDate, endDate) => {
         try {
             const response = await axios.get(`${config.apiBASEURL}/HolidayRoutes/approved-leave-requests`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 params: { start_date: startDate, end_date: endDate },
             });
-
+    
+            console.log("log the data ", response.data);
+    
             return response.data.leaveRequests.map(request => {
-                const { requestor, dates } = request;
-                const fullName = `${requestor.first_name} ${requestor.last_name}`;
-                const imageUrl = requestor.profileImage?.image_url || null;
-
+                const { user_id, dates } = request;
+                const fullName = `${user_id.first_name} ${user_id.last_name}`;
+                const imageUrl = request.requestor?.profileImage?.image_url || null;
+    
                 // Parse the dates array
-                const parsedDates = typeof dates === 'string' ? JSON.parse(dates) : dates;
-
+                const parsedDates = JSON.parse(dates);
+    
                 // Map over parsedDates to create events
-                return parsedDates.map(date => ({
-                    id: `leave-${request.Leave_request_id}`,
-                    title: ` Leave - ${fullName}`,
-                    start: date,
-                    description: 'Leave',
-                    image_url: imageUrl,
-                    backgroundColor: '#28a745',
-                    borderColor: '#28a745',
-                    textColor: '#fff',
-                }));
+                return parsedDates.map(date => {
+                    const eventDate = new Date(date); // Convert the string to a Date object
+                    return {
+                        id: `leave-${request._id}`,
+                        title: `Leave - ${fullName}`,
+                        start: eventDate.toISOString(), // Ensure the date is in the right format
+                        description: 'Leave',
+                        image_url: imageUrl,
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        textColor: '#fff',
+                    };
+                });
             }).flat();
         } catch (error) {
             console.error('Error fetching approved leave requests:', error);
             return [];
         }
     };
+    
 
-
-    // Fetch meetings
     const fetchMeetings = async (startDate, endDate) => {
         try {
             const response = await axios.get(`${config.apiBASEURL}/meetingRoutes/meetings`, {
@@ -131,6 +135,7 @@ const Fullcalendar = () => {
     };
 
 
+    //fetchWorkAnniversaries
     const fetchWorkAnniversaries = async (startDate, endDate) => {
         try {
             const response = await axios.get(`${config.apiBASEURL}/HolidayRoutes/work-anniversaries`, {
@@ -157,8 +162,6 @@ const Fullcalendar = () => {
     };
     
     
-    
-
 
     // Modify fetchEvents to include work anniversaries
     const fetchEvents = async (startDate, endDate) => {
@@ -197,8 +200,6 @@ const Fullcalendar = () => {
 
     // Handle dialog hide
     const handleDialogHide = () => setSelectedEvent(null);
-
-
 
     return (
         <>
@@ -299,8 +300,6 @@ const Fullcalendar = () => {
                     />
                 )}
             </Dialog>
-
-
         </>
     );
 };

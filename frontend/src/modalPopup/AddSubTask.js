@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { Col, Row, Breadcrumb, Card, Badge } from "react-bootstrap";
 
 const AddSubTask = ({ taskId, ProjectId, BrandId, User_Id, onSuccess }) => {
+    console.log("log the data ok", taskId, ProjectId, BrandId, User_Id,)
     const { accessToken, userId } = useAuth(); 
     const [formData, setFormData] = useState({
         subtask_name: '',
@@ -94,21 +95,23 @@ const AddSubTask = ({ taskId, ProjectId, BrandId, User_Id, onSuccess }) => {
     const handleSubmit = async () => {
 
         console.log("log the data", formData)
-        // try {
-        //     const response = await axios.post(
-        //         `${config.apiBASEURL}/projectRoutes/subtask_add`,
-        //         formData,
-        //         {
-        //             headers: {
-        //                 Authorization: `Bearer ${accessToken}`,
-        //                 'Content-Type': 'application/json',
-        //             },
-        //         }
-        //     );
-        //     onSuccess();
-        // } catch (error) {
-        //     console.error('Failed to create subtask:', error);
-        // }
+       
+       
+        try {
+            const response = await axios.post(
+                `${config.apiBASEURL}/projectRoutes/subtask_add`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            onSuccess();
+        } catch (error) {
+            console.error('Failed to create subtask:', error);
+        }
     };
 
     return (

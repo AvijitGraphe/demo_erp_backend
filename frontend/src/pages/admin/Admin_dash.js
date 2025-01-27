@@ -63,7 +63,6 @@ const Admin_dash = () => {
                 console.error('Error fetching attendance data:', error);
             }
         };
-
         fetchData();
     }, []);
 

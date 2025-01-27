@@ -38,7 +38,7 @@ const EditTask = ({ taskId, onSuccess }) => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 });
                 if (response.data) {
-                    const task = response.data[0];
+                    const task = response.data;
                     setFormData({
                         ...task,
                         task_startdate: new Date(task.task_startdate),
@@ -75,7 +75,6 @@ const EditTask = ({ taskId, onSuccess }) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
-
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -83,17 +82,13 @@ const EditTask = ({ taskId, onSuccess }) => {
             await axios.put(`${config.apiBASEURL}/projectRoutes/edit-task/${taskId}`, formData, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-
             onSuccess && onSuccess();
-
         } catch (error) {
             console.error('Error updating task:', error);
 
         }
     };
-
     if (loading) return <div>Loading...</div>;
-
     return (
         <div className="edit-task">
              <form onSubmit={handleSubmit}>

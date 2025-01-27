@@ -55,6 +55,7 @@ const ViewTask = () => {
             );
 
             console.log("log the darta +++++", response.data)
+         
             setTask(response.data);
             setLoading(false);
         } catch (err) {
@@ -82,6 +83,7 @@ const ViewTask = () => {
                 user: log.user,
             }));
 
+            console.log("log the data ok", formattedEvents)
             setEvents(formattedEvents);
         } catch (error) {
             console.error('Error fetching task logs:', error);
@@ -134,9 +136,10 @@ const ViewTask = () => {
         }
     };
 
+    //handle Edit Button Click
     const handleEditButtonClick = (subtaskId) => {
-        setSelectedSubTaskId(subtaskId); // Store the selected subtask ID
-        setIsSubTasEditDialogVisible(true); // Open the dialog
+        setSelectedSubTaskId(subtaskId);
+        setIsSubTasEditDialogVisible(true);
     };
 
 
@@ -148,7 +151,7 @@ const ViewTask = () => {
     };
 
 
-
+    //handel status changes
     const handleStatusChange = async (subtaskId, newStatus) => {
         try {
             // Update the status of the subtask
@@ -161,7 +164,6 @@ const ViewTask = () => {
                     },
                 }
             );
-
             if (response.status === 200) {
                 // If the new status is 'Completed', call the additional API
                 if (newStatus === 'Completed') {
@@ -177,14 +179,12 @@ const ViewTask = () => {
                             },
                         }
                     );
-
                     if (additionalResponse.status === 200) {
                         console.log("Subtask data added to Subtasksheet successfully.");
                     } else {
                         console.error("Failed to add subtask data to Subtasksheet.");
                     }
                 }
-
                 // Refresh task data
                 fetchTaskData();
             } else {
@@ -197,7 +197,6 @@ const ViewTask = () => {
 
 
     /*------------Badge_color----------*/
-
     function getPriorityClass(priority) {
         switch (priority.toLowerCase()) {
             case 'high':
@@ -210,9 +209,7 @@ const ViewTask = () => {
                 return 'bg-secondary'; // Grey badge for Unknown priority
         }
     }
-
     const canViewButton = allowedRoles.includes(role) || task?.task_user_id === userId;
-
     return (
         <Row className="body_content">
             <Row className="mx-0">
@@ -245,7 +242,7 @@ const ViewTask = () => {
                                     <thead>
                                         <tr>
                                             <td style={{ width: '140px' }}>Brand Name :</td>
-                                            <th>{task.project.brand.brand_name}</th>
+                                            <th>{task.project.brand.brand_name}</th>   
                                         </tr>
                                         <tr>
                                             <td>Project Name :</td>
@@ -291,9 +288,10 @@ const ViewTask = () => {
                                                         <span style={{ fontSize: '13px', fontWeight: '500' }}>
                                                             Status
                                                         </span>
+                                                        {/* <p>{item.user.first_name}</p> */}
                                                         <span className="d-flex align-items-center">
                                                             <Avatar
-                                                                image={item.user.profileImage?.image_url || noUserImg}
+                                                                image={item.user.profileImage.image_url || noUserImg}
                                                                 shape="circle"
                                                                 className="ms-2 userName"
                                                                 data-pr-tooltip={`Updated By: ${item.user.first_name} ${item.user.last_name}`}
@@ -372,7 +370,7 @@ const ViewTask = () => {
                             <span>
                                 {canViewButton && (
                                     <Button
-                                        label="Add"
+                                        label="Add Subtask"
                                         severity="info"
                                         icon="pi pi-plus"
                                         className="py-1 px-2"
@@ -385,9 +383,9 @@ const ViewTask = () => {
                         <Card.Body>
                             <ListGroup>
                                 {task.subtasks.map((subtask, index) => (
-                                    <ListGroup.Item key={subtask.subtask_id}>
+                                    <ListGroup.Item key={subtask._id}>
                                         <p><em className='me-2 text-secondary'>Subtask {index + 1} :</em> <span>{subtask.subtask_name}</span></p>
-                                        <p><em className='me-2 text-secondary'>Role: </em> <span>{subtask.projectRole.project_role_name}</span></p>
+                                        {/* <p><em className='me-2 text-secondary'>Role: </em> <span>{subtask.projectRole.project_role_name}</span></p> */}
                                         <p><em className='me-2 text-secondary'>Description :</em> <span className='text-black'>{subtask.sub_task_description}</span></p>
                                         <p><em className='me-2 text-secondary'>Start Date and Time :</em> <b className='text-info'>{new Date(subtask.sub_task_startdate).toLocaleString('en-GB', {
                                             day: '2-digit',
@@ -418,9 +416,9 @@ const ViewTask = () => {
                                             <select
                                                 className="form-select form-select-sm bg-white"
                                                 value={subtask.status}
-                                                onChange={(e) => handleStatusChange(subtask.subtask_id, e.target.value)}
+                                                onChange={(e) => handleStatusChange(subtask._id, e.target.value)}
                                                 style={{ width: '150px', height: '30px', fontSize: '12px', lineHeight: '1', padding: '0px' }}
-                                                disabled={!canViewButton} // Enable only if the user can view/edit
+                                                disabled={!canViewButton}
                                             >
                                                 <option value="" disabled>Select Status</option>
                                                 <option value="Todo">Todo</option>
@@ -428,7 +426,6 @@ const ViewTask = () => {
                                                 <option value="Completed">Completed</option>
                                             </select>
                                         </div>
-
                                         {/* Edit button */}
                                         {canViewButton && (
                                             <Button
@@ -437,7 +434,7 @@ const ViewTask = () => {
                                                 icon="pi pi-pencil"
                                                 className="p-0 border-0"
                                                 title="Edit Subtask"
-                                                onClick={() => handleEditButtonClick(subtask.subtask_id)} // Pass the subtask_id
+                                                onClick={() => handleEditButtonClick(subtask._id)} // Pass the subtask_id
                                                 style={{ position: 'absolute', right: '10px', top: '10px' }}
                                             />
                                         )}
@@ -448,6 +445,7 @@ const ViewTask = () => {
                     </Card>
                 </Col>
 
+                {/* Edit task dialog */}
                 <Dialog
                     visible={isDialogVisible}
                     onHide={() => setIsDialogVisible(false)}
@@ -483,20 +481,16 @@ const ViewTask = () => {
                 >
                     {selectedSubTaskId && (
                         <EditSubTask
-                            subtaskId={selectedSubTaskId} // Pass the selected subtask_id
+                            subtaskId={selectedSubTaskId}
                             taskId={task.task_id}
                             ProjectId={task.project_id}
                             BrandId={task.brand_id}
                             User_Id={task.task_user_id}
-                            onSuccess={() => handleSubTaskEditDialogClose(true)} // Close dialog on success
+                            onSuccess={() => handleSubTaskEditDialogClose(true)}
                         />
                     )}
                 </Dialog>
-
-
-
             </Row>
-
         </Row>
     );
 };

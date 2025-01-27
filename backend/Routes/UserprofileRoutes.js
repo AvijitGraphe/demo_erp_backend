@@ -17,7 +17,6 @@ const moment = require('moment');
 const mongoose = require('mongoose');
 
 // Add or update UserDetails 
-
 router.post('/user-details', authenticateToken, async (req, res) => {
   try {
     const {

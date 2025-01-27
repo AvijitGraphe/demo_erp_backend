@@ -12,11 +12,10 @@ import { Col, Row, Breadcrumb, Card, Table, Badge, ListGroup } from 'react-boots
 
 const EditSubTask = ({ subtaskId, onSuccess }) => {
     const { accessToken } = useAuth();
-    const [formData, setFormData] = useState(null); // To hold subtask data
-    const [statuses] = useState(['Todo', 'InProgress', 'Completed']); // Example status options
-    const [priorities] = useState(['Low', 'Medium', 'High']); // Example priority options
-    const [loading, setLoading] = useState(true); // To show loading spinner
-
+    const [formData, setFormData] = useState({});
+    const [statuses] = useState(['Todo', 'InProgress', 'Completed']);
+    const [priorities] = useState(['Low', 'Medium', 'High']); 
+    const [loading, setLoading] = useState(true);
     // Fetch subtask data for editing
     useEffect(() => {
         const fetchSubTask = async () => {
@@ -29,8 +28,8 @@ const EditSubTask = ({ subtaskId, onSuccess }) => {
                         },
                     }
                 );
-                if (response.data.length > 0) {
-                    setFormData(response.data[0]); // Assuming response is an array with one object
+                if (response.data) {
+                    setFormData(response.data);
                 }
             } catch (error) {
                 console.error('Error fetching subtask:', error);
@@ -38,7 +37,6 @@ const EditSubTask = ({ subtaskId, onSuccess }) => {
                 setLoading(false);
             }
         };
-
         fetchSubTask();
     }, [subtaskId, accessToken]);
 
@@ -69,12 +67,11 @@ const EditSubTask = ({ subtaskId, onSuccess }) => {
         }
     };
 
-    if (loading) return <div>Loading...</div>; // Show loading until data is fetched
+    if (loading) return <div>Loading...</div>; 
 
     return (
         <>
             <Row>
-
                 <Col md={12} lg={12} className="mb-3 position-relative">
                     <label htmlFor="subtask_name">Subtask Name</label>
                     <InputText

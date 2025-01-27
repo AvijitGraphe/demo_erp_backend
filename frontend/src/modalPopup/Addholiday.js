@@ -8,6 +8,8 @@ import axios from "axios";
 import config from "../config";
 import { useAuth } from "../context/AuthContext";
 import CustomToast from "../components/CustomToast";
+
+
 const AddHoliday = ({ onSuccess, fetchHolidays }) => {
     const { accessToken } = useAuth(); // Get the access token from the context
     const [dateRange, setDateRange] = useState({
@@ -28,23 +30,14 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!image) {
-
-            return;
-        }
-
         const startDate = moment(dateRange.startDate);
         const endDate = moment(dateRange.endDate);
-
         const dateArray = [];
         while (startDate.isSameOrBefore(endDate)) {
             dateArray.push(startDate.format("YYYY-MM-DD"));
             startDate.add(1, "day");
         }
-
         setLoading(true); // Start loading
-
         try {
             // Loop through dates to submit holidays
             for (const holidayDate of dateArray) {
@@ -53,7 +46,6 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
                 formData.append("holiday_date", holidayDate);
                 formData.append("status", status);
                 formData.append("image", image);
-
                 await axios.post(`${config.apiBASEURL}/HolidayRoutes/addholiday`, formData, {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -61,15 +53,10 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
                     },
                 });
             }
-
             // Fetch the updated list of holidays
             await fetchHolidays();
-
-
-
         } catch (error) {
             console.error("Error adding holidays:", error.response?.data || error);
-
         } finally {
             setLoading(false); // Ensure loading is stopped
             // Close the modal
@@ -146,7 +133,7 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
                                         type="file"
                                         accept="image/*"
                                         onChange={(e) => setImage(e.target.files[0])}
-                                        required
+                                        // required
                                     />
                                 </Col>
                             </Row>

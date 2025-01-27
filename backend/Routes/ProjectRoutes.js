@@ -1298,30 +1298,18 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
 
 // Fetch task and its subtasks
-
-
-
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
-
-    // Step 1: Validate the taskId format
     if (!mongoose.Types.ObjectId.isValid(taskId)) {
         return res.status(400).json({ message: 'Invalid task ID format' });
     }
-
-
-
     try {
-        // Step 2: Perform aggregation to fetch all task data with related data
         const task = await Tasks.aggregate([
-            // Match task by taskId
             { 
               $match: { 
                 _id: new mongoose.Types.ObjectId(taskId) 
               } 
             },
-
-            // Lookup project information
             {
               $lookup: {
                 from: 'projects',
@@ -1331,8 +1319,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
               }
             },
             { $unwind: '$project' },
-
-            // Lookup brand within project
             {
               $lookup: {
                 from: 'brands',
@@ -1342,8 +1328,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
               }
             },
             { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
-
-            // Lookup assignee (user)
             {
               $lookup: {
                 from: 'users',
@@ -1353,8 +1337,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
               }
             },
             { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
-
-            // Lookup assignee's profile image
             {
               $lookup: {
                 from: 'profile_images',
@@ -1364,8 +1346,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
               }
             },
             { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
-
-            // Lookup subtasks related to this task
             {
               $lookup: {
                 from: 'subtasks',
@@ -1374,200 +1354,117 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                 as: 'subtasks'
               }
             },
-
-            // Project all task fields and related data
+            {
+              $lookup: {
+                from: 'projectuserroles',
+                localField: 'subtasks.project_role_id',
+                foreignField: '_id',
+                as: 'projectRole'
+              }
+            },
+            { $unwind: { path: '$projectRole', preserveNullAndEmptyArrays: true } },
             {
               $project: {
                 task_id: '$_id',
-                task_description:1, 
-                task_name: 1, // Add all task fields that you need
+                task_description: 1, 
+                task_name: 1, 
                 task_startdate: 1,
                 task_deadline: 1,
-                description: 1, // Add description if available
-                status: 1, // Add status field
-                start_date: 1, // Add start date
-                end_date: 1, // Add end date
-                priority: 1, // Add priority field
-                updatedAt:1,
+                description: 1,
+                status: 1,
+                start_date: 1,
+                end_date: 1,
+                priority: 1,
+                updatedAt: 1,
                 'project.project_name': 1,
+                'project_id': '$project._id',
+                'brand_id': '$project.brand._id',
+                'project.brand.brand_id': '$project.brand._id',
                 'project.brand.brand_name': 1,
                 'assignee.first_name': 1,
                 'assignee.last_name': 1,
                 'assignee.email': 1,
                 'assignee.profileImage.image_url': 1,
-                // Ensure subtasks is always an array
-                subtasks: { $ifNull: ['$subtasks', []] }, // If no subtasks, default to empty array
+                subtasks: { 
+                  $ifNull: ['$subtasks', []]  
+                },             
               }
             }
         ]);
 
-        // Step 3: Debugging - Log task data to console
-        console.log("Returned Task Data:", task);
-
-        // Step 4: Handle empty response
+        //subtask_id
+        
+        console.log("log the data ok", )
         if (task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        // Step 5: Send the task data as the response
         res.status(200).json(task[0]);
 
     } catch (error) {
-        // Log and return error if an exception occurs
         console.error("Error fetching task:", error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
 
-
-
-
-//*-----------fetch Specific Task and subtask for duplication ------------------*//
-router.get('/fetchtaskforedit/:taskId', authenticateToken, async (req, res) => {
+//Fetch Edit Task
+router.get('/fetchtaskforedit/:taskId', async (req, res) => {
     const { taskId } = req.params;
     try {
-        // Fetch the task by taskId and related data using aggregation
-        const task = await Tasks.aggregate([
-            { $match: { _id: new mongoose.Types.ObjectId(taskId) } }, // Match task by taskId
-            {
-                $lookup: {
-                    from: 'projects', // Assuming collection name is 'projects'
-                    localField: 'project', // Reference field in Task
-                    foreignField: '_id', // Reference field in Project
-                    as: 'project' // Output field
-                }
-            },
-            { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'brands', // Assuming collection name is 'brands'
-                    localField: 'project.brand', // Reference field in Project
-                    foreignField: '_id', // Reference field in Brand
-                    as: 'brand' // Output field
-                }
-            },
-            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'users', // Assuming collection name is 'users'
-                    localField: 'assignee', // Reference field in Task
-                    foreignField: '_id', // Reference field in User
-                    as: 'assignee' // Output field
-                }
-            },
-            { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'profileimages', // Assuming collection name is 'profileimages'
-                    localField: 'assignee.profileImage', // Reference field in User
-                    foreignField: '_id', // Reference field in ProfileImage
-                    as: 'profileImage' // Output field
-                }
-            },
-            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'subtasks', // Assuming collection name is 'subtasks'
-                    localField: '_id', // Reference field in Task
-                    foreignField: 'task', // Reference field in Subtask
-                    as: 'subtasks' // Output field containing subtasks
-                }
-            },
-            {
-                $project: {
-                    task_id: 1,
-                    task_name: 1,
-                    task_description: 1,
-                    status: 1,
-                    priority: 1,
-                    task_deadline: 1,
-                    assignee: {
-                        first_name: 1,
-                        last_name: 1,
-                        email: 1,
-                        profileImage: { image_url: 1 }
-                    },
-                    project: { project_name: 1 },
-                    brand: { brand_name: 1 },
-                    subtasks: 1,
-                    profileImage: 1
-                }
-            }
-        ]);
-
-        if (task.length === 0) {
-            return res.status(404).json({ message: 'Task not found' });
+        const task = await Tasks.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ message: 'No task found for the given task ID' });
         }
-
-        res.status(200).json(task[0]); // Return the first task from the aggregation result
+        // Modify the response to replace _id with task_id
+        const taskData = {
+            ...task.toObject(),
+            task_id: task._id,
+        };
+        delete taskData._id;
+        res.status(200).json(taskData);
     } catch (error) {
         console.error('Error fetching task:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-//fetch--subtask-for-edit
-router.get('/fetchsubtaskforedit/:subtask_id', async (req, res) => {
+
+//Fetch the subtask Edit
+router.get('/fetchsubtaskforedit/:subtask_id', async(req, res) =>{
     const { subtask_id } = req.params;
-
     try {
-        // Fetch the subtask and related data using aggregation
-        const subtask = await Subtask.aggregate([
-            { $match: { _id: new mongoose.Types.ObjectId(subtask_id) } }, // Match the subtask by subtask_id
-            {
-                $lookup: {
-                    from: 'tasks', // Assuming collection name is 'tasks'
-                    localField: 'task', // Reference field in Subtask
-                    foreignField: '_id', // Reference field in Task
-                    as: 'task' // Output field
-                }
-            },
-            { $unwind: { path: '$task', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'projects', // Assuming collection name is 'projects'
-                    localField: 'task.project', // Reference field in Task
-                    foreignField: '_id', // Reference field in Project
-                    as: 'project' // Output field
-                }
-            },
-            { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'brands', // Assuming collection name is 'brands'
-                    localField: 'project.brand', // Reference field in Project
-                    foreignField: '_id', // Reference field in Brand
-                    as: 'brand' // Output field
-                }
-            },
-            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
-            {
-                $project: {
-                    subtask_id: 1,
-                    subtask_name: 1,
-                    sub_task_description: 1,
-                    status: 1,
-                    priority: 1,
-                    sub_task_startdate: 1,
-                    sub_task_deadline: 1,
-                    missed_deadline: 1,
-                    task: { task_name: 1, task_description: 1 },
-                    project: { project_name: 1 },
-                    brand: { brand_name: 1 }
-                }
-            }
-        ]);
-
-        if (subtask.length === 0) {
+        const subtask = await Subtask.findById(subtask_id);
+        if (!subtask || subtask.length === 0) {
             return res.status(404).json({ message: 'No subtask found' });
         }
-
-        // Return the subtask with related data
-        res.status(200).json(subtask[0]);
+        res.status(200).json(subtask);
     } catch (error) {
         console.error('Error fetching subtask:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+})
+
+
+
+//subtasks
+router.put('/subtasks/:subtask_id/status', authenticateToken, async (req, res) => {
+    const { subtask_id } = req.params;
+    const { status } = req.body;
+    if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
+    }
+    try {
+        const subtask = await Subtask.findById(subtask_id);
+        if (!subtask) {
+            return res.status(404).json({ message: 'Subtask not found' });
+        }
+        subtask.status = status;
+        await subtask.save();
+        res.status(200).json({ message: 'Subtask status updated successfully', subtask });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to update subtask status', error: error.message });
     }
 });
 
@@ -1808,11 +1705,9 @@ router.put('/subtask_edit/:subtask_id',authenticateToken, async (req, res) => {
 //*----------------task log Status------------*//
 router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
     const { task_id } = req.params;
-    
     if (!task_id) {
         return res.status(400).json({ error: 'Task ID is required.' });
     }
-
     try {
         // Aggregate task logs with user and profile image information
         const taskLogs = await TaskStatusLogger.aggregate([
@@ -1820,7 +1715,7 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
                 $match: { task_id:new mongoose.Types.ObjectId(task_id) } // Match the task_id
             },
             { 
-                $sort: { time_stamp: -1 } // Sort logs by time_stamp in descending order
+                $sort: { time_stamp: -1 } 
             },
             {
                 $lookup: {
@@ -1838,7 +1733,7 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
                     from: 'profileimages', // Assuming profile images collection is 'profileimages'
                     localField: 'user.profileImage', // Reference field in User
                     foreignField: '_id', // Reference field in ProfileImage collection
-                    as: 'profileImage' // Output field to store profile image
+                    as: 'user.profileImage' // Output field to store profile image
                 }
             },
             { 
@@ -1850,13 +1745,14 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
                     status_initial: 1,
                     status_final: 1,
                     task_user_id: 1,
-                    username: { $concat: ['$user.first_name', ' ', '$user.last_name'] }, // Concatenate first and last name
-                    profile_image_url: '$profileImage.image_url', // Return the profile image URL
+                    user:1,
+                    profile_image_url: '$profileImage.image_url', 
                     missed_deadline: 1
                 }
             }
         ]);
 
+        console.log("log the data tasklogs", taskLogs)
         res.status(200).json({
             message: 'Task logs retrieved successfully.',
             task_id,

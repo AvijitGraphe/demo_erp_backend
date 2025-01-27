@@ -100,14 +100,11 @@ function Profileinformation({ userId, userDetails, setVisibleModal1, fetchUserDe
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
         if (!formData.gender) {
             setError('Gender is required.');
             return;
         }
-    
-        setError(''); // Clear any previous error
-    
+        setError(''); 
         try {
             const response = await axios.post(
                 `${config.apiBASEURL}/user-profile/user-details`,

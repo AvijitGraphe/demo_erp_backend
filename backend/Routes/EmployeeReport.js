@@ -17,11 +17,9 @@ const { ObjectId } = mongoose.Types;
 
 router.get('/Employee-report-attendance', authenticateToken, async (req, res) => {
     const { userId, month, year } = req.query;
-
     if (!userId || !month || !year) {
         return res.status(400).json({ message: 'userId, month, and year are required' });
     }
-
     try {
         // Parse month and year, and calculate the correct start and end dates
         const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();  // Convert to Date object
@@ -33,7 +31,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         // Fetch user details including profile image, role, attendances, and overtime
         const userDetails = await User.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-
             // Lookup profile image
             {
                 $lookup: {
@@ -44,7 +41,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 },
             },
             { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
-
             // Lookup role
             {
                 $lookup: {
@@ -55,7 +51,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 },
             },
             { $unwind: { path: '$role', preserveNullAndEmptyArrays: true } },
-
             // Lookup user joining date
             {
                 $lookup: {
@@ -66,7 +61,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 },
             },
             { $unwind: { path: '$joiningDates', preserveNullAndEmptyArrays: true } },
-
             // Lookup user times
             {
                 $lookup: {
@@ -76,7 +70,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                     as: 'userTimes',
                 },
             },
-
             // Lookup attendance records
             {
                 $lookup: {
@@ -85,11 +78,10 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                     foreignField: 'user_id',
                     as: 'attendances',
                     pipeline: [
-                        { $match: { date: { $gte: startDate, $lte: endDate } } }, // Compare Date objects
+                        { $match: { date: { $gte: startDate, $lte: endDate } } },
                     ],
                 },
             },
-
             // Lookup overtime records
             {
                 $lookup: {
@@ -103,7 +95,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
                 },
             },
         ]);
-
         if (!userDetails.length) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -136,22 +127,10 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         // Calculate total overtime in hours
         const totalOvertimeMinutes = overtimes?.reduce((sum, overtime) => sum + overtime.total_time, 0) || 0;
         const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
-
-        console.log("log the data ", 
-            user,
-            totalDaysInMonth,
-            totalPresentDays,
-            totalAbsentDays,
-            totalLateCount,
-            lateDays,
-            totalOvertimeHours,
-            joiningDates // Log the joining date as well
-        );
-
         res.status(200).json({
             userDetails: {
                 ...user,
-                joining_date: joiningDates?.joining_date, // Add the joining date to the response
+                joining_date: joiningDates?.joining_date, 
             },
             totalDaysInMonth,
             totalPresentDays,
