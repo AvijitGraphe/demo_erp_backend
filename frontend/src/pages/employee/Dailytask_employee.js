@@ -45,6 +45,8 @@ const Dailytask_employee = () => {
                 params: { start_date, end_date },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+
+            console.log("log the data is now response", response.data)
             if (response.data.success) {
                 setTasksheets(response.data.data || []);
             } else {
@@ -128,7 +130,7 @@ const Dailytask_employee = () => {
                                                             moment(sheet.tasksheet_date).isSame(day, 'day'))
                                                         .map(sheet => (
                                                             <li key={sheet.id} className="mb-3">
-                                                                <Link to={`/dashboard/view_task/${sheet.Task?.task_id}`}>
+                                                                <Link to={`/dashboard/view_task/${sheet.Task?._id}`}>
                                                                     <p className="mb-0">
                                                                         <span>Brand:</span> {sheet.Task?.project?.brand?.brand_name || 'No brand'}
                                                                         <small className="misses_image2">
@@ -158,8 +160,6 @@ const Dailytask_employee = () => {
 
                                                                 </Link>
                                                             </li>
-
-
                                                         ))}
                                                 </ul>
                                             </td>
