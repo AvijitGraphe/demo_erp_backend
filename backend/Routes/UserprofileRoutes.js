@@ -76,13 +76,9 @@ router.post('/user-details', authenticateToken, async (req, res) => {
     });
 
     let response;
-
-
-    console.log("log the existingRecord",  details_id)
     if (details_id) {
       // Update existing record
       const existingRecord = await UserDetails.findOne({ _id: details_id, user_id });
-     
       if (existingRecord) {
         response = await existingRecord.updateOne(data);
         return res.status(200).json({ message: 'User details updated successfully.', data: response });
@@ -90,8 +86,6 @@ router.post('/user-details', authenticateToken, async (req, res) => {
         return res.status(404).json({ message: 'User details not found for the provided details_id and user_id.' });
       }
     } else {
-      // Create a new record
-      console.log("log the data", data)
       response = await UserDetails.create(data); 
       return res.status(201).json({ message: 'User details added successfully.', data: response });
     }
@@ -141,7 +135,6 @@ router.post('/bank-details', authenticateToken, async (req, res) => {
     if (!user_id) {
       return res.status(400).json({ message: 'user_id is required.' });
     }
-
     // Construct the data object
     const data = {
       user_id,
@@ -196,12 +189,18 @@ router.get('/getBankDetails', authenticateToken, async (req, res) => {
     if (!bankDetails) {
       return res.status(204).end();
     }
-    res.status(200).json(bankDetails);
+
+    const bankDetailsResponse = bankDetails.toObject();
+    bankDetailsResponse.id_bank_details = bankDetailsResponse._id;
+    delete bankDetailsResponse._id;
+
+    res.status(200).json(bankDetailsResponse);
   } catch (error) {
     console.error(`Error fetching bank details: ${error.message}`);
     res.status(500).json({ message: 'Error fetching bank details', error: error.message });
   }
 });
+
 
 
 // Add or update EducationInfo
@@ -267,24 +266,26 @@ router.post('/education-info', authenticateToken, async (req, res) => {
 // Fetch EducationInfo by user_id API
 router.get('/getEducationInfo', authenticateToken, async (req, res) => {
   const { userId } = req.query;
-
   try {
-    // Fetch all education info for the given userId
     const educationInfo = await EducationInfo.find({ user_id: userId });
-
     if (educationInfo.length === 0) {
-      // If no education info found, return 204 No Content
       return res.status(204).end();
     }
 
-    // Return the found education info as JSON
-    res.status(200).json(educationInfo);
+    const educationInfoResponse = educationInfo.map(item => {
+      const itemResponse = item.toObject();
+      itemResponse.id_educational_info = itemResponse._id;
+      delete itemResponse._id;
+      return itemResponse;
+    });
+
+    res.status(200).json(educationInfoResponse);
   } catch (error) {
     console.error(`Error fetching education info: ${error.message}`);
-    // Return a 500 Internal Server Error response
     res.status(500).json({ message: 'Error fetching education info', error: error.message });
   }
 });
+
 
 
 // Add or update EmergencyContact
@@ -354,14 +355,23 @@ router.get('/getEmergencyContact', authenticateToken, async (req, res) => {
   try {
     const emergencyContact = await EmergencyContact.find({ user_id: userId });
     if (!emergencyContact || emergencyContact.length === 0) {
-      return res.status(204).end(); // 204 No Content if no records found
+      return res.status(204).end();
     }
-    res.status(200).json(emergencyContact); // Send the found emergency contact as JSON
+
+    const emergencyContactResponse = emergencyContact.map(item => {
+      const itemResponse = item.toObject();
+      itemResponse.id_emergency_contact = itemResponse._id;
+      delete itemResponse._id;
+      return itemResponse;
+    });
+
+    res.status(200).json(emergencyContactResponse);
   } catch (error) {
     console.error(`Error fetching emergency contact: ${error.message}`);
     res.status(500).json({ message: 'Error fetching emergency contact', error: error.message });
   }
 });
+
 
 // Fetch main user details -
 router.get('/main-user-details', authenticateToken, async (req, res) => {
@@ -471,7 +481,6 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
  router.get('/getallusers', authenticateToken, async (req, res) => {
   try {
     const today = moment().format('YYYY-MM-DD');
-
     const users = await User.aggregate([
         {
             $match: {
