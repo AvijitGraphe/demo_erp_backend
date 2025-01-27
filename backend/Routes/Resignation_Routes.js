@@ -179,83 +179,36 @@ router.get('/fetch-all-resignations', async (req, res) => {
 /**
  * Fetch resignations by user_id
  */
-router.get('/fetch-resignations-by-user/:user_id', async (req, res) => {
+router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
-
     try {
-        // Define custom sorting order for the status field
-        const statusOrder = {
-            'Pending': 0,
-            'Approved': 1,
-            'Rejected': 2,
-        };
+        // Fetch all resignations for the user from MongoDB
+        const userResignations = await Resignation.find({ user_id })
+            .populate({
+                path: 'user', // Populate the user details from the User model
+                select: 'first_name last_name email',
+                populate: {
+                    path: 'profileImage', // Populate the profileImage
+                    select: 'image_url', // Only select the image_url from the ProfileImage model
+                },
+            })
+            .sort([
+                ['status', 'asc'], // Sort by status (ensure 'Pending', 'Approved', 'Rejected' priority)
+                ['createdAt', 'asc'], // Sort by creation date
+            ]);
 
-        const userResignations = await Resignation.aggregate([
-            // Match by user_id
-            { $match: { user_id:new mongoose.Types.ObjectId(user_id) } },
-            // Add custom status sorting field
-            {
-                $addFields: {
-                    statusOrder: {
-                        $switch: {
-                            branches: [
-                                { case: { $eq: ['$status', 'Pending'] }, then: 0 },
-                                { case: { $eq: ['$status', 'Approved'] }, then: 1 },
-                                { case: { $eq: ['$status', 'Rejected'] }, then: 2 },
-                            ],
-                            default: 3, // Default for other statuses, if any
-                        },
-                    },
-                },
-            },
-            // Sort by statusOrder and createdAt
-            { $sort: { statusOrder: 1, createdAt: 1 } },
-            // Lookup the user details
-            {
-                $lookup: {
-                    from: 'users', // 'users' is the collection name for User
-                    localField: 'user_id', // Field in Resignation referencing the User
-                    foreignField: '_id', // Field in User model
-                    as: 'user',
-                },
-            },
-            {
-                $unwind: '$user', // Unwind the array returned by $lookup
-            },
-            // Lookup the profile image details
-            {
-                $lookup: {
-                    from: 'profileimages', // 'profileimages' is the collection name for ProfileImage
-                    localField: 'user.profileImage', // User's profileImage field
-                    foreignField: '_id', // Field in ProfileImage model
-                    as: 'user.profileImage',
-                },
-            },
-            {
-                $unwind: { path: '$user.profileImage', preserveNullAndEmptyArrays: true },
-            },
-            // Project only necessary fields to return
-            {
-                $project: {
-                    'user.first_name': 1,
-                    'user.last_name': 1,
-                    'user.email': 1,
-                    'user.profileImage.image_url': 1,
-                    resignation_reason: 1,
-                    resignation_date: 1,
-                    notice_period_served: 1,
-                    status: 1,
-                    last_working_day: 1,
-                    notice_duration: 1,
-                    estimated_last_working_day: 1,
-                },
-            },
-        ]);
+        // Check if any resignation has status 'Accepted'
+        const hasAcceptedResignation = userResignations.some(
+            (resignation) => resignation.status === 'Accepted'
+        );
 
-        return res.status(200).json(userResignations);
+        return res.status(200).json({
+            can_add: !hasAcceptedResignation, // true if no 'Accepted' status, false otherwise
+            resignations: userResignations,
+        });
     } catch (error) {
         console.error('Error fetching user resignations:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 

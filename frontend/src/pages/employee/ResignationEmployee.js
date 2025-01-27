@@ -39,9 +39,7 @@ const ResignationEmployee = () => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
-    
             const { can_add, resignations } = response.data;
-    
             // Update state variables
             setResignations(resignations); // Set the resignations data
             setCanAdd(can_add); // Store the can_add value in a separate state
