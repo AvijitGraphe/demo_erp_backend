@@ -183,24 +183,32 @@ router.get('/holidays/week', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     // Validate and parse dates
-    const start = moment(startDate).startOf('day');  
-    const end = moment(endDate).endOf('day'); 
-    // Check if the dates are valid
+    const start = moment(startDate).startOf('day');
+    const end = moment(endDate).endOf('day');
+
     if (!start.isValid() || !end.isValid()) {
       return res.status(400).json({ message: 'Invalid date range' });
     }
+
     // Fetch holidays in the date range
     const holidays = await Holiday.find({
       holiday_date: {
-        $gte: start.toDate(), 
+        $gte: start.toDate(),
         $lte: end.toDate(),
       },
     });
-    // Return holidays in the response
-    res.status(200).json({ holidays });
+
+    // Format the holiday_date to 'YYYY-MM-DD' before returning it
+    const formattedHolidays = holidays.map(holiday => ({
+      ...holiday.toObject(),
+      holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'), // Format the date field
+    }));
+
+    console.log("log the holidays", formattedHolidays);
+    res.status(200).json({ holidays: formattedHolidays });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error fetching holidays', details: error.message });
+    res.status(500).json({ message: 'Error fetching holidays' });
   }
 });
 

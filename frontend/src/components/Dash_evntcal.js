@@ -22,6 +22,7 @@ const Dash_evntcal = () => {
     const [events, setEvents] = useState([]);
 
     // Fetch Holidays
+
     const fetchHolidays = async () => {
         try {
             const { startDate, endDate } = dateRange;
@@ -33,6 +34,7 @@ const Dash_evntcal = () => {
                 },
             });
 
+            console.log("log the holiday ok", response.data)
             const holidayEvents = response.data.holidays.map((holiday) => ({
                 title: holiday.holiday_name,
                 start: holiday.holiday_date,
@@ -59,6 +61,7 @@ const Dash_evntcal = () => {
                 },
             });
 
+            console.log("response, response", response)
             const birthdayEvents = response.data.map((birthday) => ({
                 title: `🎉 ${birthday.name}'s Birthday 🎉`,
                 start: birthday.date_of_birth,
