@@ -98,8 +98,6 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
                 }
             }
         ]);
-
-        console.log("log the data", users)
         // Fetch tasks for the specified date and group 
         const tasksToday = await Tasks.aggregate([
             { 
@@ -173,7 +171,7 @@ router.post('/add-project', authenticateToken, async (req, res) => {
     try {
         // Calculate total time (Implement this function if necessary)
         const total_time = calculateTotalTime(start_date, end_date);
-        console.log(" log", req.body)
+  
 
         // Create a new project
         const newProject = new Projects({
@@ -601,7 +599,6 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
 router.get('/projects-by-brand', authenticateToken, async (req, res) => {
     const { brand_name } = req.query;
 
-    console.log("log the brand search ok!", brand_name);
 
     try {
         if (!brand_name) {
@@ -764,10 +761,6 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
     if (!Array.isArray(tasks) || tasks.length === 0) {
         return res.status(400).json({ error: "Tasks must be a non-empty array." });
     }
-
-
-    console.log("log the data task****", tasks)
-
     try {
         const addedTasks = [];
         for (const task of tasks) {
@@ -801,7 +794,7 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 { $unwind: { path: '$taskLimit', preserveNullAndEmptyArrays: true } }
             ]);
             
-            console.log("log the data is now", user);
+
 
             if (!user) {
                 console.error(`User with ID ${user_id} not found.`);
@@ -817,7 +810,6 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 task_startdate: { $gte: startDate, $lte: endDate }
             });
 
-            console.log("log the data", taskCount);
 
            if (taskLimit === 0) {
             console.log(`User ${user_id} has no task limit, task will be created.`);
@@ -840,8 +832,6 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 priority,
                 status: 'Todo',
             });
-
-            console.log("log the data newTask")
             // Fetch users to notify, excluding the task creator's user_id
             const usersToNotify = await User.find({
                 user_type: { $in: ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'] },
@@ -873,8 +863,6 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
 
             addedTasks.push(newTask);
         }
-
-        console.log(" log the data ", addedTasks);
         res.status(201).json({
             message: 'Tasks added successfully.',
             tasks: addedTasks,
