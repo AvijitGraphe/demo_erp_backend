@@ -59,6 +59,8 @@ const Employee_rep = () => {
                 params: { userId: userId, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+
+            console.log("log the data response "  , response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -97,6 +99,7 @@ const Employee_rep = () => {
                 params: { month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+            console.log("log the data is now response____", response)
             setTaskStats(response.data);
         } catch (error) {
             console.error('Error fetching task stats:', error);
@@ -257,7 +260,7 @@ const Employee_rep = () => {
                                     <div className="jdate">
                                         <span>Date of Joining : </span>
                                         <b>
-                                            {new Date(attendanceData.userDetails.joiningDates.joining_date).toLocaleDateString('en-GB', {
+                                            {new Date(attendanceData.userDetails.joiningDates).toLocaleDateString('en-GB', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -397,9 +400,9 @@ const Employee_rep = () => {
                                             { title: 'In Progress', icon: <RiProgress3Line />, count: getTaskCountByStatus('InProgress') },
                                             { title: 'In Review', icon: <GrInProgress />, count: getTaskCountByStatus('InReview') },
                                             { title: 'In Changes', icon: <GrInProgress />, count: getTaskCountByStatus('InChanges') },
-                                            // { title: 'Missed Deadlines', icon: <BsFire />, count: taskStats.data.missedAndOnTimeCounts.missedCount },
+                                            { title: 'Missed Deadlines', icon: <BsFire />, count: taskStats.data.missedAndOnTimeCounts.missedCount },
                                             { title: 'Completed', icon: <LiaTasksSolid />, count: getTaskCountByStatus('Completed') },
-                                            // { title: 'On Time', icon: <TbTimeDuration10 />, count: taskStats.data.missedAndOnTimeCounts.onTimeCount },
+                                            { title: 'On Time', icon: <TbTimeDuration10 />, count: taskStats.data.missedAndOnTimeCounts.onTimeCount },
                                         ].map(({ title, icon, count }, idx) => (
                                             <li key={idx} className='dashboard_card'>
                                                 <Card className="shadow-0">
@@ -484,15 +487,28 @@ const Employee_rep = () => {
                                             </thead>
                                             <tbody>
                                                 {attendanceData.userDetails.attendances.map((attendance, index) => {
-                                                    const isFullDay = attendance.Attendance_status === "Full-Day";
-                                                    const isHalfDay = attendance.Attendance_status === "Half-Day";
-                                                    const isStarted = attendance.Attendance_status === "Started";
+                                                    const isFullDay = attendance.attendance_status === "Full-Day";
+                                                    const isHalfDay = attendance.attendance_status === "Half-Day";
+                                                    const isStarted = attendance.attendance_status === "Started";
 
+                                                    // Function to format time (in case the time is not in the correct format already)
+                                                    // Function to format time string like 'HH:mm' to 'HH:mm AM/PM'
+                                                    const formatTime = (timeString) => {
+                                                        if (!timeString) return "00:00:00";
+                                                        // Assuming the time is in HH:mm format, you can use a library or manual formatting
+                                                        const [hours, minutes] = timeString.split(":");
+                                                        // Create a new Date object
+                                                        const date = new Date();
+                                                        date.setHours(hours);
+                                                        date.setMinutes(minutes);
+                                                        // Format to 'HH:mm AM/PM' using toLocaleTimeString or custom formatting
+                                                        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                    };
                                                     return (
                                                         <tr key={index}>
                                                             <td>{new Date(attendance.date).toLocaleDateString('en-GB')}</td>
-                                                            <td>{attendance.start_time || "00:00 AM"}</td>
-                                                            <td>{attendance.end_time || "00:00 PM"}</td>
+                                                            <td>{formatTime(attendance.start_time) || "00:00:00"}</td>
+                                                            <td>{formatTime(attendance.end_time) || "00:00:00"}</td>
 
                                                             {/* Absence Column */}
                                                             <td>
@@ -514,8 +530,6 @@ const Employee_rep = () => {
                                                                     <span className="text-warning h6"><SiClockify /></span>
                                                                 )}
                                                             </td>
-
-                                                           
                                                         </tr>
                                                     );
                                                 })}
