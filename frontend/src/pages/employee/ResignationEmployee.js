@@ -41,6 +41,7 @@ const ResignationEmployee = () => {
             );
             const { can_add, resignations } = response.data;
             // Update state variables
+            console.log("log the data", resignations )
             setResignations(resignations); // Set the resignations data
             setCanAdd(can_add); // Store the can_add value in a separate state
             setLoading(false); // Mark loading as complete

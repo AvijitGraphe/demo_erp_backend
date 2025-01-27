@@ -182,28 +182,59 @@ router.get('/fetch-all-resignations', async (req, res) => {
 router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     try {
-        // Fetch all resignations for the user from MongoDB
-        const userResignations = await Resignation.find({ user_id })
-            .populate({
-                path: 'user', // Populate the user details from the User model
-                select: 'first_name last_name email',
-                populate: {
-                    path: 'profileImage', // Populate the profileImage
-                    select: 'image_url', // Only select the image_url from the ProfileImage model
-                },
-            })
-            .sort([
-                ['status', 'asc'], // Sort by status (ensure 'Pending', 'Approved', 'Rejected' priority)
-                ['createdAt', 'asc'], // Sort by creation date
-            ]);
+        const userResignations = await Resignation.aggregate([
+            { $match: { user_id: new mongoose.Types.ObjectId(user_id) } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: '_id',
+                    as: 'user',
+                }
+            },
+            {
+                $lookup: {
+                    from: 'profileimages',
+                    localField: 'user.profileImage',
+                    foreignField: '_id',
+                    as: 'userProfileImage',
+                }
+            },
+            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: '$userProfileImage', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    resignation_id: '$_id', // Renaming _id to resignation_id
+                    resignation_reason: 1,
+                    resignation_date: 1,
+                    notice_period_served: 1,
+                    status: 1,
+                    createdAt: 1,
+                    user: {
+                        first_name: 1,
+                        last_name: 1,
+                        email: 1,
+                    },
+                    userProfileImage: {
+                        image_url: 1,
+                    }
+                }
+            },
+            {
+                $sort: { 
+                    status: 1,
+                    createdAt: 1
+                }
+            }
+        ]);
 
-        // Check if any resignation has status 'Accepted'
         const hasAcceptedResignation = userResignations.some(
             (resignation) => resignation.status === 'Accepted'
         );
 
+        console.log("log the data userResignations", userResignations)
         return res.status(200).json({
-            can_add: !hasAcceptedResignation, // true if no 'Accepted' status, false otherwise
+            can_add: !hasAcceptedResignation,
             resignations: userResignations,
         });
     } catch (error) {
@@ -211,6 +242,11 @@ router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
+
+
+
 
 
 
