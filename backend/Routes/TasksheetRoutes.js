@@ -10,6 +10,7 @@ const Projects = require('../Models/Projects');
 const Brand = require('../Models/Brand');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const mongoose = require('mongoose');
+const mongooseTypes = mongoose.Types;
 
 // Endpoint to update Tasksheet when task status changes
 router.post('/update-tasksheet', authenticateToken, async (req, res) => {
@@ -322,9 +323,153 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
 
 
 //Get tasksheets
+// router.get('/tasksheets/user/:tasksheet_user_id', authenticateToken, async (req, res) => {
+//   const { tasksheet_user_id } = req.params;
+//   const { start_date, end_date } = req.query;
+
+//   if (!start_date || !end_date) {
+//     return res.status(400).json({
+//       success: false,
+//       message: 'Please provide both start_date and end_date query parameters.',
+//     });
+//   }
+
+//   try {
+//     const startDate = new Date(start_date);
+//     const endDate = new Date(end_date);
+
+//     const tasksheets = await Tasksheet.aggregate([
+//       {
+//         $match: {
+//           tasksheet_user_id: new mongoose.Types.ObjectId(tasksheet_user_id),
+//           tasksheet_date: { $gte: startDate, $lte: endDate },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'tasks',  // Collection name is 'tasks' (lowercase)
+//           localField: '_id', 
+//           foreignField: 'task_id',  // Ensure the field linking is correct
+//           as: 'Task',
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: '$Task',
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'subtasksheets', // Correct collection name
+//           localField: 'Task._id',
+//           foreignField: 'task_id',
+//           as: 'Task.Subtasksheets',
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: '$Task.Subtasksheets',
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'subtasks',  // Correct collection name
+//           localField: 'Task.Subtasksheets.subtask_id',
+//           foreignField: '_id',
+//           as: 'Task.Subtasksheets.Subtask',
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'projects',  // Correct collection name
+//           localField: 'Task.project_id',  // Ensure 'project_id' is correct field in Task
+//           foreignField: '_id',
+//           as: 'Task.project',
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: '$Task.project',
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'brands',  // Correct collection name
+//           localField: 'Task.project.brand_id',
+//           foreignField: '_id',
+//           as: 'Task.project.brand',
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: '$Task.project.brand',
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'users',  // Correct collection name
+//           localField: 'tasksheet_user_id',
+//           foreignField: '_id',
+//           as: 'User',
+//         },
+//       },
+//       {
+//         $unwind: {
+//           path: '$User',
+//           preserveNullAndEmptyArrays: true,
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: 'profileimages',  // Correct collection name
+//           localField: 'User.profileImage',
+//           foreignField: '_id',
+//           as: 'User.profileImage',
+//         },
+//       },
+//       {
+//         $project: {
+//           'User.password': 0,
+//           'User.profileImage.password': 0, // Exclude sensitive fields like password
+//         },
+//       },
+//       {
+//         $sort: { tasksheet_date: 1 },
+//       },
+//     ]);
+
+//     if (!tasksheets || tasksheets.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         data: null,
+//         message: 'No tasksheets found within the given date range.',
+//       });
+//     }
+
+//     console.log("log the data is now tasksheets", tasksheets);
+//     res.status(200).json({
+//       success: true,
+//       data: tasksheets,
+//     });
+//   } catch (error) {
+//     console.error('Error fetching tasksheets for user:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error fetching tasksheets for user',
+//       error: error.message,
+//     });
+//   }
+// });
+
+
 router.get('/tasksheets/user/:tasksheet_user_id', authenticateToken, async (req, res) => {
   const { tasksheet_user_id } = req.params;
   const { start_date, end_date } = req.query;
+
   if (!start_date || !end_date) {
     return res.status(400).json({
       success: false,
@@ -333,97 +478,120 @@ router.get('/tasksheets/user/:tasksheet_user_id', authenticateToken, async (req,
   }
 
   try {
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
     const tasksheets = await Tasksheet.aggregate([
       {
         $match: {
           tasksheet_user_id: new mongoose.Types.ObjectId(tasksheet_user_id),
-          tasksheet_date: {
-            $gte: new Date(start_date),
-            $lte: new Date(end_date),
-          },
+          tasksheet_date: { $gte: startDate, $lte: endDate },
         },
       },
       {
         $lookup: {
-          from: 'tasks', // Ensure collection name matches your schema
-          localField: 'task_id',
-          foreignField: '_id',
+          from: 'tasks',  // Ensure collection name 'tasks' is correct (lowercase)
+          localField: 'task_id', 
+          foreignField: '_id',  // Ensure correct field for reference
           as: 'Task',
         },
       },
       {
-        $unwind: '$Task',
+        $unwind: {
+          path: '$Task',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
-          from: 'subtasksheets', // Ensure collection name matches your schema
+          from: 'subtasksheets',  // Correct collection name
           localField: 'Task._id',
           foreignField: 'task_id',
-          as: 'Subtasksheets',
+          as: 'Task.Subtasksheets',
+        },
+      },
+      {
+        $unwind: {
+          path: '$Task.Subtasksheets',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $lookup: {
-          from: 'subtasks', // Ensure collection name matches your schema
-          localField: 'Subtasksheets.subtask_id',
+          from: 'subtasks',  // Correct collection name
+          localField: 'Task.Subtasksheets.subtask_id',
           foreignField: '_id',
-          as: 'Subtasks',
+          as: 'Task.Subtasksheets.Subtask',
         },
       },
       {
         $lookup: {
-          from: 'projects', // Ensure collection name matches your schema
-          localField: 'Task.project_id',
+          from: 'projects',  // Correct collection name
+          localField: 'Task.project_id',  // Ensure correct field for reference
           foreignField: '_id',
-          as: 'Project',
+          as: 'Task.project',
+        },
+      },
+      {
+        $unwind: {
+          path: '$Task.project',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $lookup: {
-          from: 'brands', // Ensure collection name matches your schema
-          localField: 'Project.brand_id',
+          from: 'brands',  // Correct collection name
+          localField: 'Task.project.brand_id',
           foreignField: '_id',
-          as: 'Brand',
+          as: 'Task.project.brand',
+        },
+      },
+      {
+        $unwind: {
+          path: '$Task.project.brand',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $lookup: {
-          from: 'users', // Ensure collection name matches your schema
+          from: 'users',  // Correct collection name
           localField: 'tasksheet_user_id',
           foreignField: '_id',
           as: 'User',
         },
       },
       {
-        $unwind: '$User',
-      },
-      {
-        $lookup: {
-          from: 'profileimages', // Assuming ProfileImage collection
-          localField: 'User.profileImage_id',
-          foreignField: '_id',
-          as: 'ProfileImage',
-        },
-      },
-      {
         $unwind: {
-          path: '$ProfileImage',
+          path: '$User',
           preserveNullAndEmptyArrays: true,
         },
       },
       {
-        $sort: { tasksheet_date: 1 }, // Sort by tasksheet_date ascending
+        $lookup: {
+          from: 'profileimages',  // Correct collection name
+          localField: 'User.profileImage',
+          foreignField: '_id',
+          as: 'User.profileImage',
+        },
+      },
+      {
+        $project: {
+          'User.password': 0,
+          'User.profileImage.password': 0, // Exclude sensitive fields like password
+        },
+      },
+      {
+        $sort: { tasksheet_date: 1 },
       },
     ]);
 
-    if (!tasksheets.length) {
+    if (!tasksheets || tasksheets.length === 0) {
       return res.status(200).json({
         success: true,
         data: null,
         message: 'No tasksheets found within the given date range.',
       });
     }
-
     res.status(200).json({
       success: true,
       data: tasksheets,
@@ -437,6 +605,11 @@ router.get('/tasksheets/user/:tasksheet_user_id', authenticateToken, async (req,
     });
   }
 });
+
+
+
+
+
 
 
 
