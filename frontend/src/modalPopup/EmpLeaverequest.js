@@ -65,8 +65,6 @@ function EmpLeaverequest({ onSuccess }) {
             setErrorMessage("The number of days exceeds the available leave balance.");
             return;
         }
-
-        console.log("log tjhe data ok", userId, leaveTypeId, selectedDates, totalDays, leaveReason)
         setLoading(true);
         try {
             const dates = selectedDates.map(date =>

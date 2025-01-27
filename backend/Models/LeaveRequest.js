@@ -6,7 +6,8 @@ const User = require('./User');
 const leaveRequestSchema = new Schema(
   {
     Leave_type_Id: {
-      type:String,
+      type: Schema.Types.ObjectId,  // Change to ObjectId
+      ref: 'LeaveType',              // Reference to the LeaveType collection
       required: true,
     },
     name: {

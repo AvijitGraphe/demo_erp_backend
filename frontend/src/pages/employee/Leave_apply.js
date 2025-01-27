@@ -44,7 +44,6 @@ const Leave_apply = () => {
     const fetchLeaveRequests = async () => {
         try {
             const { startDate, endDate } = dateRange;
-            console.log("Fetching data with params:", { startDate, endDate });
             const response = await axios.get(
                 `${config.apiBASEURL}/leaveRoutes/leave-requests/user/${userId}`,
                 {
@@ -146,7 +145,7 @@ const Leave_apply = () => {
             setVisible(false);
             setVideoDialogVisible(false);
 
-        }, 5000);
+        }, 1000);
     };
 
 
