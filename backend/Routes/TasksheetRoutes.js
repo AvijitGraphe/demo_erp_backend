@@ -449,7 +449,6 @@ router.get('/tasksheets/user/:tasksheet_user_id', authenticateToken, async (req,
         message: 'No tasksheets found within the given date range.',
       });
     }
-    console.log("log the data is now ok", tasksheets)
     res.status(200).json({
       success: true,
       data: tasksheets,
