@@ -1370,6 +1370,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
                     project_id: 1,
                     updatedAt:1,
                     status:1,
+                    priority:1,
                     task_description:1,
                     'project.project_name': 1,
                     'project.project_id': "$project._id",

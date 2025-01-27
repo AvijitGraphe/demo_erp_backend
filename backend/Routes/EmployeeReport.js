@@ -607,9 +607,7 @@ router.get('/task-stats/monthly/:userId', async (req, res) => {
                 $sort: { _id: 1 }
             }
         ];
-
         const taskStats = await Tasks.aggregate(pipeline);
-
         const mapDataToMonths = (data, key) => {
             const monthData = Array(12).fill(0);
             data.forEach((entry) => {
@@ -618,18 +616,15 @@ router.get('/task-stats/monthly/:userId', async (req, res) => {
             });
             return monthData;
         };
-
         const totalTasksByMonth = mapDataToMonths(taskStats, 'total');
         const completedTasksByMonth = mapDataToMonths(taskStats, 'completed');
         const missedDeadlineTasksByMonth = mapDataToMonths(taskStats, 'missed_deadlines');
-
         const response = monthNames.map((month, index) => ({
             month,
             total_tasks: totalTasksByMonth[index],
             completed_tasks: completedTasksByMonth[index],
             missed_deadline_tasks: missedDeadlineTasksByMonth[index]
         }));
-
         return res.json({ success: true, data: response });
     } catch (error) {
         console.error('Error fetching task stats:', error);
