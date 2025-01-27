@@ -2272,28 +2272,33 @@ router.get('/user-task-summary',authenticateToken, async (req, res) => {
 
 
 //Get specific-user-task-summary
-router.get('/specific-user-task-summary',authenticateToken, async (req, res) => {
+router.get('/specific-user-task-summary', authenticateToken, async (req, res) => {
     const { user_id } = req.query;
     if (!user_id) {
-        return res.status(400).json({ success: false, error: 'user_id is required' });
+        return res.status(400).json({ error: 'user_id is required' });
     }
+
     try {
-        // Calculate the first and last days of the current month
-        const startDate = moment().startOf('month').toDate();
-        const endDate = moment().endOf('month').toDate();
-        // Define all possible statuses
-        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
-        // Aggregation pipeline for specific user task summary
-        const summaryData = await Tasks.aggregate([
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+
+        const aggregationPipeline = [
             {
                 $match: {
-                    task_user_id:new mongoose.Types.ObjectId(user_id), 
-                    task_startdate: { $gte: startDate, $lte: endDate }, 
+                    task_user_id:new mongoose.Types.ObjectId(user_id),
+                    task_startdate: {
+                        $gte: startDate,
+                        $lte: endDate,
+                    },
                 },
             },
             {
                 $lookup: {
-                    from: 'users', 
+                    from: 'users', // Assuming assignee collection is 'users'
                     localField: 'assignee',
                     foreignField: '_id',
                     as: 'assigneeDetails',
@@ -2307,9 +2312,9 @@ router.get('/specific-user-task-summary',authenticateToken, async (req, res) => 
             },
             {
                 $lookup: {
-                    from: 'profileimages', 
-                    localField: 'assigneeDetails.profileImage', 
-                    foreignField: '_id', 
+                    from: 'profileImages', // Assuming profile images collection is 'profileImages'
+                    localField: 'assigneeDetails.profileImage',
+                    foreignField: '_id',
                     as: 'profileImageDetails',
                 },
             },
@@ -2321,27 +2326,18 @@ router.get('/specific-user-task-summary',authenticateToken, async (req, res) => 
             },
             {
                 $group: {
-                    _id: '$status', 
-                    count: { $sum: 1 },
-                    onTimeTasks: { $sum: { $cond: [{ $eq: ['$missed_deadline', false] }, 1, 0] } },
-                    missedDeadlines: { $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] } },
+                    _id: null,
                     userName: { $first: { $concat: ['$assigneeDetails.first_name', ' ', '$assigneeDetails.last_name'] } },
                     profileImage: { $first: '$profileImageDetails.image_url' },
-                },
-            },
-            {
-                $group: {
-                    _id: null, 
-                    tasksByStatus: {
-                        $push: {
-                            status: '$_id',
-                            count: '$count',
-                        },
+                    onTimeTasks: {
+                        $sum: { $cond: [{ $eq: ['$missed_deadline', false] }, 1, 0] },
                     },
-                    onTimeTasks: { $sum: '$onTimeTasks' },
-                    missedDeadlines: { $sum: '$missedDeadlines' },
-                    userName: { $first: '$userName' },
-                    profileImage: { $first: '$profileImage' },
+                    missedDeadlines: {
+                        $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] },
+                    },
+                    taskCounts: {
+                        $push: '$status',
+                    },
                 },
             },
             {
@@ -2351,43 +2347,36 @@ router.get('/specific-user-task-summary',authenticateToken, async (req, res) => 
                     profileImage: 1,
                     onTimeTasks: 1,
                     missedDeadlines: 1,
-                    tasksByStatus: {
-                        $map: {
-                            input: allStatuses,
-                            as: 'status',
-                            in: {
-                                status: '$$status',
-                                count: {
-                                    $reduce: {
-                                        input: {
-                                            $filter: {
-                                                input: '$tasksByStatus',
-                                                cond: { $eq: ['$$this.status', '$$status'] },
-                                            },
-                                        },
-                                        initialValue: 0,
-                                        in: { $add: ['$$value', '$$this.count'] },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    taskCounts: 1,
                 },
             },
-        ]);
-        if (summaryData.length === 0) {
-            return res.status(404).json({ success: false, message: 'No tasks found for the user in the current month.' });
+        ];
+
+        const aggregationResult = await Tasks.aggregate(aggregationPipeline);
+
+        if (aggregationResult.length === 0) {
+            return res.status(404).json({ error: 'No tasks found for this user in the specified period.' });
         }
-        res.status(200).json({ success: true, summary: summaryData[0] });
-    } catch (error) {
-        console.error('Error fetching specific user task summary:', error);
-        res.status(500).json({
-            success: false,
-            error: 'An error occurred while fetching the specific user task summary.',
-            details: error.message,
+
+        // Prepare the final summary structure
+        const summary = aggregationResult[0];
+
+        // Prepare task status counts
+        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
+        allStatuses.forEach((status) => {
+            summary[status] = summary.taskCounts.filter((taskStatus) => taskStatus === status).length;
         });
+
+        // Remove taskCounts from final summary
+        delete summary.taskCounts;
+        res.json({ summary });
+    } catch (error) {
+        console.error('Error fetching task summary:', error);
+        res.status(500).json({ error: 'An error occurred while fetching task summary.' });
     }
 });
+
+
 
 
 module.exports = router;
