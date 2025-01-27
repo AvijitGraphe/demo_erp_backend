@@ -85,7 +85,6 @@ const Dash_evntcal = () => {
                     end_date: endDate.format('YYYY-MM-DD'),
                 },
             });
-
             const leaveEvents = response.data.leaveRequests.flatMap((request) => {
                 const { requestor, dates } = request;
                 const fullName = `${requestor.first_name} ${requestor.last_name}`;
@@ -102,7 +101,6 @@ const Dash_evntcal = () => {
                     textColor: '#fff',
                 }));
             });
-
             setEvents((prevEvents) => [...prevEvents, ...leaveEvents]);
         } catch (error) {
             console.error("Error fetching approved leave requests:", error);
