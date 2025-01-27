@@ -203,8 +203,6 @@ router.get('/holidays/week', authenticateToken, async (req, res) => {
       ...holiday.toObject(),
       holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'), // Format the date field
     }));
-
-    console.log("log the holidays", formattedHolidays);
     res.status(200).json({ holidays: formattedHolidays });
   } catch (error) {
     console.error(error);
@@ -320,35 +318,62 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
     const start = new Date(start_date);
     const end = new Date(end_date);
 
-    const leaveRequests = await LeaveRequest.find({
-      Status: 'Approved',
-    }).populate({
-      path: 'user_id',
-      select: ['first_name', 'last_name'],
-      populate: {
-        path: 'profileImage', 
-        select: ['image_url'],
-        strictPopulate: false,
+    const leaveRequests = await LeaveRequest.aggregate([
+      {
+        $match: { Status: 'Approved' },
       },
-    });
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user_id',
+          foreignField: '_id',
+          as: 'requestor',
+        },
+      },
+      {
+        $unwind: { path: '$requestor' },
+      },
+      {
+        $lookup: {
+          from: 'profileimages',
+          localField: 'requestor.profileImage_id',
+          foreignField: '_id',
+          as: 'requestor.profileImage',
+        },
+      },
+      {
+        $project: {
+          'requestor.first_name': 1,
+          'requestor.last_name': 1,
+          'requestor.profileImage.image_url': 1,
+          Status: 1,
+          dates: 1,
+        },
+      },
+    ]);
 
     const filteredRequests = leaveRequests.filter((request) => {
       const datesArray =
         typeof request.dates === 'string' ? JSON.parse(request.dates) : request.dates;
-
       return datesArray.some((date) => {
         const dateObj = new Date(date);
         return dateObj >= start && dateObj <= end;
       });
     });
 
-    // Map _id to Leave_request_id
     const formattedRequests = filteredRequests.map(request => {
-      return {
-        ...request.toObject(),
-        Leave_request_id: request._id,  // Convert _id to Leave_request_id
-        _id: undefined,  // Remove the original _id field if needed
+      const formattedDates = typeof request.dates === 'string' 
+        ? JSON.parse(request.dates) 
+        : request.dates;
+
+      const formattedRequest = {
+        ...request,
+        Leave_request_id: request._id,
+        _id: undefined,
+        dates: formattedDates.map(date => new Date(date).toISOString().split('T')[0]), // Convert date to 'YYYY-MM-DD'
       };
+
+      return formattedRequest;
     });
 
     res.json({ leaveRequests: formattedRequests });
@@ -357,6 +382,10 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching leave requests.' });
   }
 });
+
+
+
+
 
 
 

@@ -33,8 +33,6 @@ const Dash_evntcal = () => {
                     endDate: endDate.format('YYYY-MM-DD'),
                 },
             });
-
-            console.log("log the holiday ok", response.data)
             const holidayEvents = response.data.holidays.map((holiday) => ({
                 title: holiday.holiday_name,
                 start: holiday.holiday_date,
