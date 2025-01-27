@@ -1930,97 +1930,137 @@ router.get('/tasks/weekly-priority',authenticateToken, async (req, res) => {
 
 
 //Get categorized tasks for a specific user
-router.get('/tasks/categorized/:user_id',authenticateToken, async (req, res) => {
+router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
+
     try {
         // Define start and end of the week
         const startOfWeek = moment().startOf('week').toDate();
         const endOfWeek = moment().endOf('week').toDate();
+
         // Define start and end of today
         const today = moment().startOf('day').toDate();
         const endOfToday = moment().endOf('day').toDate();
-        // Use aggregation to categorize tasks
+
+        // Fetch tasks for the user and categorize them
         const tasks = await Tasks.aggregate([
             {
                 $match: {
-                    task_user_id: user_id,
+                    task_user_id: new mongoose.Types.ObjectId(user_id),
                     is_active: true,
-                }
+                },
             },
             {
                 $lookup: {
-                    from: 'projects',
+                    from: 'projects', // MongoDB collection name for Projects
                     localField: 'project_id',
                     foreignField: '_id',
-                    as: 'project'
-                }
+                    as: 'project',
+                },
             },
             {
-                $unwind: { path: '$project', preserveNullAndEmptyArrays: true }
+                $unwind: {
+                    path: '$project',
+                    preserveNullAndEmptyArrays: true,
+                },
             },
             {
                 $lookup: {
-                    from: 'brands', 
+                    from: 'brands', // MongoDB collection name for Brands
                     localField: 'project.brand_id',
                     foreignField: '_id',
-                    as: 'project.brand'
-                }
+                    as: 'project.brand',
+                },
             },
             {
-                $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'project.lead_id',
-                    foreignField: '_id',
-                    as: 'project.lead'
-                }
-            },
-            {
-                $unwind: { path: '$project.lead', preserveNullAndEmptyArrays: true }
+                $unwind: {
+                    path: '$project.brand',
+                    preserveNullAndEmptyArrays: true,
+                },
             },
             {
                 $lookup: {
-                    from: 'images', 
-                    localField: 'project.lead.profileImage',
-                    foreignField: '_id',
-                    as: 'project.lead.profileImage'
-                }
-            },
-            {
-                $unwind: { path: '$project.lead.profileImage', preserveNullAndEmptyArrays: true }
-            },
-            {
-                $lookup: {
-                    from: 'users', 
+                    from: 'users', // MongoDB collection name for Users
                     localField: 'task_user_id',
                     foreignField: '_id',
-                    as: 'assignee'
-                }
+                    as: 'assignee',
+                },
             },
             {
-                $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true }
+                $unwind: {
+                    path: '$assignee',
+                    preserveNullAndEmptyArrays: true,
+                },
             },
             {
                 $lookup: {
-                    from: 'images', 
+                    from: 'profileimages', // MongoDB collection name for ProfileImages
                     localField: 'assignee.profileImage',
                     foreignField: '_id',
-                    as: 'assignee.profileImage'
-                }
+                    as: 'assignee.profileImage',
+                },
             },
             {
-                $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true }
-            }
+                $unwind: {
+                    path: '$assignee.profileImage',
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users', // MongoDB collection name for Users (for the lead)
+                    localField: 'project.lead_id',
+                    foreignField: '_id',
+                    as: 'project.lead',
+                },
+            },
+            {
+                $unwind: {
+                    path: '$project.lead',
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $lookup: {
+                    from: 'profileimages', // MongoDB collection name for ProfileImages
+                    localField: 'project.lead.profileImage',
+                    foreignField: '_id',
+                    as: 'project.lead.profileImage',
+                },
+            },
+            {
+                $unwind: {
+                    path: '$project.lead.profileImage',
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $project: {
+                    task_startdate: 1,
+                    task_name: 1,
+                    status: 1, 
+                    priority_flag: 1,
+                    task_deadline: 1,
+                    missed_deadline: 1,
+                    task_user_id: 1,
+                    'project.project_name': 1,
+                    'project.brand.brand_name': 1,
+                    'assignee.first_name': 1,
+                    'assignee.last_name': 1,
+                    'assignee.profileImage.image_url': 1,
+                    'project.lead.first_name': 1,
+                    'project.lead.last_name': 1,
+                    'project.lead.profileImage.image_url': 1,
+                },
+            },
         ]);
-
+        
         // Categorize tasks
         const categorizedTasks = {
             today_tasks: tasks.filter(
                 (task) =>
                     moment(task.task_startdate).isBetween(today, endOfToday, null, '[]') &&
-                    task.status === 'Todo'
+                    task.task_status === 'Todo'
             ),
             pending_tasks: tasks.filter(
                 (task) =>
@@ -2038,12 +2078,22 @@ router.get('/tasks/categorized/:user_id',authenticateToken, async (req, res) => 
                     moment(task.task_startdate).isBetween(startOfWeek, endOfWeek, null, '[]')
             ),
         };
+
+        console.log("log the data ok , categorizedTasks", categorizedTasks)
         res.status(200).json({ success: true, data: categorizedTasks });
     } catch (error) {
         console.error('Error fetching categorized tasks:', error);
         res.status(500).json({ success: false, message: 'An error occurred while fetching tasks.' });
     }
 });
+
+
+
+
+
+
+
+
 
 
 //dashboard task summary --------------/
