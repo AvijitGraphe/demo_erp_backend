@@ -370,21 +370,33 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
 
+        //
         const taskCountsByStatus = await Tasks.aggregate([
-            { 
-                $match: { 
-                    task_user_id: new mongoose.Types.ObjectId(user_id),
-                    task_startdate: { $gte: startDate, $lte: endDate }
+            {
+                $match: {
+                    task_user_id:new mongoose.Types.ObjectId(user_id), 
+                    task_startdate: {
+                        $gte: startDate,
+                        $lte: endDate
+                    }
                 }
             },
-            { 
-                $group: { 
-                    _id: "$status", 
-                    statusCount: { $sum: 1 } 
+            {
+                $group: {
+                    _id: "$status",  // Group by the 'status' field
+                    statusCount: { $sum: 1 }  // Count the number of documents per status
+                }
+            },
+            {
+                $project: {
+                    status: "$_id",  // Rename the _id field to 'status'
+                    statusCount: 1,  // Keep the statusCount field
+                    _id: 0  // Exclude the default _id field
                 }
             }
         ]);
         
+    
         const missedAndOnTimeCounts = await Tasks.aggregate([
             { 
                 $match: { 
@@ -400,6 +412,8 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
                 }
             }
         ]);
+
+ 
         
         // For missed deadline tasks
         const missedDeadlineTasks = await Tasks.aggregate([

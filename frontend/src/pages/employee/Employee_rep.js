@@ -382,6 +382,8 @@ const Employee_rep = () => {
                             </Card>
                         </Col>
                     )}
+
+
                     {/*---------------Project Report----------------*/}
                     {taskStats && (
                         <Col lg={6} className='mb-4 pe-lg-0 ps-lg-0'>
@@ -452,6 +454,8 @@ const Employee_rep = () => {
                         </Col>
 
                     )}
+
+                    
                     {chartData && chartOptions && (
                         <Col lg={6} className="mb-4 pe-lg-0">
                             <Card className="p-0">
