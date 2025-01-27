@@ -60,11 +60,8 @@ const ProfileDetails = () => {
         try {
             // The response from the XMLHttpRequest is available in event.xhr.response
             const response = JSON.parse(event.xhr.response);  // Parse the response manually
-
             const newImageUrl = response.imageUrl;  // Extract image URL from the response
             setProfileImageUrl(newImageUrl);  // Update the profile image URL in the state
-
-            console.log('Profile image updated successfully:', newImageUrl);
         } catch (error) {
             console.error('Error handling upload response:', error);
         }
@@ -77,7 +74,6 @@ const ProfileDetails = () => {
                 `${config.apiBASEURL}/user-profile/getUserDetails?userId=${userId}`,
                 { headers }
             );
-            console.log("User Details:", response.data);
             setUserDetails(response.data);
         } catch (err) {
             console.error("Error fetching user details:", err.message);
@@ -91,7 +87,6 @@ const ProfileDetails = () => {
                 `${config.apiBASEURL}/user-profile/getBankDetails?userId=${userId}`,
                 { headers }
             );
-            console.log("Bank Details:", response.data);
             setBankDetails(response.data);
         } catch (err) {
             console.error("Error fetching bank details:", err.message);
@@ -105,7 +100,6 @@ const ProfileDetails = () => {
                 `${config.apiBASEURL}/user-profile/getEducationInfo?userId=${userId}`,
                 { headers }
             );
-            console.log("Education Info:", response.data);
             setEducationInfo(response.data);
         } catch (err) {
             console.error("Error fetching education info:", err.message);
@@ -119,7 +113,6 @@ const ProfileDetails = () => {
                 `${config.apiBASEURL}/user-profile/getEmergencyContact?userId=${userId}`,
                 { headers }
             );
-            console.log("Emergency Contact:", response.data);
             setEmergencyContact(response.data);
         } catch (err) {
             console.error("Error fetching emergency contact:", err.message);
@@ -133,7 +126,6 @@ const ProfileDetails = () => {
                 `${config.apiBASEURL}/user-profile/main-user-details?userId=${userId}`,
                 { headers }
             );
-            console.log("Main User Details:", response.data);
             setMainUserDetails(response.data);
         } catch (err) {
             console.error("Error fetching main user details:", err.message);
@@ -275,7 +267,7 @@ const ProfileDetails = () => {
                                             />
                                         </div>
                                         <div className='ms-3'>
-                                            <h3 className='fw-bold mb-0 text-black'>{mainUserDetails?.first_name} {mainUserDetails?.last_name}<small className='digi'>{mainUserDetails?.role?.role_name || 'Not Specified'}</small></h3>
+                                            <h3 className='fw-bold mb-0 text-black'>{mainUserDetails?.first_name} {mainUserDetails?.last_name}<small className='digi'>{mainUserDetails?.role[0].role_name || 'Not Specified'}</small></h3>
                                             <p className='text-muted mb-1'><small>{userDetails?.forte || 'Not Provided Yet'}</small></p>
 
                                             <p className='text-black mb-0'>

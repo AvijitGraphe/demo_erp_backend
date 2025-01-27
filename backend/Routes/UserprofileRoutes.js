@@ -373,7 +373,8 @@ router.get('/getEmergencyContact', authenticateToken, async (req, res) => {
 });
 
 
-// Fetch main user details -
+
+
 router.get('/main-user-details', authenticateToken, async (req, res) => {
   const { userId } = req.query;
 
@@ -382,97 +383,91 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
   }
 
   try {
-    const today = moment().format('YYYY-MM-DD'); 
+    const todayStart = moment().startOf('day').toDate(); // Start of the current day
+    const todayEnd = moment().endOf('day').toDate(); // End of the current day
+    const userObjectId = new mongoose.Types.ObjectId(userId); // Convert userId to ObjectId
 
-    const aggregationPipeline = [
-      {
-        $match: { user_id: userId } // Match the user based on userId
-      },
+    const userDetails = await User.aggregate([
+      { $match: { _id: userObjectId } }, // Match user by ObjectId
       {
         $lookup: {
-          from: 'roles', // Name of the collection in MongoDB
-          localField: 'role', // Field from the User model that references the Role
-          foreignField: '_id', // _id from the Role model
-          as: 'role'
-        }
-      },
-      {
-        $unwind: { path: '$role', preserveNullAndEmptyArrays: true } // Unwind the role array
-      },
-      {
-        $lookup: {
-          from: 'usertimes', // Name of the collection in MongoDB
-          localField: '_id', // The user _id
-          foreignField: 'user_id', // user_id in the UserTime model
-          as: 'userTimes'
+          from: 'roles',
+          localField: 'Role_id',
+          foreignField: '_id',
+          as: 'role',
+          pipeline: [{ $project: { role_name: 1 } }]
         }
       },
       {
         $lookup: {
-          from: 'joiningdates', // Name of the collection in MongoDB
-          localField: '_id', // The user _id
-          foreignField: 'user_id', // user_id in the JoiningDate model
-          as: 'joiningDates'
+          from: 'usertimes',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'userTimes',
+          pipeline: [
+            { $project: { start_time: 1, createdAt: 1, updatedAt: 1 } }
+          ]
         }
       },
       {
         $lookup: {
-          from: 'attendances', // Name of the collection in MongoDB
-          localField: '_id', // The user _id
-          foreignField: 'user_id', // user_id in the Attendance model
+          from: 'joiningdates',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'joiningDates',
+          pipeline: [
+            { $project: { joining_date: 1, createdAt: 1, updatedAt: 1 } }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'resignations',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'resignations',
+          pipeline: [
+            { $match: { status: 'Approved' } },
+            { $project: { status: 1, last_working_day: 1 } }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'attendances',
+          localField: '_id',
+          foreignField: 'user_id',
           as: 'attendances',
           pipeline: [
-            { $match: { date: today } }, // Filter attendance by today's date
-            { $project: { checkin_status: 1, _id: 0 } } // Select only checkin_status
+            { $match: { date: { $gte: todayStart, $lte: todayEnd } } },
+            { $project: { checkin_status: 1 } }
           ]
         }
       },
       {
         $project: {
-          _id: 1, // Include _id field
-          user_id: 1,
-          address: 1,
-          city: 1,
-          pincode: 1,
-          state: 1,
-          country: 1,
-          phone: 1,
-          gender: 1,
-          date_of_birth: 1,
-          forte: 1,
-          other_skills: 1,
-          pan_card_no: 1,
-          passport_no: 1,
-          aadhar_no: 1,
-          nationality: 1,
-          religion: 1,
-          marital_status: 1,
-          employment_of_spouse: 1,
-          no_of_children: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          role: 1, // Include role field
-          userTimes: 1, // Include userTimes
-          joiningDates: 1, // Include joiningDates
-          attendances: 1 // Include attendances
+          password: 0,
+          __v: 0, // Exclude version key if needed
         }
       }
-    ];
-    
-
-    // Execute the aggregation pipeline
-    const userDetails = await User.aggregate(aggregationPipeline);
-
+    ]);
     if (!userDetails || userDetails.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
+    const userDetail = userDetails[0];
+    if (userDetail.userTimes.length === 0) {
+      console.log('No user times found for the given user.');
+    }
 
-    res.status(200).json(userDetails[0]); // Send the first result
+    res.status(200).json(userDetail);
   } catch (error) {
     console.error(`Error fetching user details: ${error.message}`);
     res.status(500).json({ message: 'Error fetching user details', error: error.message });
   }
 });
+
+
+
 
 
 /**
