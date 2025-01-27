@@ -572,97 +572,72 @@ router.get('/fetch-report-users', authenticateToken, async (req, res) => {
 router.get('/task-stats/monthly/:userId', async (req, res) => {
     const { userId } = req.params;
     const currentYear = new Date().getFullYear();
-
     try {
-        // Define start and end dates for the current year
-        const startOfYear = new Date(currentYear, 0, 1);
-        const endOfYear = new Date(currentYear, 11, 31);
+        const pipeline = [
+            {
+                $match: {
+                    task_user_id: new mongoose.Types.ObjectId(userId),
+                    createdAt: {
+                        $gte: new Date(currentYear, 0, 1),
+                        $lte: new Date(currentYear, 11, 31)
+                    }
+                }
+            },
+            {
+                $project: {
+                    month: { $month: '$createdAt' },
+                    task_id: 1,
+                    status: 1,
+                    missed_deadline: 1
+                }
+            },
+            {
+                $group: {
+                    _id: '$month',
+                    total: { $sum: 1 },
+                    completed: {
+                        $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] }
+                    },
+                    missed_deadlines: {
+                        $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] }
+                    }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ];
 
-        // Helper function to map data into months
-        const mapDataToMonths = (data) => {
+        const taskStats = await Tasks.aggregate(pipeline);
+
+        const mapDataToMonths = (data, key) => {
             const monthData = Array(12).fill(0);
             data.forEach((entry) => {
-                const monthIndex = entry._id.month - 1; // MongoDB month starts from 1
-                monthData[monthIndex] = entry.total;
+                const monthIndex = entry._id - 1;
+                monthData[monthIndex] = entry[key];
             });
             return monthData;
         };
 
-        // Fetch all tasks for the user for the current year
-        const allTasks = await Tasks.aggregate([
-            {
-                $match: {
-                    task_user_id: userId,
-                    createdAt: { $gte: startOfYear, $lte: endOfYear },
-                },
-            },
-            {
-                $group: {
-                    _id: { month: { $month: '$createdAt' } },
-                    total: { $sum: 1 },
-                },
-            },
-        ]);
+        const totalTasksByMonth = mapDataToMonths(taskStats, 'total');
+        const completedTasksByMonth = mapDataToMonths(taskStats, 'completed');
+        const missedDeadlineTasksByMonth = mapDataToMonths(taskStats, 'missed_deadlines');
 
-        // Fetch completed tasks for the user for the current year
-        const completedTasks = await Tasks.aggregate([
-            {
-                $match: {
-                    task_user_id: userId,
-                    status: 'Completed',
-                    createdAt: { $gte: startOfYear, $lte: endOfYear },
-                },
-            },
-            {
-                $group: {
-                    _id: { month: { $month: '$createdAt' } },
-                    completed: { $sum: 1 },
-                },
-            },
-        ]);
-
-        // Fetch missed deadline tasks for the user for the current year
-        const missedDeadlineTasks = await Tasks.aggregate([
-            {
-                $match: {
-                    task_user_id: userId,
-                    missed_deadline: true,
-                    createdAt: { $gte: startOfYear, $lte: endOfYear },
-                },
-            },
-            {
-                $group: {
-                    _id: { month: { $month: '$createdAt' } },
-                    missed_deadlines: { $sum: 1 },
-                },
-            },
-        ]);
-
-        // Map aggregated data into months
-        const totalTasksByMonth = mapDataToMonths(allTasks);
-        const completedTasksByMonth = mapDataToMonths(completedTasks);
-        const missedDeadlineTasksByMonth = mapDataToMonths(missedDeadlineTasks);
-
-        // Month names
-        const monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-
-        // Build response
         const response = monthNames.map((month, index) => ({
             month,
             total_tasks: totalTasksByMonth[index],
             completed_tasks: completedTasksByMonth[index],
-            missed_deadline_tasks: missedDeadlineTasksByMonth[index],
+            missed_deadline_tasks: missedDeadlineTasksByMonth[index]
         }));
 
-        res.json({ success: true, data: response });
+        return res.json({ success: true, data: response });
     } catch (error) {
         console.error('Error fetching task stats:', error);
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 });
+
+
 
 
 
