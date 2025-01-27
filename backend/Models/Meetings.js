@@ -1,28 +1,34 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
-const User = require('./User');
-const MeetingSchema = new Schema({
-  date:{
-    type: Date,     
-    required: false,   
+const { Schema } = mongoose;
+
+const MeetingSchema = new Schema(
+  {
+    date: {
+      type: Date, 
+      required: true,
+    },
+    start_time: {
+      type: String, 
+      required: true,
+    },
+    end_time: {
+      type: String, 
+      required: true,
+    },
+    purpose: {
+      type: String, 
+      required: true,
+    },
+    meeting_member_id: {
+      type: [mongoose.Schema.Types.ObjectId], 
+      ref: 'User', 
+      required: false, 
+    },
   },
-  start_time:{
-    type: String,     
-    required:false,   
-  },
-  end_time:{
-    type: String,     
-    required: false,   
-  },
-  purpose:{
-    type: String,     
-    required:false,   
-},
-meeting_member_id: [{ 
-  type: mongoose.Schema.Types.ObjectId, 
-  ref: 'User' 
-}]
-},{
-  timestamps: true,
-}); 
+  {
+    timestamps: true, 
+    collection: 'meetings', 
+  }
+);
+
 module.exports = mongoose.model('Meeting', MeetingSchema);

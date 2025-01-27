@@ -52,7 +52,7 @@ const UserDetails = new Schema({
   },
   other_skills: {
     type: String,
-   required: true
+    required: false
   },
   pan_card_no: {
     type: String,

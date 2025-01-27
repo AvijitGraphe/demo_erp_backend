@@ -15,11 +15,11 @@ const HolidaySchema = new Schema({
     },
     image_url:{
         type: String,     
-        required: true,   
+        required: false,   
     },
     imagekit_file_id:{
         type: String,     
-        required: true,   
+        required: false,   
     },
     status:{
         type: String,     
