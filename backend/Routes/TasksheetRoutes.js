@@ -15,7 +15,6 @@ const mongooseTypes = mongoose.Types;
 // Endpoint to update Tasksheet when task status changes
 router.post('/update-tasksheet', authenticateToken, async (req, res) => {
   const { task_id, status } = req.body;
-  console.log("log the task_id and status ", task_id, status);
   try {
     const task = await Tasks.findById(task_id);
     if (!task) {
@@ -23,7 +22,6 @@ router.post('/update-tasksheet', authenticateToken, async (req, res) => {
     }
     // Get the current date in the format YYYY-MM-DD
     const today = new Date().toISOString().split('T')[0];
-    console.log("log the task fetched from DB ", task);
     // Fetch today's Tasksheet data
     const todaysTasksheets = await Tasksheet.find({ tasksheet_date: today });
     // Find the existing entry for the current task using the correct task_id

@@ -875,8 +875,8 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
     if (!Array.isArray(tasks) || tasks.length === 0) {
         return res.status(400).json({ error: "Tasks must be a non-empty array." });
     }
+    const addedTasks = [];
     try {
-        const addedTasks = [];
         for (const task of tasks) {
             const {
                 user_id,
@@ -889,55 +889,36 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 task_type,
                 priority
             } = task;
+
             const startDate = new Date(task_startdate);
-            startDate.setHours(0, 0, 0, 0); // Start of the task date
+            startDate.setHours(0, 0, 0, 0);
             const endDate = new Date(task_startdate);
-            endDate.setHours(23, 59, 59, 999); // End of the task date
+            endDate.setHours(23, 59, 59, 999);
 
-            // Fetch the user's task limit
-            const user = await User.aggregate([
-                { $match: { _id: new mongoose.Types.ObjectId(user_id) } },
-                { 
-                    $lookup: {
-                        from: 'tasklimits',
-                        localField: '_id',
-                        foreignField: 'user_id',
-                        as: 'taskLimit'
-                    }
-                },
-                { $unwind: { path: '$taskLimit', preserveNullAndEmptyArrays: true } }
-            ]);
-            
-
-
-            if (!user) {
-                console.error(`User with ID ${user_id} not found.`);
-                continue; // Skip this task if user not found
+            let userTaskLimit = await UserTaskLimits.findOne({ user_id: user_id });
+            if (!userTaskLimit) {
+                userTaskLimit = new UserTaskLimits({
+                    user_id,
+                    max_tasks_per_day: 5
+                });
+                await userTaskLimit.save();
             }
+            const taskLimit = userTaskLimit.max_tasks_per_day;
 
-            const taskLimit = user.taskLimit?.max_tasks_per_day || 0;
-
-            // Fetch the user's current task count for the specified date
             const taskCount = await Tasks.countDocuments({
-                task_user_id:new mongoose.Types.ObjectId(user_id),
-                status: { $in: ['Todo', 'InProgress', 'InChanges'] }, 
-                task_startdate: { $gte: startDate, $lte: endDate }
+                task_user_id: user_id,
+                status: { $in: ['Todo', 'InProgress', 'InChanges'] },
+                task_startdate: { $gte: startDate, $lte: endDate },
             });
 
-
-           if (taskLimit === 0) {
-            console.log(`User ${user_id} has no task limit, task will be created.`);
-            } else if (taskCount >= taskLimit) {
-                console.log(`User ${user_id} has reached their task limit (${taskLimit}) for ${task_startdate}. Task skipped.`);
+            if (taskCount >= taskLimit) {
                 continue;
             }
 
-
-            // Add the task
-            const newTask = await Tasks.create({
+            const newTask = new Tasks({
                 project_id,
                 brand_id,
-                task_user_id: new mongoose.Types.ObjectId(user_id),
+                task_user_id: user_id,
                 task_name,
                 task_description,
                 task_startdate,
@@ -946,37 +927,37 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 priority,
                 status: 'Todo',
             });
-            // Fetch users to notify, excluding the task creator's user_id
+            await newTask.save();
+
             const usersToNotify = await User.find({
                 user_type: { $in: ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'] },
-                _id: { $ne: new mongoose.Types.ObjectId(user_id) }, // Exclude the task creator's user_id
+                _id: { $ne: user_id },
             });
 
-            // Map the user IDs and include only unique IDs
-            const userIds = new Set(usersToNotify.map(user => user._id.toString()));
-
-            // Add the task creator's ID to the set
+            const userIds = new Set(usersToNotify.map(user => user._id));
             userIds.add(user_id);
 
-            // Process each user ID to add task positions
             for (const id of userIds) {
                 const maxPosition = await UserTaskPositions.findOne({
-                    user_id:new mongoose.Types.ObjectId(id),
+                    user_id: id,
                     column: 'Todo',
                 }).sort({ position: -1 });
 
                 const position = (maxPosition?.position || 0) + 1;
 
-                await UserTaskPositions.create({
-                    user_id:new mongoose.Types.ObjectId(id),
-                    task_id: newTask._id, // Ensure you're referring to the correct task ID
+                const newTaskPosition = new UserTaskPositions({
+                    user_id: id,
+                    task_id: newTask._id,
                     column: 'Todo',
                     position,
                 });
+
+                await newTaskPosition.save();
             }
 
             addedTasks.push(newTask);
         }
+
         res.status(201).json({
             message: 'Tasks added successfully.',
             tasks: addedTasks,
@@ -986,6 +967,10 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Error adding tasks', details: error.message });
     }
 });
+
+
+
+
 
 
 
