@@ -261,8 +261,6 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
       },
     ]);
 
-
-    console.log("log rhe darta tasksheets", tasksheets)
     if (!tasksheets.length) {
       return res.status(200).json({
         success: true,
@@ -318,7 +316,6 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log("log hte groupedData", groupedData)
     res.status(200).json({
       success: true,
       data: groupedData,

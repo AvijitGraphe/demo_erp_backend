@@ -175,7 +175,7 @@ const Daily_task = () => {
                                                             <ul>
                                                                 {userTasks.map((task, taskIndex) => (
                                                                     <li key={taskIndex}>
-                                                                        <Link to={`/dashboard/view_task/${task.Task.task_id}`}>
+                                                                        <Link to={`/dashboard/view_task/${task.Task._id}`}>
                                                                             <p>
                                                                                 <span>Brand : </span> {task.Task.project.brand.brand_name}
                                                                                 <small className="misses_image2">{task.task_priority_flag === "Priority" && <PiFlagBannerFill className="ms-3" />}</small>
