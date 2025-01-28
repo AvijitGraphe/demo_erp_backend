@@ -1,63 +1,52 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
-const LetterTemplate = require('./Letter_template'); 
-const User = require('./User'); 
+const { Schema } = mongoose;
 
-
-const SendLetterSchema = new Schema({
-
+const sendLetterSchema = new Schema(
+  {
     template_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'LetterTemplate',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LetterTemplate', 
+      required: true,
     },
     user_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User', 
+      required: false, 
     },
     user_email: {
-       type: String,
-        required: false,
+      type: String,
+      required: true,
     },
     employee_name: {
-       type: String,
-        required: false,
-    },
-    joining_date: {
-        type: Date ,
-        required: true,
-    },
-    designation_offered: {
-       type: String,
-        required: false,
-    },
-    body: {
-        type: String, 
-        required: false,
+      type: String,
+      required: true,
     },
     creator_name: {
-       type: String,
-        required: false,
+      type: String,
+      required: true,
     },
     creator_designation: {
-       type: String,
-        required: false,
+      type: String,
+      required: true,
     },
     signature_url: {
-        type: String,
-        required: true,
+      type: String,
+      required: false, 
+    },
+    signature_file_id: {
+      type: String, 
+      required: false, 
     },
     status: {
-        type: String,
-        enum:['Generated', 'Confirmed', 'Edited'],
-        default: 'Generated',
-        required: false,
+      type: String,
+      enum: ['Generated', 'Confirmed', 'Edited'],
+      default: 'Generated',
+      required: true,
     },
-}, {
-    tableName: 'send_letters',
-});
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('SendLetter', SendLetterSchema);
-
-
+module.exports = mongoose.model('SendLetter', sendLetterSchema);
