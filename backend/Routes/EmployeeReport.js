@@ -250,11 +250,18 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
         const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
         
         // Adding the end time to the attendances data before sending the response
-        const formattedAttendances = attendances.map(att => ({
+        // Sort attendances in descending order by date (or start_time)
+        const formattedAttendances = attendances
+        .map(att => ({
             ...att,
-            end_time: att.end_time || '00:00:00',  // Provide default if no end_time is available
-            start_time: att.start_time || '00:00:00'  // Provide default if no start_time is available
-        }));
+            end_time: att.end_time || '00:00:00',  
+            start_time: att.start_time || '00:00:00' 
+        }))
+        .sort((a, b) => moment(b.date).isBefore(moment(a.date)) ? -1 : 1);  
+    
+    console.log("formattedAttendances", formattedAttendances);
+    
+
 
         res.status(200).json({
             userDetails: {
@@ -267,8 +274,9 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
             totalLateCount,
             lateDays,
             totalOvertimeHours,
-            attendances: formattedAttendances,  // Include the formatted attendances with end_time
+            attendances: formattedAttendances,
         });
+
 
     } catch (error) {
         console.error(`Error fetching user details: ${error.message}`);

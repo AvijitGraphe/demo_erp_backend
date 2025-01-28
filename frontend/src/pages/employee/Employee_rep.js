@@ -486,57 +486,55 @@ const Employee_rep = () => {
                                                     <th scope='col'>Absence</th>
                                                     <th scope='col'>Present</th>
                                                     <th scope='col'>Half Day</th>
-                                                   
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {attendanceData.userDetails.attendances.map((attendance, index) => {
-                                                    const isFullDay = attendance.attendance_status === "Full-Day";
-                                                    const isHalfDay = attendance.attendance_status === "Half-Day";
-                                                    const isStarted = attendance.attendance_status === "Started";
+                                                {/* Sort attendances by date (descending order) */}
+                                                {attendanceData.userDetails.attendances
+                                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                                                    .map((attendance, index) => {
+                                                        const isFullDay = attendance.attendance_status === "Full-Day";
+                                                        const isHalfDay = attendance.attendance_status === "Half-Day";
+                                                        const isStarted = attendance.attendance_status === "Started";
+                                                        // Function to format time string like 'HH:mm' to 'HH:mm AM/PM'
+                                                        const formatTime = (timeString) => {
+                                                            if (!timeString || timeString === "00:00:00") return "00:00:00";
+                                                            const [hours, minutes] = timeString.split(":");
+                                                            const date = new Date();
+                                                            date.setHours(hours);
+                                                            date.setMinutes(minutes);
+                                                            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                        };
 
-                                                    // Function to format time (in case the time is not in the correct format already)
-                                                    // Function to format time string like 'HH:mm' to 'HH:mm AM/PM'
-                                                    const formatTime = (timeString) => {
-                                                        if (!timeString) return "00:00:00";
-                                                        // Assuming the time is in HH:mm format, you can use a library or manual formatting
-                                                        const [hours, minutes] = timeString.split(":");
-                                                        // Create a new Date object
-                                                        const date = new Date();
-                                                        date.setHours(hours);
-                                                        date.setMinutes(minutes);
-                                                        // Format to 'HH:mm AM/PM' using toLocaleTimeString or custom formatting
-                                                        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                                    };
-                                                    return (
-                                                        <tr key={index}>
-                                                            <td>{new Date(attendance.date).toLocaleDateString('en-GB')}</td>
-                                                            <td>{formatTime(attendance.start_time) || "00:00:00"}</td>
-                                                            <td>{formatTime(attendance.end_time) || "00:00:00"}</td>
+                                                        return (
+                                                            <tr key={index}>
+                                                                <td>{new Date(attendance.date).toLocaleDateString('en-GB')}</td>
+                                                                <td>{formatTime(attendance.start_time) || "00:00:00"}</td>
+                                                                <td>{formatTime(attendance.end_time) || "00:00:00"}</td>
 
-                                                            {/* Absence Column */}
-                                                            <td>
-                                                                {isStarted && (
-                                                                    <span className="text-danger h6"><i className="pi pi-times-circle"></i></span>
-                                                                )}
-                                                            </td>
+                                                                {/* Absence Column */}
+                                                                <td>
+                                                                    {isStarted && (
+                                                                        <span className="text-danger h6"><i className="pi pi-times-circle"></i></span>
+                                                                    )}
+                                                                </td>
 
-                                                            {/* Present Column */}
-                                                            <td>
-                                                                {isFullDay && (
-                                                                    <span className="text-success h6"><i className="pi pi-verified"></i></span>
-                                                                )}
-                                                            </td>
+                                                                {/* Present Column */}
+                                                                <td>
+                                                                    {isFullDay && (
+                                                                        <span className="text-success h6"><i className="pi pi-verified"></i></span>
+                                                                    )}
+                                                                </td>
 
-                                                            {/* Half Day Column */}
-                                                            <td>
-                                                                {isHalfDay && (
-                                                                    <span className="text-warning h6"><SiClockify /></span>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
+                                                                {/* Half Day Column */}
+                                                                <td>
+                                                                    {isHalfDay && (
+                                                                        <span className="text-warning h6"><SiClockify /></span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                             </tbody>
                                         </Table>
                                     </div>
@@ -544,7 +542,6 @@ const Employee_rep = () => {
                             </Card>
                         </Col>
                     )}
-
                 </Row>
             </Row>
         </>
