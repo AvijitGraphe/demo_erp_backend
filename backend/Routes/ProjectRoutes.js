@@ -1937,7 +1937,7 @@ router.get('/tasks/weekly-priority', authenticateToken, async (req, res) => {
                     task_name: 1,
                     task_description: 1,
                     task_startdate: 1,
-                    task_enddate: 1,
+                    task_deadline: 1,
                     priority_flag: 1,
                     status: 1,
                     missed_deadline:1,
