@@ -9,7 +9,7 @@ const PolicySchema = new Schema({
         required: false
     },
     policy_type: {
-        type: [String],
+        type: String,
         enum: ['HumanResource','Accounts','Department_Head','Employee','Social_Media_Manager','Task_manager'],
         required: false
     },

@@ -33,7 +33,6 @@ router.post('/policies', authenticateToken, async (req, res) => {
                 await policy.save(); 
             })
         );
-
         res.status(201).json({
             message: 'Policies created successfully',
         });
@@ -135,6 +134,8 @@ router.get('/alldistpolicies',authenticateToken, async (req, res) => {
             },
             {
                 $project: { // Select specific fields to return in the result
+                    _id: 1, 
+                    policy_id: '$_id',
                     policy_name: 1,
                     policy_subject: 1,
                     policy_desc: 1,
@@ -157,8 +158,6 @@ router.get('/alldistpolicies',authenticateToken, async (req, res) => {
         if (policies.length === 0) {
             return res.status(200).json([]);
         }
-
-        // Return the policies with associated user details and profile images
         res.status(200).json(policies);
     } catch (error) {
         console.error('Error fetching policies:', error);
@@ -212,6 +211,7 @@ router.get('/allpolicies', authenticateToken, async (req, res) => {
             },
             {
                 $project: { 
+                    policy_id:'$_id',
                     policy_name: 1,
                     policy_subject: 1,
                     policy_desc: 1,
@@ -238,5 +238,40 @@ router.get('/allpolicies', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch policies' });
     }
 });
+
+
+router.delete('/policiesdelete/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    console.log("log the policy id:", id);
+
+    try {
+        const policy = await Policy.findById(id);
+        
+        if (!policy) {
+            return res.status(404).json({
+                success: false,
+                message: 'Policy not found.',
+            });
+        }
+
+        // Use deleteOne instead of remove
+        await Policy.deleteOne({ _id: id });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Policy successfully deleted.',
+        });
+    } catch (error) {
+        console.error('Error deleting policy:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error deleting the policy.',
+            error: error.message,
+        });
+    }
+});
+
+
+
 
 module.exports = router;

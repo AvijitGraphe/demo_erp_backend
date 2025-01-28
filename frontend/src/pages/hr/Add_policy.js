@@ -76,22 +76,20 @@ const Add_policy = () => {
         try {
             const policyData = {
                 policy_name: policyName,
-                policy_type: selectedCity.name,
+                // policy_type: selectedCity.name,
+                policy_type: selectedCity[0]?.name,
                 policy_subject: policySubject,
                 policy_desc: text,
-                updated_by: userId // Dynamically set based on the logged-in user
+                updated_by: userId
             };
-
             const response = await axios.put(`${config.apiBASEURL}/policyRoutes/policies/${id}`, policyData, {
                 headers: {
-                    Authorization: `Bearer ${accessToken}` // Add Authorization header
+                    Authorization: `Bearer ${accessToken}`
                 }
             });
-            console.log(response.data);
-            // Handle success (e.g., display a success message, update the list, etc.)
-            fetchPolicies(); // Re-fetch policies to update the list
-            setIsEditMode(false); // Exit edit mode
-            clearForm(); // Clear the form after editing
+            fetchPolicies();
+            setIsEditMode(false);
+            clearForm();
         } catch (error) {
             console.error(error);
             // Handle error (e.g., display an error message)
@@ -100,14 +98,21 @@ const Add_policy = () => {
 
 
     const handleEditClick = (policy) => {
+        console.log("log the all policies data ok", policy);
         setSelectedPolicy(policy);
         setPolicyName(policy.policy_name);
-        setSelectedCity([{ name: policy.policy_type, code: cities.find(c => c.name === policy.policy_type).code }]); // Single value
+        const city = cities.find(c => c.name === policy.policy_type);
+        if (city) {
+            setSelectedCity([{ name: city.name, code: city.code }]);
+        } else {
+            setSelectedCity([]);
+        }
         setPolicySubject(policy.policy_subject);
         setText(policy.policy_desc);
         setIsEditMode(true);
     };
-
+    
+    
     const clearForm = () => {
         setPolicyName('');
         setSelectedCity([]);
@@ -117,6 +122,21 @@ const Add_policy = () => {
         setSelectedPolicy(null);
         setIsEditMode(false);
     };
+
+
+    //delete the police data 
+    const handleDeleteClick = async(id)=>{
+        try {
+            await axios.delete(`${config.apiBASEURL}/policyRoutes/policiesdelete/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+            fetchPolicies();
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     return (
         <>
@@ -140,7 +160,8 @@ const Add_policy = () => {
                                     />
                                     {isEditMode ? (
                                         <Dropdown
-                                            value={selectedCity[0]} // Single selection in edit mode
+                                            // value={selectedCity[0]}
+                                            value={selectedCity[0] || {}}
                                             onChange={(e) => setSelectedCity([e.value])}
                                             options={cities}
                                             optionLabel="name"
@@ -238,6 +259,7 @@ const Add_policy = () => {
                                                             rounded
                                                             text
                                                             severity="danger"
+                                                            onClick={() => handleDeleteClick(policy.policy_id)}
                                                         />
                                                     </td>
                                                 </tr>
