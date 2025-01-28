@@ -61,13 +61,12 @@ const Employmentletter = () => {
                 template_subject: subject,
                 sections: sections,
             };
-
             const response = await axios.post(
                 `${config.apiBASEURL}/letterRoutes/letter-template`,
                 payload,
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`, // Add the Authorization header
+                        Authorization: `Bearer ${accessToken}`, 
                         'Content-Type': 'application/json', // Ensure the correct content type is set
                     },
                 }

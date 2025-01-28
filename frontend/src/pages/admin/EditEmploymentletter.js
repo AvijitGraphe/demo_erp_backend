@@ -36,12 +36,14 @@ const EditEmploymentletter = () => {
             const response = await axios.get(`${config.apiBASEURL}/letterRoutes/viewallletters/${template_id}`,
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`, // Add the Authorization header
-                        'Content-Type': 'application/json', // Ensure the correct content type is set
+                        Authorization: `Bearer ${accessToken}`, 
+                        'Content-Type': 'application/json'
                     },
                 }
-
             );
+
+            console.log("log the response", response.data)
+            
             const { template_name, template_subject, sections } = response.data;
             setTemplateName(template_name);
             setSubject(template_subject);

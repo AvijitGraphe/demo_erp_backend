@@ -2,18 +2,18 @@
 const express = require('express');
 const multer = require('multer');
 const ImageKit = require('imagekit');
-const LetterTemplate = require('../Models/Letter_template'); // Import LetterTemplate model and sequelize instance
+const LetterTemplate = require('../Models/Letter_template');
 const SendLetter = require('../Models/SendLetter'); // Adjust the path to your model
 const ProfileImage = require('../Models/ProfileImage'); // Adjust the path as necessary
 const User = require('../Models/User'); // Adjust the path as necessary
 const { authenticateToken } = require('../middleware/authMiddleware');
+const LetterSection = require('../Models/LetterSection');
+const nodemailer = require('nodemailer');
 
 const router = express.Router();
 
-
 const mongoose = require('mongoose');
 
-// Initialize ImageKit
 const imagekit = new ImageKit({
     publicKey: "public_UCxvoHx58ajkX85Q6oBFCP7pSuI=",
     privateKey: "private_ATOOFtW1RZ2IoJWSF41Jbu46lDM=",
@@ -34,105 +34,99 @@ async function deleteOldImage(fileId) {
 }
 
 
-// Create or Update Letter Template with ImageKit fileId
-router.post('/letter-template', authenticateToken, upload.single('signature_image'), async (req, res) => {
-    let session;
-    try {
-        const {
-            template_id, // If provided, it indicates an edit; if not, it's a new entry
-            template_name,
-            template_subject,
-            template_body
-        } = req.body;
 
-        let signature_url = null;
-        let signature_file_id = null; // To store ImageKit fileId for future deletions
-
-        // Start a session for transaction
-        session = await mongoose.startSession();
-        session.startTransaction();
-
-        // Check if a new signature image is provided
-        if (req.file) {
-            if (template_id) {
-                const existingTemplate = await LetterTemplate.findById(template_id).session(session);
-                if (existingTemplate && existingTemplate.signature_file_id) {
-                    await deleteOldImage(existingTemplate.signature_file_id); // Delete old image using fileId
-                }
-            }
-
-            // Convert the uploaded file to base64 for ImageKit
-            const encodedImage = req.file.buffer.toString('base64');
-
-            // Upload the new image to ImageKit
-            const uploadResponse = await imagekit.upload({
-                file: encodedImage,
-                fileName: `${template_name}_signature`,
-                folder: '/signature-documents',
-            });
-
-            signature_url = uploadResponse.url;
-            signature_file_id = uploadResponse.fileId; // Store ImageKit fileId
-        }
-
-        if (template_id) {
-            const template = await LetterTemplate.findById(template_id).session(session);
-            if (!template) {
-                await session.abortTransaction();
-                return res.status(404).json({ message: 'Template not found' });
-            }
-
-            // Update the template
-            template.template_name = template_name;
-            template.template_subject = template_subject;
-            template.template_body = template_body;
-            template.signature_url = signature_url || template.signature_url;
-            template.signature_file_id = signature_file_id || template.signature_file_id;
-
-            await template.save({ session });
-
-            await session.commitTransaction();
-            return res.status(200).json({ message: 'Template updated successfully', template });
-        }
-
-        // Create a new template
-        const newTemplate = new LetterTemplate({
-            template_name,
-            template_subject,
-            template_body,
-            signature_url,
-            signature_file_id,
-        });
-
-        await newTemplate.save({ session });
-        await session.commitTransaction();
-        return res.status(201).json({ message: 'Template created successfully', newTemplate });
-
-    } catch (error) {
-        // Rollback the transaction in case of an error
-        if (session) await session.abortTransaction();
-        console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
-    } finally {
-        // Ensure the session is properly ended
-        if (session) {
-            session.endSession();
-        }
-    }
+const transporter = nodemailer.createTransport({
+    name: process.env.MAIL_HOST,
+    host: process.env.MAIL_HOST,
+    port: process.env.MAIL_PORT,
+    secure: true, // Disable SSL
+    auth: {
+        user: process.env.MAIL_USERNAME,
+        pass: process.env.MAIL_PASSWORD,
+    },
 });
 
 
 
 
-// Fetch all letter templates
+
+router.post('/letter-template', authenticateToken, async (req, res) => {
+    try {
+        const {
+            template_id, 
+            template_name,
+            template_subject,
+            sections 
+        } = req.body;
+
+        if (!sections || !Array.isArray(sections) || sections.length === 0) {
+            return res.status(400).json({ message: 'Sections are required and must be a non-empty array' });
+        }
+        if (template_id) {
+            // Update existing template
+            const existingTemplate = await LetterTemplate.findById(template_id);
+
+            if (!existingTemplate) {
+                return res.status(404).json({ message: 'Template not found' });
+            }
+            // Update template details
+            existingTemplate.template_name = template_name;
+            existingTemplate.template_subject = template_subject;
+            await existingTemplate.save();
+            // Remove existing sections for the template
+            await LetterSection.deleteMany({ template_id });
+
+            // Create new sections
+            const newSections = sections.map(section => ({
+                template_id: existingTemplate._id,
+                section_heading: section.section_heading,
+                section_body: section.section_body,
+                section_order: section.section_order,
+            }));
+
+            await LetterSection.insertMany(newSections);
+            return res.status(200).json({ message: 'Template updated successfully', template: existingTemplate });
+        }
+        // Create a new template
+        const newTemplate = new LetterTemplate({
+            template_name,
+            template_subject,
+        });
+        await newTemplate.save();
+        // Add sections for the new template
+        const newSections = sections.map(section => ({
+            template_id: newTemplate._id,
+            section_heading: section.section_heading,
+            section_body: section.section_body,
+            section_order: section.section_order,
+        }));
+        await LetterSection.insertMany(newSections);
+        return res.status(201).json({ message: 'Template created successfully', newTemplate });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'An error occurred', error: error.message });
+    }
+});
+
+
 router.get('/fetchallletters', authenticateToken, async (req, res) => {
     try {
         const templates = await LetterTemplate.find(
-            {}, // Empty filter to fetch all documents
-            'template_id template_name template_subject createdAt updatedAt' // Select specific fields
+            {}, 
+            'template_name template_subject createdAt updatedAt'
         );
 
-        res.status(200).json(templates);
+        // Rename _id to template_id
+        const formattedTemplates = templates.map(template => ({
+            template_id: template._id,
+            template_name: template.template_name,
+            template_subject: template.template_subject,
+            createdAt: template.createdAt,
+            updatedAt: template.updatedAt,
+        }));
+
+        res.status(200).json(formattedTemplates);
     } catch (error) {
         console.error('Error fetching letter templates:', error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -141,128 +135,135 @@ router.get('/fetchallletters', authenticateToken, async (req, res) => {
 
 
 
+
+
+
 // Duplicate a letter template
 router.post('/duplicate-letter-template', authenticateToken, async (req, res) => {
     const { template_id } = req.body;
-
-    let session;
+    console.log("template_id +++++", template_id);
 
     try {
-        // Start a session for transaction handling
-        session = await LetterTemplate.startSession();
-        session.startTransaction();
+        const existingTemplate = await LetterTemplate.aggregate([
+            { $match: { _id:new mongoose.Types.ObjectId(template_id) } },
+            {
+                $lookup: {
+                    from: 'lettersections', // Assuming the sections are stored in 'lettersections'
+                    localField: '_id',
+                    foreignField: 'template_id',
+                    as: 'sections'
+                }
+            }
+        ]);
 
-        // Find the existing template by template_id
-        const existingTemplate = await LetterTemplate.findById(template_id).session(session);
-
-        if (!existingTemplate) {
-            await session.abortTransaction(); // Abort transaction if template not found
+        if (existingTemplate.length === 0) {
             return res.status(404).json({ message: 'Template not found' });
         }
 
-        // Create a new duplicated template
+        const templateData = existingTemplate[0];
         const duplicatedTemplate = new LetterTemplate({
-            template_name: `${existingTemplate.template_name} copy`,
-            template_subject: existingTemplate.template_subject,
-            template_body: existingTemplate.template_body,
-            signature_url: null, // Exclude signature details for the duplicated template
-            signature_file_id: null,
+            template_name: `${templateData.template_name} copy`,
+            template_subject: templateData.template_subject,
         });
 
-        await duplicatedTemplate.save({ session });
+        await duplicatedTemplate.save();
 
-        // Commit the transaction
-        await session.commitTransaction();
+        const duplicatedSections = templateData.sections.map(section => ({
+            template_id: duplicatedTemplate._id,
+            section_heading: section.section_heading,
+            section_body: section.section_body,
+            section_order: section.section_order,
+        }));
+
+        await LetterSection.insertMany(duplicatedSections);
 
         return res.status(201).json({
             message: 'Template duplicated successfully',
-            duplicatedTemplate,
         });
     } catch (error) {
-        // Rollback the transaction in case of an error
-        if (session) await session.abortTransaction();
-        console.error('Error duplicating template:', error);
-        return res.status(500).json({ message: 'Failed to duplicate template' });
-    } finally {
-        // Ensure the session is properly ended
-        if (session) {
-            session.endSession();
-        }
+        console.error(error);
+        return res.status(500).json({ message: 'An error occurred', error: error.message });
     }
 });
+
+
 
 
 
 // Delete a letter template
 router.delete('/letter-template-delete', authenticateToken, async (req, res) => {
     const { template_id } = req.body;
-    let session;
 
     try {
-        // Start a session for transaction handling
-        session = await LetterTemplate.startSession();
-        session.startTransaction();
-
-        // Find the existing template by template_id
-        const existingTemplate = await LetterTemplate.findById(template_id).session(session);
+        const existingTemplate = await LetterTemplate.findById(template_id);
 
         if (!existingTemplate) {
-            await session.abortTransaction(); // Abort transaction if template not found
             return res.status(404).json({ message: 'Template not found' });
         }
 
-        // Delete associated image if it exists
-        if (existingTemplate.signature_file_id) {
-            try {
-                // Delete the image from ImageKit using the fileId
-                await imagekit.deleteFile(existingTemplate.signature_file_id);
-            } catch (imageError) {
-                console.error('Error deleting image from ImageKit:', imageError);
-
-                // Rollback transaction on ImageKit deletion error
-                await session.abortTransaction();
-                return res.status(500).json({ message: 'Error deleting image from ImageKit' });
-            }
-        }
+        // Delete associated sections
+        await LetterSection.deleteMany({ template_id });
 
         // Delete the template
-        await existingTemplate.deleteOne({ session });
+        await existingTemplate.deleteOne();
 
-        // Commit the transaction
-        await session.commitTransaction();
-
-        return res.status(200).json({ message: 'Template and associated image deleted successfully' });
+        return res.status(200).json({ message: 'Template and associated sections deleted successfully' });
     } catch (error) {
-        // Rollback the transaction in case of an error
-        if (session) await session.abortTransaction();
-        console.error('Error deleting letter template:', error);
-        return res.status(500).json({ message: 'Failed to delete template' });
-    } finally {
-        // Ensure the session is properly ended
-        if (session) {
-            session.endSession();
-        }
+        console.error(error);
+        return res.status(500).json({ message: 'An error occurred', error: error.message });
     }
 });
 
 
 
 
+
 // Fetch a letter template by ID
-// View a single letter template by ID
 router.get('/viewallletters/:template_id', authenticateToken, async (req, res) => {
     try {
         const { template_id } = req.params;
 
-        // Find the letter template by its ID
-        const template = await LetterTemplate.findById(template_id);
-
-        if (!template) {
+        const template = await LetterTemplate.aggregate([
+            { $match: { _id:new mongoose.Types.ObjectId(template_id) } },
+            {
+                $lookup: {
+                    from: 'lettersections',
+                    localField: '_id',
+                    foreignField: 'template_id',
+                    as: 'sections'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$sections',
+                    preserveNullAndEmptyArrays: true 
+                }
+            },
+            {
+                $sort: { 'sections.section_order': 1 } 
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    template_name: { $first: '$template_name' },
+                    template_subject: { $first: '$template_subject' },
+                    createdAt: { $first: '$createdAt' },
+                    updatedAt: { $first: '$updatedAt' },
+                    sections: { $push: '$sections' }
+                }
+            }
+        ]);
+        if (!template || template.length === 0) {
             return res.status(404).json({ message: 'Letter template not found' });
         }
-
-        res.status(200).json(template);
-
+        res.status(200).json({
+            template_id: template[0]._id,
+            template_name: template[0].template_name,
+            template_subject: template[0].template_subject,
+            createdAt: template[0].createdAt,
+            updatedAt: template[0].updatedAt,
+            sections: template[0].sections
+        });
     } catch (error) {
         console.error('Error fetching letter template:', error);
         res.status(500).json({ message: 'Internal Server Error' });

@@ -41,6 +41,7 @@ const Letter_template = () => {
             const response = await axios.get(`${config.apiBASEURL}/letterRoutes/fetchallletters`, {
                 headers: { Authorization: `Bearer ${accessToken}` }, // Add Authorization header
             });
+            console.log("log rhe data ", response.data)
             setTemplates(response.data);
             setError('');
             showMessage('success', 'Letter templates fetched successfully');
