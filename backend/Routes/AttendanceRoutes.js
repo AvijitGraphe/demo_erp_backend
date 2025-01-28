@@ -306,12 +306,10 @@ router.post('/add-attendance', authenticateToken, async (req, res) => {
             start_time,
             end_time: end_time || null,
             total_time,
-            checkin_status: true, // Assuming user is checked in when adding a record
-            Attendance_status,
+            checkin_status: true, 
+            attendance_status : Attendance_status,
         });
-
         await newAttendance.save();
-
         res.status(201).json({
             message: 'Attendance record created successfully.',
         });
@@ -326,64 +324,49 @@ router.post('/add-attendance', authenticateToken, async (req, res) => {
 // Edit attendance API
 router.put('/edit-attendance/:attendance_id', authenticateToken, async (req, res) => {
     const { attendance_id } = req.params;
-    const { start_time, end_time } = req.body; // Include both `start_time` and `end_time`
-
+    const { start_time, end_time } = req.body;
     try {
-        // Find the attendance record by ID
-        const attendance = await Attendance.findById(attendance_id);
-
-        if (!attendance) {
-            return res.status(404).json({ message: 'Attendance record not found.' });
+      const attendance = await Attendance.findById(attendance_id);
+      if (!attendance) {
+        return res.status(404).json({ message: 'Attendance record not found.' });
+      }
+      if (!start_time && !end_time) {
+        return res.status(400).json({ message: 'At least one of start_time or end_time is required.' });
+      }
+      if (start_time) {
+        attendance.start_time = start_time;
+      }
+      if (end_time) {
+        const startTimeToUse = start_time || attendance.start_time;
+        const startTime = moment(startTimeToUse, 'HH:mm');
+        const endTime = moment(end_time, 'HH:mm');
+        const duration = moment.duration(endTime.diff(startTime));
+        const hours = duration.asHours();
+  
+        if (hours <= 0) {
+          return res.status(400).json({ message: 'End time must be later than start time.' });
         }
-
-        // Validate inputs
-        if (!start_time && !end_time) {
-            return res.status(400).json({ message: 'At least one of start_time or end_time is required.' });
+        const total_time = `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
+        let Attendance_status = 'Absent';
+        if (hours > 5) {
+          Attendance_status = 'Full-Day';
+        } else if (hours > 3 && hours <= 5) {
+          Attendance_status = 'Half-Day';
         }
-
-        // Update start_time if provided
-        if (start_time) {
-            attendance.start_time = start_time;
-        }
-
-        // Update end_time if provided and calculate total_time
-        if (end_time) {
-            // Ensure `start_time` is available for calculations
-            const startTimeToUse = start_time || attendance.start_time;
-            const startTime = moment(startTimeToUse, 'HH:mm');
-            const endTime = moment(end_time, 'HH:mm');
-            const duration = moment.duration(endTime.diff(startTime));
-            const hours = duration.asHours();
-
-            if (hours <= 0) {
-                return res.status(400).json({ message: 'End time must be later than start time.' });
-            }
-
-            const total_time = `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
-
-            // Determine attendance status
-            let Attendance_status = 'Absent';
-            if (hours > 5) {
-                Attendance_status = 'Full-Day';
-            } else if (hours > 3 && hours <= 5) {
-                Attendance_status = 'Half-Day';
-            }
-
-            attendance.end_time = end_time;
-            attendance.total_time = total_time;
-            attendance.Attendance_status = Attendance_status;
-        }
-
-        // Save the updated attendance record
-        await attendance.save();
-        res.status(200).json({
-            message: 'Attendance updated successfully.',
-        });
+        attendance.end_time = end_time;
+        attendance.total_time = total_time;
+        attendance.attendance_status = Attendance_status;
+      }
+      await attendance.save();
+      res.status(200).json({
+        message: 'Attendance updated successfully.',
+      });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Internal server error.' });
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error.' });
     }
-});
+  });
+  
 
 
 module.exports = router;

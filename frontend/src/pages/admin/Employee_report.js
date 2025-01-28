@@ -90,21 +90,17 @@ const Employee_report = () => {
 
     // Fetch attendance data
     const fetchAttendanceData = async () => {
-        
         if (!selectedEmployee || !selectedDate) {
             console.warn('Employee and date must be selected before fetching data.');
             return;
         }
-
         const month = selectedDate.getMonth() + 1; // JavaScript months are 0-based
         const year = selectedDate.getFullYear();
-
         try {
             const response = await axios.get(`${config.apiBASEURL}/employee-report/Employee-report-attendance`, {
                 params: { userId: selectedEmployee.value, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            console.log("log the data ok", response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -326,6 +322,8 @@ const Employee_report = () => {
 
 
     const handleEditClick = (attendance) => {
+
+        console.log("log the idsswaa", attendance)
         const parseTime = (timeStr) => {
             if (!timeStr) return null;
             const [hours, minutes] = timeStr.split(':').map(Number);
@@ -343,7 +341,7 @@ const Employee_report = () => {
 
         setEditStartTime(parseTime(attendance.start_time));
         setEditEndTime(parseTime(attendance.end_time));
-        setEditAttendanceId(attendance.attendance_id); // Track which record to edit
+        setEditAttendanceId(attendance._id); 
         setEditVisible(true);
     };
 
@@ -351,9 +349,8 @@ const Employee_report = () => {
     const handleEditAttendance = async () => {
         const formatTime = (date) => {
             if (!date) return '';
-            return date.toTimeString().slice(0, 5); // Extract HH:mm
+            return date.toTimeString().slice(0, 5);
         };
-    
         try {
             const response = await axios.put(
                 `${config.apiBASEURL}/attendance/edit-attendance/${editAttendanceId}`,
@@ -363,15 +360,12 @@ const Employee_report = () => {
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`, // Add auth header
+                        Authorization: `Bearer ${accessToken}`,
                     },
                 }
             );
-    
             setEditVisible(false);
-            // Refresh attendance data here
             handleApply();
-    
         } catch (error) {
             console.error('Error editing attendance:', error);
         }
@@ -425,7 +419,7 @@ const Employee_report = () => {
                                     <div className="jdate">
                                         <span>Date of Joining : </span>
                                         <b>
-                                            {new Date(attendanceData.userDetails.joiningDates[0].joining_date).toLocaleDateString('en-GB', {
+                                            {new Date(attendanceData.userDetails.joiningDates).toLocaleDateString('en-GB', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -682,56 +676,62 @@ const Employee_report = () => {
                                                     <th scope='col' className="text-center" style={{ width: '80px' }}>Action</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                {attendanceData.userDetails.attendances.map((attendance, index) => {
-                                                    const isFullDay = attendance.Attendance_status === "Full-Day";
-                                                    const isHalfDay = attendance.Attendance_status === "Half-Day";
-                                                    const isStarted = attendance.Attendance_status === "Started";
-                                                    const isAbsent = attendance.Attendance_status === "Absent";
+                                             <tbody>                                                           
+                                                {attendanceData.userDetails.attendances
+                                                    .sort((a, b) => new Date(b.date) - new Date(a.date)) 
+                                                    .map((attendance, index) => {
+                                                        const isFullDay = attendance.attendance_status === "Full-Day";
+                                                        const isHalfDay = attendance.attendance_status === "Half-Day";
+                                                        const isStarted = attendance.attendance_status === "Started";
+                                                        // Function to format time string like 'HH:mm' to 'HH:mm AM/PM'
+                                                        const formatTime = (timeString) => {
+                                                            if (!timeString || timeString === "00:00:00") return "00:00:00";
+                                                            const [hours, minutes] = timeString.split(":");
+                                                            const date = new Date();
+                                                            date.setHours(hours);
+                                                            date.setMinutes(minutes);
+                                                            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                        };
 
-                                                    return (
-                                                        <tr key={index}>
-                                                            <td>{new Date(attendance.date).toLocaleDateString('en-GB')}</td>
-                                                            <td>{attendance.start_time || "00:00 AM"}</td>
-                                                            <td>{attendance.end_time || "00:00 PM"}</td>
+                                                        return (
+                                                            <tr key={index}>
+                                                                <td>{new Date(attendance.date).toLocaleDateString('en-GB')}</td>
+                                                                <td>{formatTime(attendance.start_time) || "00:00:00"}</td>
+                                                                <td>{formatTime(attendance.end_time) || "00:00:00"}</td>
 
-                                                            {/* Absence Column */}
-                                                            <td>
-                                                                {isAbsent && (
-                                                                    <span className="text-danger h6"><i className="pi pi-times"></i></span>
-                                                                )}
-                                                                {isStarted && (
-                                                                    <span className="text-warning h6"><i className="pi pi-exclamation-triangle"></i></span>
-                                                                )}
-                                                            </td>
+                                                                {/* Absence Column */}
+                                                                <td>
+                                                                    {isStarted && (
+                                                                        <span className="text-danger h6"><i className="pi pi-times-circle"></i></span>
+                                                                    )}
+                                                                </td>
 
-                                                            {/* Present Column */}
-                                                            <td>
-                                                                {isFullDay && (
-                                                                    <span className="text-success h6"><i className="pi pi-verified"></i></span>
-                                                                )}
-                                                            </td>
+                                                                {/* Present Column */}
+                                                                <td>
+                                                                    {isFullDay && (
+                                                                        <span className="text-success h6"><i className="pi pi-verified"></i></span>
+                                                                    )}
+                                                                </td>
 
-                                                            {/* Half Day Column */}
-                                                            <td>
-                                                                {isHalfDay && (
-                                                                    <span className="text-warning h6"><SiClockify /></span>
-                                                                )}
-                                                            </td>
-                                                            <td className="text-center">
-                                                                <Button
-                                                                    title="Edit"
-                                                                    outlined
-                                                                    severity="info"
-                                                                    icon="pi pi-pencil"
-                                                                    className="border-0 p-0"
-                                                                    onClick={() => handleEditClick(attendance)} // Edit button handler
-                                                                />
-                                                            </td>
-
-                                                        </tr>
-                                                    );
-                                                })}
+                                                                {/* Half Day Column */}
+                                                                <td>
+                                                                    {isHalfDay && (
+                                                                        <span className="text-warning h6"><SiClockify /></span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-center">
+                                                                    <Button
+                                                                        title="Edit"
+                                                                        outlined
+                                                                        severity="info"
+                                                                        icon="pi pi-pencil"
+                                                                        className="border-0 p-0"
+                                                                        onClick={() => handleEditClick(attendance)}
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                             </tbody>
                                         </Table>
                                     </div>
@@ -840,10 +840,6 @@ const Employee_report = () => {
                     </Col>
                 </Row>
             </Dialog>
-
-
-
-
             {editVisible && (
                 <Dialog
                     header="Edit Attendance"
@@ -898,15 +894,6 @@ const Employee_report = () => {
                     </Form>
                 </Dialog>
             )}
-
-
-
-
-
-
-
-
-
         </>
     );
 };

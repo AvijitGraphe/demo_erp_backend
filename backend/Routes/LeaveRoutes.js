@@ -1264,7 +1264,7 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
 
 
 
-
+//leave-requests/user/:user_id
 router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     const { start_date, end_date } = req.query;
@@ -1370,8 +1370,7 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
 
 
 
-
-
+//fetch-user-leave-balances/:user_id'
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
 
@@ -1429,10 +1428,7 @@ router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req,
 });
 
 
-
-
-
-// // API to fetch all leave balances grouped by users
+//API to fetch all leave balances grouped by users
 router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async (req, res) => {
     try {
         const users = await User.aggregate([
@@ -1534,7 +1530,7 @@ router.get('/fetch-all-leave-balances-for-adjustment', authenticateToken, async 
 });
 
 
-
+//update-arrear-days
 router.put('/update-arrear-days', authenticateToken, async (req, res) => {
     const { leave_balance_id, arrear_days } = req.body;
     if (!leave_balance_id || arrear_days === undefined) {
