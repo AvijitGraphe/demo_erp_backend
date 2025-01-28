@@ -241,11 +241,6 @@ router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req
 
 
 
-
-
-
-
-
 /**
  * Fetch resignation details by id
  */
