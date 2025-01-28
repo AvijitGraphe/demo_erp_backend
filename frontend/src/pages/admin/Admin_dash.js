@@ -48,10 +48,8 @@ const Admin_dash = () => {
             try {
                 const response = await fetch(`${config.apiBASEURL}/attendance/fetch-dashboard-attendance-summary`, {
                     headers: { Authorization: `Bearer ${accessToken}` },
-
                 }); // Replace with your actual API endpoint
                 const data = await response.json();
-
                 // Update state
                 setPresentCount(data.presentCount);
                 setNotCheckedInCount(data.notCheckedInCount);
@@ -63,6 +61,7 @@ const Admin_dash = () => {
                 console.error('Error fetching attendance data:', error);
             }
         };
+
         fetchData();
     }, []);
 

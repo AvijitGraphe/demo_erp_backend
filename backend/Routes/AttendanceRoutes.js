@@ -153,129 +153,46 @@ router.get('/fetch-monthly-attendance', authenticateToken, async (req, res) => {
 /** */
 router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req, res) => {
     try {
-        const currentDate = moment().format('YYYY-MM-DD');
-        const pipeline = [
+        const currentDate = new Date().toISOString().split('T')[0];
+        const users = await User.aggregate([
             {
                 $match: {
                     user_type: { $nin: ['Founder', 'Admin', 'SuperAdmin', 'Ex_employee', 'Unverified'] },
                     Is_active: true,
-                }
+                },
             },
             {
                 $lookup: {
-                    from: 'attendances',
-                    localField: 'user_id',
-                    foreignField: 'user_id',
-                    as: 'attendance'
-                }
+                    from: 'profileimages',
+                    localField: 'profileImage',
+                    foreignField: '_id',
+                    as: 'profileImage',
+                },
             },
+            { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'leaverequests',
-                    localField: 'user_id',
+                    from: 'userdetails',
+                    localField: '_id',
                     foreignField: 'user_id',
-                    as: 'leaveRequests'
-                }
+                    as: 'userDetails',
+                },
             },
+            { $unwind: { path: '$userDetails', preserveNullAndEmptyArrays: true } },
             {
                 $project: {
-                    user_id: 1,
+                    user_id: '$_id',
                     first_name: 1,
                     last_name: 1,
                     email: 1,
                     user_type: 1,
-                    profileImage: { $arrayElemAt: ['$profileImage.image_url', 0] },
-                    userDetails: { $arrayElemAt: ['$userDetails.phone', 0] },
-                    attendance: {
-                        $filter: {
-                            input: '$attendance',
-                            as: 'attendance',
-                            cond: { $eq: ['$$attendance.date', currentDate] }
-                        }
-                    },
-                    leaveRequests: {
-                        $filter: {
-                            input: '$leaveRequests',
-                            as: 'leaveRequest',
-                            cond: { $regexMatch: { input: '$$leaveRequest.dates', regex: currentDate } }
-                        }
-                    }
-                }
+                    'profileImage.image_url': 1,
+                    'userDetails.phone': 1,
+                },
             },
-            {
-                $group: {
-                    _id: null,
-                    totalUsers: { $sum: 1 },
-                    presentCount: {
-                        $sum: {
-                            $cond: [
-                                { $gt: [{ $size: '$attendance' }, 0] }, 1, 0
-                            ]
-                        }
-                    },
-                    notCheckedInCount: {
-                        $sum: {
-                            $cond: [
-                                { $eq: [{ $size: '$attendance' }, 0] }, 1, 0
-                            ]
-                        }
-                    },
-                    leaveCount: {
-                        $sum: {
-                            $cond: [
-                                { $gt: [{ $size: '$leaveRequests' }, 0] }, 1, 0
-                            ]
-                        }
-                    },
-                    notCheckedInUsers: {
-                        $push: {
-                            $cond: [
-                                { $eq: [{ $size: '$attendance' }, 0] },
-                                {
-                                    user_id: '$user_id',
-                                    first_name: '$first_name',
-                                    last_name: '$last_name',
-                                    email: '$email',
-                                    profileImage: '$profileImage',
-                                    userDetails: '$userDetails'
-                                },
-                                null
-                            ]
-                        }
-                    },
-                    leaveUsers: {
-                        $push: {
-                            $cond: [
-                                { $gt: [{ $size: '$leaveRequests' }, 0] },
-                                {
-                                    user_id: '$user_id',
-                                    first_name: '$first_name',
-                                    last_name: '$last_name',
-                                    email: '$email',
-                                    profileImage: '$profileImage',
-                                    userDetails: '$userDetails',
-                                    leaveReason: { $arrayElemAt: ['$leaveRequests.reason', 0] },
-                                    leaveTotalDays: { $arrayElemAt: ['$leaveRequests.Total_days', 0] }
-                                },
-                                null
-                            ]
-                        }
-                    }
-                }
-            },
-            {
-                $project: {
-                    totalUsers: 1,
-                    presentCount: 1,
-                    notCheckedInCount: 1,
-                    leaveCount: 1,
-                    notCheckedInUsers: { $filter: { input: '$notCheckedInUsers', as: 'user', cond: { $ne: ['$$user', null] } } },
-                    leaveUsers: { $filter: { input: '$leaveUsers', as: 'user', cond: { $ne: ['$$user', null] } } }
-                }
-            }
-        ];
-        const result = await User.aggregate(pipeline);
-        if (result.length === 0) {
+        ]);
+        const totalUsers = users.length;
+        if (totalUsers === 0) {
             return res.json({
                 totalUsers: 0,
                 presentCount: 0,
@@ -285,17 +202,58 @@ router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req,
                 leaveUsers: [],
             });
         }
-        const summary = result[0];
-        res.json(summary);
+        const userIds = users.map(user => user.user_id);
+        const attendanceRecords = await Attendance.aggregate([
+            {
+                $match: {
+                    user_id: { $in: userIds },
+                    date:new Date(currentDate),
+                },
+            },
+            {
+                $project: {
+                    user_id: 1,
+                },
+            },
+        ]);
+        const presentUserIds = attendanceRecords.map(record => record.user_id);
+        const notCheckedInUsers  = users.filter(user => !presentUserIds.some(presentUserId => presentUserId.equals(user.user_id)));
+        const leaveRequests = await LeaveRequest.aggregate([
+            {
+                $match: {
+                    user_id: { $in: notCheckedInUsers.map(user => user.user_id) },
+                    dates: { $regex: currentDate, $options: 'i' },
+                    Status: 'Approved',
+                },
+            },
+            {
+                $project: {
+                    user_id: 1,
+                    reason: 1,
+                    Total_days: 1,
+                },
+            },
+        ]);
+        
+        const leaveUserIds = leaveRequests.map(leave => leave.user_id);
+        const leaveUsers = users.filter(user => leaveUserIds.some(leaveUserId => leaveUserId.equals(user.user_id)));
+        const finalNotCheckedInUsers = notCheckedInUsers.filter(
+            user => !leaveUserIds.includes(user.user_id)
+        );
+        res.json({
+            totalUsers,
+            presentCount: presentUserIds.length,
+            notCheckedInCount: finalNotCheckedInUsers.length,
+            leaveCount: leaveUsers.length,
+            notCheckedInUsers: finalNotCheckedInUsers,
+            leaveUsers,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'An error occurred while fetching attendance data' });
     }
 });
 
-
-
-// Add attendance API
 router.post('/add-attendance', authenticateToken, async (req, res) => {
     const { user_id, date, start_time, end_time } = req.body;
 
