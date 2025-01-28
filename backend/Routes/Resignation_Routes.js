@@ -69,8 +69,6 @@ router.delete('/delete-resignation/:id', async (req, res) => {
         if (!resignation) {
             return res.status(404).json({ error: 'Resignation not found.' });
         }
-        // Log the resignation status for debugging
-        console.log(`Resignation Status: ${resignation.status}`);
         // Ensure only resignations with status 'Pending' can be deleted
         if (resignation.status !== 'Pending') {
             return res.status(400).json({ error: `Only resignations with status "Pending" can be deleted. Current status: "${resignation.status}".` });
@@ -231,8 +229,6 @@ router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req
         const hasAcceptedResignation = userResignations.some(
             (resignation) => resignation.status === 'Accepted'
         );
-
-        console.log("log the data userResignations", userResignations)
         return res.status(200).json({
             can_add: !hasAcceptedResignation,
             resignations: userResignations,
@@ -255,49 +251,44 @@ router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req
  */
 router.get('/fetch-specific-resignation/:id', async (req, res) => {
     const { id: resignation_id } = req.params;
-
     try {
-        // Use aggregation to fetch resignation with related data
         const resignation = await Resignation.aggregate([
-            // Match the specific resignation by ID
-            { $match: { _id: new mongoose.Types.ObjectId(resignation_id) } },
-            
-            // Lookup the related user data
+            { 
+                $match: { 
+                    _id: new mongoose.Types.ObjectId(resignation_id) 
+                }
+            },
             {
                 $lookup: {
-                    from: 'users', // Name of the User collection
-                    localField: 'user_id', // Field in Resignation model that references User
-                    foreignField: '_id', // Field in User model that this references
-                    as: 'user', // The resulting field will be named 'user'
-                },
+                    from: 'users', 
+                    localField: 'user_id', 
+                    foreignField: '_id', 
+                    as: 'user'
+                }
             },
-            { $unwind: '$user' }, // Unwind the array to flatten the result
-            
-            // Lookup the profile image data
+            { 
+                $unwind: '$user' 
+            },
             {
                 $lookup: {
-                    from: 'profileimages', // Name of the ProfileImage collection
-                    localField: 'user.profileImage', // Field in User model referencing ProfileImage
-                    foreignField: '_id', // Field in ProfileImage model
-                    as: 'user.profileImage', // Result will be in 'user.profileImage'
-                },
+                    from: 'profileimages',
+                    localField: 'user.profileImage', 
+                    foreignField: '_id', 
+                    as: 'user.profileImage'
+                }
             },
-            { $unwind: { path: '$user.profileImage', preserveNullAndEmptyArrays: true } }, // Optional profile image
-            
-            // Lookup the joining date data
+            { 
+                $unwind: { path: '$user.profileImage', preserveNullAndEmptyArrays: true } 
+            },
             {
                 $lookup: {
-                    from: 'joiningdates', // Name of the JoiningDate collection
-                    localField: 'user.joiningDates', // Field in User model referencing JoiningDate
-                    foreignField: '_id', // Field in JoiningDate model
-                    as: 'user.joiningDates', // The result will be in 'user.joiningDates'
-                },
+                    from: 'joiningdates', 
+                    localField: 'user._id', // Match the user's _id to user_id in the joiningdates collection
+                    foreignField: 'user_id', 
+                    as: 'user.joiningDates'
+                }
             },
-
-            // Optionally unwind joiningDates if needed
-            { $unwind: { path: '$user.joiningDates', preserveNullAndEmptyArrays: true } },
-
-            // Project the necessary fields (filter out unwanted fields if needed)
+            // No need to $unwind the joiningDate if it’s not an array, we can skip it
             {
                 $project: {
                     'user.first_name': 1,
@@ -305,28 +296,30 @@ router.get('/fetch-specific-resignation/:id', async (req, res) => {
                     'user.email': 1,
                     'user.user_type': 1,
                     'user.profileImage.image_url': 1,
-                    'user.joiningDates.joining_date': 1,
+                    'user.joiningDates.joining_date': 1, 
                     resignation_reason: 1,
                     resignation_date: 1,
                     notice_period_served: 1,
                     status: 1,
                     last_working_day: 1,
                     notice_duration: 1,
-                    estimated_last_working_day: 1,
-                },
-            },
+                    estimated_last_working_day: 1
+                }
+            }
         ]);
 
         if (resignation.length === 0) {
             return res.status(404).json({ error: 'No resignation found for the specified ID.' });
         }
 
-        return res.status(200).json(resignation[0]); // Since it’s an array, we return the first result
+        return res.status(200).json(resignation[0]);
     } catch (error) {
         console.error('Error fetching resignation:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
 
 
 

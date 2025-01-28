@@ -302,261 +302,387 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
 
 
 
+// router.get('/tickets/raiser/:user_id', authenticateToken, async (req, res) => {
+//     const { user_id } = req.params;
+//     const { subject, start_date, end_date } = req.query;
+//     console.log("log the data",  subject, start_date, end_date )
+
+//     try {
+//         // Build query filters dynamically
+//         const filters = {};
+//         if (subject) {
+//             filters.subject = { $regex: subject, $options: 'i' }; // Case-insensitive partial match
+//         }
+//         if (start_date && end_date) {
+//             filters.createdAt = { $gte: new Date(start_date), $lte: new Date(end_date) }; // Date range filter
+//         } else if (start_date) {
+//             filters.createdAt = { $gte: new Date(start_date) }; // Start date filter
+//         } else if (end_date) {
+//             filters.createdAt = { $lte: new Date(end_date) }; // End date filter
+//         }
+
+//         // Aggregation pipeline
+//         const ticketsPipeline = [
+//             {
+//                 $match: {
+//                     Raiser_id: new mongoose.Types.ObjectId(user_id),
+//                     ...filters,
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'users', // 'users' collection
+//                     localField: 'Raiser_id', // Reference in RaiseTicket
+//                     foreignField: '_id', // Reference in Users
+//                     as: 'raiser',
+//                 },
+//             },
+//             {
+//                 $unwind: { path: '$raiser', preserveNullAndEmptyArrays: true },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'profileimages', // 'profileimages' collection
+//                     localField: 'raiser.profileImageId', // Field in Users collection
+//                     foreignField: '_id',
+//                     as: 'raiser.profileImage',
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'userdetails', // 'userdetails' collection
+//                     localField: 'raiser.userDetailsId', // Field in Users collection
+//                     foreignField: '_id',
+//                     as: 'raiser.userDetails',
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'users', // 'users' collection for resolver
+//                     localField: 'resolverId', // Field in RaiseTicket
+//                     foreignField: '_id', // Reference in Users
+//                     as: 'resolver',
+//                 },
+//             },
+//             {
+//                 $unwind: { path: '$resolver', preserveNullAndEmptyArrays: true },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'profileimages', // 'profileimages' collection for resolver
+//                     localField: 'resolver.profileImageId', // Field in Users collection
+//                     foreignField: '_id',
+//                     as: 'resolver.profileImage',
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'userdetails', // 'userdetails' collection for resolver
+//                     localField: 'resolver.userDetailsId', // Field in Users collection
+//                     foreignField: '_id',
+//                     as: 'resolver.userDetails',
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'ticketimages', // 'ticketimages' collection
+//                     localField: '_id', // Reference in RaiseTicket
+//                     foreignField: 'ticketId', // Reference in TicketImages collection
+//                     as: 'images',
+//                 },
+//             },
+//             {
+//                 $addFields: {
+//                     imageCount: { $size: '$images' }, // Add field to count the number of images
+//                 },
+//             },
+//             {
+//                 $project: {
+//                     'raiser.password': 0,
+//                     'raiser.Role_id': 0,
+//                     'raiser.Is_active': 0,
+//                     'resolver.password': 0,
+//                     'resolver.Role_id': 0,
+//                     'resolver.Is_active': 0,
+//                     'images': 0, // Remove images if you just want the count
+//                 },
+//             },
+//         ];
+
+//         // Fetch tickets with the aggregation pipeline
+//         const tickets = await RaiseTicket.aggregate(ticketsPipeline);
+
+//         // Fetch status counts for the specified Raiser_id
+//         const statusCountsPipeline = [
+//             {
+//                 $match: { Raiser_id: new mongoose.Types.ObjectId(user_id) }, // Match by Raiser_id
+//             },
+//             {
+//                 $group: {
+//                     _id: '$status',
+//                     count: { $sum: 1 }, // Count the number of occurrences for each status
+//                 },
+//             },
+//         ];
+
+//         const statusCounts = await RaiseTicket.aggregate(statusCountsPipeline);
+
+//         // Convert status counts into an easy-to-use object
+//         const statusCountsObject = statusCounts.reduce((acc, item) => {
+//             acc[item._id] = item.count;
+//             return acc;
+//         }, {});
+
+//         // Ensure all statuses are present in the response
+//         const counts = {
+//             New_ticket: statusCountsObject.New_ticket || 0,
+//             Solved: statusCountsObject.Solved || 0,
+//             InProgress: statusCountsObject['In-progress'] || 0,
+//             Rejected: statusCountsObject.Rejected || 0,
+//         };
+
+//         // Send the response
+//         res.status(200).json({ tickets, counts });
+//     } catch (error) {
+//         console.error('Error fetching tickets for Raiser_id:', error);
+//         res.status(500).json({ error: 'Failed to fetch tickets' });
+//     }
+// });
+
 router.get('/tickets/raiser/:user_id', authenticateToken, async (req, res) => {
-    const { user_id } = req.params;
-    const { subject, start_date, end_date } = req.query;
-    console.log("log the data",  subject, start_date, end_date )
+  const { user_id } = req.params;
+  const { subject, start_date, end_date } = req.query;
+  console.log("log the data", subject, start_date, end_date);
 
-    try {
-        // Build query filters dynamically
-        const filters = {};
-        if (subject) {
-            filters.subject = { $regex: subject, $options: 'i' }; // Case-insensitive partial match
-        }
-        if (start_date && end_date) {
-            filters.createdAt = { $gte: new Date(start_date), $lte: new Date(end_date) }; // Date range filter
-        } else if (start_date) {
-            filters.createdAt = { $gte: new Date(start_date) }; // Start date filter
-        } else if (end_date) {
-            filters.createdAt = { $lte: new Date(end_date) }; // End date filter
-        }
+  try {
+      // Build query filters dynamically
+      const filters = {};
+      if (subject) {
+          filters.subject = { $regex: subject, $options: 'i' }; // Case-insensitive partial match
+      }
+      if (start_date && end_date) {
+          filters.createdAt = { $gte: new Date(start_date), $lte: new Date(end_date) }; // Date range filter
+      } else if (start_date) {
+          filters.createdAt = { $gte: new Date(start_date) }; // Start date filter
+      } else if (end_date) {
+          filters.createdAt = { $lte: new Date(end_date) }; // End date filter
+      }
 
-        // Aggregation pipeline
-        const ticketsPipeline = [
-            {
-                $match: {
-                    Raiser_id: new mongoose.Types.ObjectId(user_id),
-                    ...filters,
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users', // 'users' collection
-                    localField: 'Raiser_id', // Reference in RaiseTicket
-                    foreignField: '_id', // Reference in Users
-                    as: 'raiser',
-                },
-            },
-            {
-                $unwind: { path: '$raiser', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $lookup: {
-                    from: 'profileimages', // 'profileimages' collection
-                    localField: 'raiser.profileImageId', // Field in Users collection
-                    foreignField: '_id',
-                    as: 'raiser.profileImage',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'userdetails', // 'userdetails' collection
-                    localField: 'raiser.userDetailsId', // Field in Users collection
-                    foreignField: '_id',
-                    as: 'raiser.userDetails',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'users', // 'users' collection for resolver
-                    localField: 'resolverId', // Field in RaiseTicket
-                    foreignField: '_id', // Reference in Users
-                    as: 'resolver',
-                },
-            },
-            {
-                $unwind: { path: '$resolver', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $lookup: {
-                    from: 'profileimages', // 'profileimages' collection for resolver
-                    localField: 'resolver.profileImageId', // Field in Users collection
-                    foreignField: '_id',
-                    as: 'resolver.profileImage',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'userdetails', // 'userdetails' collection for resolver
-                    localField: 'resolver.userDetailsId', // Field in Users collection
-                    foreignField: '_id',
-                    as: 'resolver.userDetails',
-                },
-            },
-            {
-                $lookup: {
-                    from: 'ticketimages', // 'ticketimages' collection
-                    localField: '_id', // Reference in RaiseTicket
-                    foreignField: 'ticketId', // Reference in TicketImages collection
-                    as: 'images',
-                },
-            },
-            {
-                $addFields: {
-                    imageCount: { $size: '$images' }, // Add field to count the number of images
-                },
-            },
-            {
-                $project: {
-                    'raiser.password': 0,
-                    'raiser.Role_id': 0,
-                    'raiser.Is_active': 0,
-                    'resolver.password': 0,
-                    'resolver.Role_id': 0,
-                    'resolver.Is_active': 0,
-                    'images': 0, // Remove images if you just want the count
-                },
-            },
-        ];
+      // Aggregation pipeline
+      const ticketsPipeline = [
+          {
+              $match: {
+                  Raiser_id: new mongoose.Types.ObjectId(user_id),
+                  ...filters,
+              },
+          },
+          {
+              $lookup: {
+                  from: 'users', // 'users' collection
+                  localField: 'Raiser_id', // Reference in RaiseTicket
+                  foreignField: '_id', // Reference in Users
+                  as: 'raiser',
+              },
+          },
+          {
+              $unwind: { path: '$raiser', preserveNullAndEmptyArrays: true },
+          },
+          {
+              $lookup: {
+                  from: 'profileimages', // 'profileimages' collection
+                  localField: 'raiser.profileImageId', // Field in Users collection
+                  foreignField: '_id',
+                  as: 'raiser.profileImage',
+              },
+          },
+          {
+              $lookup: {
+                  from: 'userdetails', // 'userdetails' collection
+                  localField: 'raiser.userDetailsId', // Field in Users collection
+                  foreignField: '_id',
+                  as: 'raiser.userDetails',
+              },
+          },
+          {
+              $lookup: {
+                  from: 'users', // 'users' collection for resolver
+                  localField: 'resolverId', // Field in RaiseTicket
+                  foreignField: '_id', // Reference in Users
+                  as: 'resolver',
+              },
+          },
+          {
+              $unwind: { path: '$resolver', preserveNullAndEmptyArrays: true },
+          },
+          {
+              $lookup: {
+                  from: 'profileimages', // 'profileimages' collection for resolver
+                  localField: 'resolver.profileImageId', // Field in Users collection
+                  foreignField: '_id',
+                  as: 'resolver.profileImage',
+              },
+          },
+          {
+              $lookup: {
+                  from: 'userdetails', // 'userdetails' collection for resolver
+                  localField: 'resolver.userDetailsId', // Field in Users collection
+                  foreignField: '_id',
+                  as: 'resolver.userDetails',
+              },
+          },
+          {
+              $lookup: {
+                  from: 'ticketimages', // 'ticketimages' collection
+                  localField: '_id', // Reference in RaiseTicket
+                  foreignField: 'ticketId', // Reference in TicketImages collection
+                  as: 'images',
+              },
+          },
+          {
+              $addFields: {
+                  imageCount: { $size: '$images' }, // Add field to count the number of images
+                  ticket_id: '$_id', // Rename _id to ticket_id
+              },
+          },
+          {
+              $project: {
+                  'raiser.password': 0,
+                  'raiser.Role_id': 0,
+                  'raiser.Is_active': 0,
+                  'resolver.password': 0,
+                  'resolver.Role_id': 0,
+                  'resolver.Is_active': 0,
+                  'images': 0, // Remove images if you just want the count
+                  _id: 0, // Remove _id from the result
+              },
+          },
+      ];
 
-        // Fetch tickets with the aggregation pipeline
-        const tickets = await RaiseTicket.aggregate(ticketsPipeline);
+      // Fetch tickets with the aggregation pipeline
+      const tickets = await RaiseTicket.aggregate(ticketsPipeline);
 
-        // Fetch status counts for the specified Raiser_id
-        const statusCountsPipeline = [
-            {
-                $match: { Raiser_id: new mongoose.Types.ObjectId(user_id) }, // Match by Raiser_id
-            },
-            {
-                $group: {
-                    _id: '$status',
-                    count: { $sum: 1 }, // Count the number of occurrences for each status
-                },
-            },
-        ];
+      // Fetch status counts for the specified Raiser_id
+      const statusCountsPipeline = [
+          {
+              $match: { Raiser_id: new mongoose.Types.ObjectId(user_id) }, // Match by Raiser_id
+          },
+          {
+              $group: {
+                  _id: '$status',
+                  count: { $sum: 1 }, // Count the number of occurrences for each status
+              },
+          },
+      ];
 
-        const statusCounts = await RaiseTicket.aggregate(statusCountsPipeline);
+      const statusCounts = await RaiseTicket.aggregate(statusCountsPipeline);
 
-        // Convert status counts into an easy-to-use object
-        const statusCountsObject = statusCounts.reduce((acc, item) => {
-            acc[item._id] = item.count;
-            return acc;
-        }, {});
+      // Convert status counts into an easy-to-use object
+      const statusCountsObject = statusCounts.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+      }, {});
 
-        // Ensure all statuses are present in the response
-        const counts = {
-            New_ticket: statusCountsObject.New_ticket || 0,
-            Solved: statusCountsObject.Solved || 0,
-            InProgress: statusCountsObject['In-progress'] || 0,
-            Rejected: statusCountsObject.Rejected || 0,
-        };
+      // Ensure all statuses are present in the response
+      const counts = {
+          New_ticket: statusCountsObject.New_ticket || 0,
+          Solved: statusCountsObject.Solved || 0,
+          InProgress: statusCountsObject['In-progress'] || 0,
+          Rejected: statusCountsObject.Rejected || 0,
+      };
 
-        // Send the response
-        res.status(200).json({ tickets, counts });
-    } catch (error) {
-        console.error('Error fetching tickets for Raiser_id:', error);
-        res.status(500).json({ error: 'Failed to fetch tickets' });
-    }
+      // Send the response
+      res.status(200).json({ tickets, counts });
+  } catch (error) {
+      console.error('Error fetching tickets for Raiser_id:', error);
+      res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
 });
 
-
-
+//specificticket
 router.get('/specificticket/:ticket_id', authenticateToken, async (req, res) => {
-    const { ticket_id } = req.params;
-    try {
-        const ticket = await RaiseTicket.aggregate([
-            {
-              $match: { _id: new mongoose.Types.ObjectId(ticket_id) }
-            },
-            {
+  const { ticket_id } = req.params;
+  try {
+      const ticket = await RaiseTicket.aggregate([
+          {
+              $match: { _id: new mongoose.Types.ObjectId(ticket_id) },
+          },
+          {
               $lookup: {
-                from: 'users',  // The collection name for User model
-                localField: 'raiser',  // Assuming the field 'raiser' holds the User's ObjectId
-                foreignField: '_id',
-                as: 'raiserDetails'
-              }
-            },
-            {
-              $unwind: { path: '$raiserDetails', preserveNullAndEmptyArrays: true }
-            },
-            {
+                  from: 'users',
+                  localField: 'Raiser_id',
+                  foreignField: '_id',
+                  as: 'raiser',
+              },
+          },
+          { $unwind: { path: '$raiser', preserveNullAndEmptyArrays: true } },
+          {
               $lookup: {
-                from: 'profileimages',  // Assuming 'profileimages' is the collection name for profile images
-                localField: 'raiserDetails.profileImage',  // The field for profile image in the raiser user document
-                foreignField: '_id',
-                as: 'raiserDetails.profileImage'
-              }
-            },
-            {
+                  from: 'profileimages',
+                  localField: 'raiser.profileImageId',
+                  foreignField: '_id',
+                  as: 'raiser.profileImage',
+              },
+          },
+          {
               $lookup: {
-                from: 'userdetails',  // Assuming 'userdetails' is the collection name for user details
-                localField: 'raiserDetails.userDetails',
-                foreignField: '_id',
-                as: 'raiserDetails.userDetails'
-              }
-            },
-            {
+                  from: 'userdetails',
+                  localField: 'raiser.userDetailsId',
+                  foreignField: '_id',
+                  as: 'raiser.userDetails',
+              },
+          },
+          {
               $lookup: {
-                from: 'users',  // The collection name for User model
-                localField: 'resolver',  // Assuming the field 'resolver' holds the User's ObjectId
-                foreignField: '_id',
-                as: 'resolverDetails'
-              }
-            },
-            {
-              $unwind: { path: '$resolverDetails', preserveNullAndEmptyArrays: true }
-            },
-            {
+                  from: 'users',
+                  localField: 'resolverId',
+                  foreignField: '_id',
+                  as: 'resolver',
+              },
+          },
+          { $unwind: { path: '$resolver', preserveNullAndEmptyArrays: true } },
+          {
               $lookup: {
-                from: 'profileimages',  // Assuming 'profileimages' is the collection name for profile images
-                localField: 'resolverDetails.profileImage',
-                foreignField: '_id',
-                as: 'resolverDetails.profileImage'
-              }
-            },
-            {
+                  from: 'profileimages',
+                  localField: 'resolver.profileImageId',
+                  foreignField: '_id',
+                  as: 'resolver.profileImage',
+              },
+          },
+          {
               $lookup: {
-                from: 'userdetails',  // Assuming 'userdetails' is the collection name for user details
-                localField: 'resolverDetails.userDetails',
-                foreignField: '_id',
-                as: 'resolverDetails.userDetails'
-              }
-            },
-            {
+                  from: 'userdetails',
+                  localField: 'resolver.userDetailsId',
+                  foreignField: '_id',
+                  as: 'resolver.userDetails',
+              },
+          },
+          {
               $lookup: {
-                from: 'ticketimages',  // Collection for TicketImages
-                localField: 'images',  // The field 'images' should be an array of ObjectIds
-                foreignField: '_id',
-                as: 'imagesDetails'
-              }
-            },
-            {
+                  from: 'ticketimages',
+                  localField: '_id',
+                  foreignField: 'ticketId',
+                  as: 'images',
+              },
+          },
+          {
               $project: {
-                ticket_no: 1,
-                subject: 1,
-                issue: 1,
-                category: 1,
-                createdAt: 1,
-                updatedAt: 1,
-                imagesDetails: 1,
-                'raiserDetails': {
-                  _id: 1,
-                  email: 1,
-                  username: 1,
-                  profileImage: 1,
-                  userDetails: 1
-                },
-                'resolverDetails': {
-                  _id: 1,
-                  email: 1,
-                  username: 1,
-                  profileImage: 1,
-                  userDetails: 1
-                }
-              }
-            }
-        ]);
-
-        // If no ticket is found, return a 404 error
-        if (!ticket || ticket.length === 0) {
-            return res.status(404).json({ error: 'Ticket not found' });
-        }
-        // Send the response
-        res.status(200).json({ ticket: ticket[0] });
-    } catch (error) {
-        console.error('Error fetching ticket details for Ticket_id:', error);
-        res.status(500).json({ error: 'Failed to fetch ticket details' });
-    }
+                  'raiser.password': 0,
+                  'raiser.Role_id': 0,
+                  'raiser.Is_active': 0,
+                  'resolver.password': 0,
+                  'resolver.Role_id': 0,
+                  'resolver.Is_active': 0,
+              },
+          },
+      ]);
+      if (!ticket || ticket.length === 0) {
+          return res.status(404).json({ error: 'Ticket not found' });
+      }
+      res.status(200).json({ ticket: ticket[0] });
+  } catch (error) {
+      console.error('Error fetching ticket details for Ticket_id:', error);
+      res.status(500).json({ error: 'Failed to fetch ticket details' });
+  }
 });
 
 

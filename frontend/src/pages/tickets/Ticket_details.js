@@ -53,6 +53,8 @@ const Ticket_details = () => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
+
+            console.log("log the dtaresponse",response)
             setTicket(response.data.ticket);
             setLoading(false);
         } catch (err) {
@@ -192,7 +194,7 @@ const Ticket_details = () => {
                                                 </span>
                                                 <span>
                                                     <small className="d-block text-muted">Worked By</small>
-                                                    {`${ticket.resolver.first_name} ${ticket.resolver.last_name}`}
+                                                    {`${ticket.resolver?.first_name || 'NA'} ${ticket.resolver?.last_name || ''}`}
                                                 </span>
                                             </p>
                                         )}
