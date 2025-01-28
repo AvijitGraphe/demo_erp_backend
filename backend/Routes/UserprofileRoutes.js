@@ -473,7 +473,7 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
 /**
  *Get all profile of users Api 
  */
- router.get('/getallusers', authenticateToken, async (req, res) => {
+router.get('/getallusers', authenticateToken, async (req, res) => {
   try {
     const today = moment().startOf('day').toDate();
     const users = await User.aggregate([
@@ -560,6 +560,28 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
           last_name: 1,
         },
       },
+      {
+        $project: {
+          _id: 0,
+          user_id: '$_id',
+          first_name: 1,
+          last_name: 1,
+          password: 1,
+          email: 1,
+          Role_id: 1,
+          Is_active: 1,
+          user_type: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          __v: 1,
+          userTimes: 1,
+          joiningDates: 1,
+          resignations: 1,
+          profileImage: 1,
+          userDetails: 1,
+          attendances: 1,
+        },
+      },
     ]);
     res.status(200).json(users);
   } catch (error) {
@@ -567,8 +589,6 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
-
 
 
 

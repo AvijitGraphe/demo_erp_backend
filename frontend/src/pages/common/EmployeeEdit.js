@@ -23,6 +23,7 @@ import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
 import CustomConfirmPopup from "../../components/CustomConfirmPopup";
 import successVideo from '../../assets/video/paperplane.mp4';
+
 const EmployeeEdit = () => {
     const navigate = useNavigate();
     const [checked, setChecked] = useState(true);

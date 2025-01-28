@@ -13,6 +13,7 @@ const Employee_list = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null); // State for selected employee
     const allowedRoles = ['Admin', 'SuperAdmin', 'Founder', 'HumanResource'];
     const [unverifiedCount, setUnverifiedCount] = useState(0);
+    
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
@@ -21,7 +22,6 @@ const Employee_list = () => {
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
-
                 // Group employees by role
                 const groupedEmployees = response.data.reduce((acc, employee) => {
                     const role = employee.user_type;
@@ -31,9 +31,7 @@ const Employee_list = () => {
                     acc[role].push(employee);
                     return acc;
                 }, {});
-
                 setEmployeesByType(groupedEmployees);
-
                 // Automatically select the first employee in "Admin" role if available
                 if (groupedEmployees['Founder'] && groupedEmployees['Founder'].length > 0 && selectedEmployee === null) {
                     setSelectedEmployee(groupedEmployees['Founder'][0]);
@@ -42,7 +40,6 @@ const Employee_list = () => {
                 console.error('Error fetching employee data:', error);
             }
         };
-
         fetchEmployees();
     }, [accessToken]);
 

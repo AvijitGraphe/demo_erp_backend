@@ -73,7 +73,6 @@ const Admin_dash = () => {
                 setLoading(true);
                 const response = await axios.get(`${config.apiBASEURL}/overtimeRoutes/dashboardovertime`, {
                     headers: { Authorization: `Bearer ${accessToken}` },
-
                 });
                 setOvertimeData(response.data);
             } catch (error) {
