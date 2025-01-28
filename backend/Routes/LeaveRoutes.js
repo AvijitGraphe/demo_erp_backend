@@ -1151,7 +1151,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                 $lte: new Date(end_date),
             };
         }
-
         const userMatchConditions = {};
         if (search_query) {
             userMatchConditions.$or = [
@@ -1159,7 +1158,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                 { last_name: { $regex: search_query, $options: 'i' } },
             ];
         }
-
         const leaveRequests = await LeaveRequest.aggregate([
             {
                 $match: matchConditions,
@@ -1208,6 +1206,11 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                 }
             },
             {
+                $match: {
+                    'requestor': { $ne: [] }  
+                }
+            },
+            {
                 $group: {
                     _id: '$Status',
                     requests: { $push: '$$ROOT' },
@@ -1230,7 +1233,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
             Approved: [],
             Rejected: [],
         };
-
         leaveRequests.forEach((group) => {
             groupedRequests[group.status] = group.requests.map((request) => {
                 return {
@@ -1240,6 +1242,12 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                 };
             });
         });
+        if (leaveRequests.length === 0) {
+            return res.status(200).json({
+                success: true,
+                data: groupedRequests,
+            });
+        }
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1253,10 +1261,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
         });
     }
 });
-
-
-
-
 
 
 
