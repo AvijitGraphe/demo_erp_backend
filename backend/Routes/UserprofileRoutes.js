@@ -468,8 +468,6 @@ router.get('/main-user-details', authenticateToken, async (req, res) => {
 
 
 
-
-
 /**
  *Get all profile of users Api 
  */

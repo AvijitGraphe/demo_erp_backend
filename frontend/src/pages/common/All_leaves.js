@@ -50,9 +50,6 @@ const All_leaves = () => {
                 },
 
             });
-
-            console.log("log the data ok...!!!", response.data)
-
             if (response.data.success) {
                 setLeaveData(response.data.data);
             } else {
@@ -156,6 +153,7 @@ const All_leaves = () => {
                                                 </Nav.Item>
                                             </Nav>
                                         </Col>
+
                                         <Col sm={12} lg={12} className='p-0'>
                                             <Tab.Content className='p-4'>
                                                 <Tab.Pane eventKey="pending">
@@ -174,8 +172,6 @@ const All_leaves = () => {
                             </CardBody>
                         </Card>
                     </Col>
-
-
                     <Dialog
                         header="Applying for Leave"
                         visible={visible}
@@ -186,14 +182,11 @@ const All_leaves = () => {
                             onSuccess={handleLeaveRequestSuccess}
                         />
                     </Dialog>
-
                     <Dialog visible={videoDialogVisible} className='fadeInUp_dilog'
                         onHide={() => setVideoDialogVisible(false)} style={{ width: '320px' }} closable={false}>
                         <video src={successVideo} autoPlay loop muted style={{ width: '100%' }} />
                         <h6 className="text-center mt-0 fadeInUp">Process Completed <span className='text-success'>Successfully</span></h6>
                     </Dialog>
-
-
                 </Row>
             </Row>
         </>

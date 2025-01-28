@@ -1140,7 +1140,7 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
 
 
 
-
+//leave-requests-by-status
 router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
     try {
         const { start_date, end_date, search_query } = req.query;
@@ -1189,11 +1189,11 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
             {
                 $lookup: {
                     from: 'leavetypes',
-                    let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } }, // Convert Leave_type_Id to ObjectId
+                    let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } },
                     pipeline: [
                         { 
                             $match: { 
-                                $expr: { $eq: ["$_id", "$$leaveTypeId"] } // Match converted ObjectId with _id
+                                $expr: { $eq: ["$_id", "$$leaveTypeId"] }
                             }
                         },
                         { 
@@ -1232,7 +1232,13 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
         };
 
         leaveRequests.forEach((group) => {
-            groupedRequests[group.status] = group.requests;
+            groupedRequests[group.status] = group.requests.map((request) => {
+                return {
+                    ...request,
+                    Leave_request_id: request._id,
+                    _id: undefined, 
+                };
+            });
         });
         res.status(200).json({
             success: true,
@@ -1247,6 +1253,8 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
         });
     }
 });
+
+
 
 
 
@@ -1562,13 +1570,11 @@ router.put('/update-arrear-days', authenticateToken, async (req, res) => {
 //fetch all users 
 router.get('/fetch-all-users', authenticateToken, async (req, res) => {
     try {
-        // Fetch users with specific user types
         const users = await User.find({
             user_type: {
                 $in: ['HumanResource', 'Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager']
             }
         }, 'first_name last_name email user_type');
-
         res.status(200).json(users);
     } catch (error) {
         console.error('Error fetching all users:', error);

@@ -92,7 +92,6 @@ const EmployeeEdit = () => {
         }
     };
 
-
     const fetchUserDetails = async () => {
         try {
             const response = await axios.get(
