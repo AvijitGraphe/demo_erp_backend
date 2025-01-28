@@ -61,7 +61,6 @@ const Admin_dash = () => {
                 console.error('Error fetching attendance data:', error);
             }
         };
-
         fetchData();
     }, []);
 
@@ -97,11 +96,11 @@ const Admin_dash = () => {
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
+                console.log("log the data isnow response ", response);
                 setTasks(response.data.data);
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching weekly priority tasks:', err);
-
                 setLoading(false);
             }
         };

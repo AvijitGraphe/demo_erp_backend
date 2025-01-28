@@ -1866,84 +1866,96 @@ router.get('/fetch-project-all-tasks',authenticateToken, async (req, res) => {
 
 
 // Fetch tasks for the current week with priority flag "Priority"
-router.get('/tasks/weekly-priority',authenticateToken, async (req, res) => {
+router.get('/tasks/weekly-priority', authenticateToken, async (req, res) => {
     try {
-        // Calculate start and end of the current week
         const startOfWeek = moment().startOf('week').toDate();
         const endOfWeek = moment().endOf('week').toDate();
+
         const tasks = await Tasks.aggregate([
             {
                 $match: {
                     task_startdate: { $gte: startOfWeek, $lte: endOfWeek },
-                    priority_flag: 'Priority'
-                }
+                    priority_flag: 'Priority',
+                },
             },
             {
                 $lookup: {
                     from: 'projects',
                     localField: 'project_id',
                     foreignField: '_id',
-                    as: 'project'
-                }
+                    as: 'project',
+                },
             },
-            {
-                $unwind: { path: '$project', preserveNullAndEmptyArrays: true } 
-            },
+            { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'brands', 
-                    localField: 'project.brand_id', 
+                    from: 'brands',
+                    localField: 'project.brand_id',
                     foreignField: '_id',
-                    as: 'project.brand'
-                }
+                    as: 'project.brand',
+                },
             },
-            {
-                $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true }
-            },
+            { $unwind: { path: '$project.brand', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'users',
-                    localField: 'project.lead_id', 
+                    localField: 'project.lead_id',
                     foreignField: '_id',
-                    as: 'project.lead'
-                }
+                    as: 'project.lead',
+                },
             },
-            {
-                $unwind: { path: '$project.lead', preserveNullAndEmptyArrays: true } 
-            },
+            { $unwind: { path: '$project.lead', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'images', 
-                    localField: 'project.lead.profileImage', 
+                    from: 'profileimages',
+                    localField: 'project.lead.profileImage',
                     foreignField: '_id',
-                    as: 'project.lead.profileImage'
-                }
+                    as: 'project.lead.profileImage',
+                },
             },
-            {
-                $unwind: { path: '$project.lead.profileImage', preserveNullAndEmptyArrays: true } 
-            },
+            { $unwind: { path: '$project.lead.profileImage', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'users', 
+                    from: 'users',
                     localField: 'task_user_id',
                     foreignField: '_id',
-                    as: 'assignee'
-                }
+                    as: 'assignee',
+                },
             },
-            {
-                $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } 
-            },
+            { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'images', 
-                    localField: 'assignee.profileImage', 
+                    from: 'profileimages',
+                    localField: 'assignee.profileImage',
                     foreignField: '_id',
-                    as: 'assignee.profileImage'
-                }
+                    as: 'assignee.profileImage',
+                },
             },
+            { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
             {
-                $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } 
-            }
+                $project: {
+                    task_name: 1,
+                    task_description: 1,
+                    task_startdate: 1,
+                    task_enddate: 1,
+                    priority_flag: 1,
+                    status: 1,
+                    missed_deadline:1,
+                    'project.project_id': 1,
+                    'project.project_name': 1,
+                    'project.lead_id': 1,
+                    'project.brand.brand_id': 1,
+                    'project.brand.brand_name': 1,
+                    'project.lead.user_id': 1,
+                    'project.lead.first_name': 1,
+                    'project.lead.last_name': 1,
+                    'project.lead.profileImage.image_url': 1,
+                    'assignee.user_id': 1,
+                    'assignee.first_name': 1,
+                    'assignee.last_name': 1,
+                    'assignee.profileImage.image_url': 1,
+                },
+            },
         ]);
         res.status(200).json({ success: true, data: tasks });
     } catch (error) {
