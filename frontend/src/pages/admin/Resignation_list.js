@@ -54,6 +54,9 @@ const ResignationTable = () => {
             const response = await axios.get(`${config.apiBASEURL}/resignationRoutes/fetch-all-resignations`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
+
+            console.log("log the data response 000", response.data);
+
             setResignations(response.data);
             setLoading(false);
         } catch (err) {
@@ -200,15 +203,19 @@ const ResignationTable = () => {
                         <Card key={resignation.resignation_id} className='px-0 pt-3 mb-3'>
                             <Card.Header className='d-flex justify-content-between align-items-center border-0'>
                                 <div className='d-flex align-items-center'>
-                                    {resignation.user.profileImage ? (
-                                        <img
-                                            src={resignation.user.profileImage.image_url}
-                                            alt="Profile"
-                                            style={{ width: '40px', height: '40px', borderRadius: '50%' }}
-                                        />
-                                    ) : (
-                                        'N/A'
-                                    )}
+                                {resignation.user.profileImage && resignation.user.profileImage.image_url ? (
+                                    <img
+                                        src={resignation.user.profileImage.image_url}
+                                        alt="Profile"
+                                        style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+                                    />
+                                ) : (
+                                    <img
+                                        src={require("../../assets/images/no_user.png")}
+                                        alt="No Profile"
+                                        style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+                                    />
+                                )}
                                     <h6 className='ms-2'>
                                         {resignation.user.first_name} {resignation.user.last_name}
                                         <small className='text-secondary d-block' style={{ textTransform: 'lowercase', fontWeight: '500' }}>{resignation.user.email}</small>
@@ -244,7 +251,6 @@ const ResignationTable = () => {
                                             <small className='text-primary d-block'>Last Working Day</small>
                                             <b>
                                                 {new Date(resignation.last_working_day).toLocaleDateString('en-GB')}
-
                                             </b>
                                         </p>
                                     </Col>

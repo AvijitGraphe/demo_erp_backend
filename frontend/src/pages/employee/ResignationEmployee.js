@@ -180,15 +180,20 @@ const ResignationEmployee = () => {
                     <Card key={resignation.resignation_id} className='px-0 pt-3 mb-3'>
                         <Card.Header className='d-flex justify-content-between align-items-center border-0'>
                             <div className='d-flex align-items-center'>
-                                {resignation.user.profileImage ? (
+                            {resignation.user.profileImage && resignation.user.profileImage.image_url ? (
+    <img
+        src={resignation.user.profileImage.image_url}
+        alt="Profile"
+        style={{ width: '40px', height: '40px', borderRadius: '50%' }}
+    />
+                                ) : (
                                     <img
-                                        src={resignation.user.profileImage.image_url}
-                                        alt="Profile"
+                                        src={require("../../assets/images/no_user.png")}
+                                        alt="No Profile"
                                         style={{ width: '40px', height: '40px', borderRadius: '50%' }}
                                     />
-                                ) : (
-                                    'N/A'
                                 )}
+
                                 <h6 className='ms-2'>
                                     {resignation.user.first_name} {resignation.user.last_name}
                                     <small className='text-secondary d-block' style={{ textTransform: 'lowercase', fontWeight: '500' }}>{resignation.user.email}</small>
@@ -222,7 +227,7 @@ const ResignationEmployee = () => {
                                 <Col md={4} lg={3} xs={6} className='mb-2 '>
                                     <p className='text-center m-0'>
                                         <small className='text-primary d-block'>Last Working Day</small>
-                                        <b>{resignation.last_working_day || 'N/A'}</b>
+                                        {new Date(resignation.last_working_day).toLocaleDateString('en-GB') ||'NA'}
                                     </p>
                                 </Col>
                                 <Col md={4} lg={3} xs={6} className='mb-2 p-0'>

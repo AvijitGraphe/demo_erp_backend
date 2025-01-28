@@ -140,20 +140,20 @@ router.get('/fetch-all-resignations', async (req, res) => {
         const resignations = await Resignation.aggregate([
             {
                 $lookup: {
-                    from: 'users', // 'users' is the collection name for User
-                    localField: 'user_id', // Field in Resignation referencing the User
-                    foreignField: '_id', // Field in User model
-                    as: 'user', // Name of the field to store populated result
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: '_id',
+                    as: 'user',
                 },
             },
             {
-                $unwind: '$user', // Flatten the array returned by $lookup
+                $unwind: '$user',
             },
             {
                 $lookup: {
-                    from: 'profileimages', // 'profileimages' is the collection name for ProfileImage
-                    localField: 'user.profileImage', // Field in User model that references ProfileImage
-                    foreignField: '_id', // Field in ProfileImage model
+                    from: 'profileimages',
+                    localField: 'user.profileImage',
+                    foreignField: '_id',
                     as: 'user.profileImage',
                 },
             },
@@ -163,8 +163,18 @@ router.get('/fetch-all-resignations', async (req, res) => {
             {
                 $sort: { createdAt: 1 },
             },
+            {
+                $addFields: {
+                    resignation_id: '$_id', 
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                },
+            },
         ]);
-
+        console.log("log the data resignations", resignations);
         return res.status(200).json(resignations);
     } catch (error) {
         console.error('Error fetching resignations:', error);
@@ -174,70 +184,82 @@ router.get('/fetch-all-resignations', async (req, res) => {
 
 
 
+
 /**
  * Fetch resignations by user_id
  */
 router.get('/fetch-resignations-by-user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
+
     try {
         const userResignations = await Resignation.aggregate([
-            { $match: { user_id: new mongoose.Types.ObjectId(user_id) } },
+            {
+                $match: { user_id: new mongoose.Types.ObjectId(user_id) },
+            },
             {
                 $lookup: {
                     from: 'users',
                     localField: 'user_id',
                     foreignField: '_id',
                     as: 'user',
-                }
+                    pipeline: [
+                        { $project: { first_name: 1, last_name: 1, email: 1 } },
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: '_id',
+                                foreignField: 'user_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }],
+                            },
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                    ],
+                },
             },
             {
-                $lookup: {
-                    from: 'profileimages',
-                    localField: 'user.profileImage',
-                    foreignField: '_id',
-                    as: 'userProfileImage',
-                }
+                $unwind: '$user',
             },
-            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
-            { $unwind: { path: '$userProfileImage', preserveNullAndEmptyArrays: true } },
             {
-                $project: {
-                    resignation_id: '$_id', // Renaming _id to resignation_id
-                    resignation_reason: 1,
-                    resignation_date: 1,
-                    notice_period_served: 1,
-                    status: 1,
-                    createdAt: 1,
-                    user: {
-                        first_name: 1,
-                        last_name: 1,
-                        email: 1,
+                $addFields: {
+                    status_priority: {
+                        $switch: {
+                            branches: [
+                                { case: { $eq: ['$status', 'Pending'] }, then: 1 },
+                                { case: { $eq: ['$status', 'Approved'] }, then: 2 },
+                                { case: { $eq: ['$status', 'Rejected'] }, then: 3 },
+                            ],
+                            default: 4,
+                        },
                     },
-                    userProfileImage: {
-                        image_url: 1,
-                    }
-                }
+                },
             },
             {
-                $sort: { 
-                    status: 1,
-                    createdAt: 1
-                }
-            }
+                $sort: {
+                    status_priority: 1,
+                    createdAt: 1,
+                },
+            },
+            {
+                $project: { status_priority: 0 }, // Remove the temporary field after sorting
+            },
         ]);
 
         const hasAcceptedResignation = userResignations.some(
             (resignation) => resignation.status === 'Accepted'
         );
+
         return res.status(200).json({
             can_add: !hasAcceptedResignation,
             resignations: userResignations,
         });
     } catch (error) {
         console.error('Error fetching user resignations:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
 
 
 
@@ -306,7 +328,6 @@ router.get('/fetch-specific-resignation/:id', async (req, res) => {
         if (resignation.length === 0) {
             return res.status(404).json({ error: 'No resignation found for the specified ID.' });
         }
-
         return res.status(200).json(resignation[0]);
     } catch (error) {
         console.error('Error fetching resignation:', error);
