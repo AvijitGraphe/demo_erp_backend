@@ -158,96 +158,111 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
   }
 
   try {
-    const startDate = new Date(start_date);
-    const endDate = new Date(end_date);
-
-    // Aggregation pipeline for Tasksheets with populated data
     const tasksheets = await Tasksheet.aggregate([
       {
         $match: {
-          tasksheet_date: { $gte: startDate, $lte: endDate },
+          tasksheet_date: {
+            $gte: new Date(start_date),
+            $lte: new Date(end_date),
+          },
         },
       },
       {
         $lookup: {
-          from: 'tasks', // Assuming Tasks collection name is 'tasks'
+          from: 'tasks',
           localField: 'task_id',
           foreignField: '_id',
-          as: 'task',
+          as: 'Task',
         },
       },
       {
-        $unwind: { path: '$task', preserveNullAndEmptyArrays: true },
-      },
-      {
-        $lookup: {
-          from: 'subtasksheets', // Assuming Subtasksheet collection name is 'subtasksheets'
-          localField: '_id',
-          foreignField: 'tasksheet_id',
-          as: 'subtasksheets',
+        $unwind: {
+          path: '$Task',
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $lookup: {
-          from: 'projects', // Assuming Projects collection name is 'projects'
-          localField: 'task.project_id',
+          from: 'subtasksheets',
+          localField: 'Task._id',
+          foreignField: 'task_id',
+          as: 'Task.Subtasksheets',
+        },
+      },
+      {
+        $lookup: {
+          from: 'subtasks',
+          localField: 'Task.Subtasksheets.subtask_id',
           foreignField: '_id',
-          as: 'project',
+          as: 'Task.Subtasksheets.Subtask',
         },
-      },
-      {
-        $unwind: { path: '$project', preserveNullAndEmptyArrays: true },
       },
       {
         $lookup: {
-          from: 'brands', // Assuming Brand collection name is 'brands'
-          localField: 'project.brand_id',
+          from: 'projects',
+          localField: 'Task.project_id',
           foreignField: '_id',
-          as: 'brand',
+          as: 'Task.project',
         },
       },
       {
-        $unwind: { path: '$brand', preserveNullAndEmptyArrays: true },
+        $unwind: {
+          path: '$Task.project',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
-          from: 'users', // Assuming Users collection name is 'users'
-          localField: 'user_id',
+          from: 'brands',
+          localField: 'Task.project.brand_id',
           foreignField: '_id',
-          as: 'user',
+          as: 'Task.project.brand',
         },
       },
       {
-        $unwind: { path: '$user', preserveNullAndEmptyArrays: true }, // This ensures user field exists or is null
+        $unwind: {
+          path: '$Task.project.brand',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
-          from: 'profileimages', // Assuming ProfileImage collection name is 'profileimages'
-          localField: 'user.profile_image_id',
+          from: 'users',
+          localField: 'tasksheet_user_id',
           foreignField: '_id',
-          as: 'profileImage',
+          as: 'User',
         },
       },
       {
-        $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true }, // Ensures profileImage exists or is null
+        $unwind: {
+          path: '$User',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
-        $project: {
-          _id: 1,
+        $lookup: {
+          from: 'profileimages',
+          localField: 'User.profile_image_id',
+          foreignField: '_id',
+          as: 'User.profileImage',
+        },
+      },
+      {
+        $unwind: {
+          path: '$User.profileImage',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: {
+          'User._id': 1,
           tasksheet_date: 1,
-          missed_deadline: 1,
-          task: 1,
-          user: 1,
-          profileImage: { image_url: 1 },
-          project: {
-            project_id: '$project._id',
-            project_name: '$project.project_name',
-            brand: '$brand',
-          },
         },
       },
     ]);
 
+
+    console.log("log rhe darta tasksheets", tasksheets)
     if (!tasksheets.length) {
       return res.status(200).json({
         success: true,
@@ -256,16 +271,19 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
       });
     }
 
-    // Group tasksheets by user_id and date
     const groupedData = {};
     for (const tasksheet of tasksheets) {
-      const user = tasksheet.user; // Ensure user exists
+      const user = tasksheet.User; // Save User object in a variable
       if (!user) {
-        continue; // Skip tasksheets that have no associated user
+        continue; // If User is undefined, skip this tasksheet
       }
 
-      const userId = user._id.toString();
-      const dateKey = tasksheet.tasksheet_date.toISOString().split('T')[0]; // Use date without time
+      const userId = user._id ? user._id.toString() : null; // Ensure user._id exists before calling .toString()
+      if (!userId) {
+        continue; // If _id is missing or null, skip this tasksheet
+      }
+
+      const dateKey = tasksheet.tasksheet_date.toISOString().split('T')[0];
 
       if (!groupedData[userId]) {
         groupedData[userId] = {
@@ -273,7 +291,7 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
             user_id: user._id,
             name: `${user.first_name} ${user.last_name}`,
             email: user.email,
-            profileImage: tasksheet.profileImage?.image_url || null,
+            profileImage: user.profileImage?.image_url || null,
           },
           missedDeadlineCounts: {
             missedTrueCount: 0,
@@ -283,7 +301,6 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
         };
       }
 
-      // Increment missed deadlines counts
       groupedData[userId].missedDeadlineCounts.missedTrueCount += tasksheet.missed_deadline ? 1 : 0;
       groupedData[userId].missedDeadlineCounts.missedFalseCount += tasksheet.missed_deadline ? 0 : 1;
 
@@ -291,17 +308,17 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
         groupedData[userId].tasksheets[dateKey] = [];
       }
 
-      // Push the tasksheet data with project details
       groupedData[userId].tasksheets[dateKey].push({
         ...tasksheet,
         project: {
-          project_id: tasksheet.project?.project_id || null,
-          project_name: tasksheet.project?.project_name || null,
-          brand: tasksheet.project?.brand || null,
+          project_id: tasksheet.Task.project?._id || null,
+          project_name: tasksheet.Task.project?.project_name || null,
+          brand: tasksheet.Task.project?.brand || null,
         },
       });
     }
 
+    console.log("log hte groupedData", groupedData)
     res.status(200).json({
       success: true,
       data: groupedData,
@@ -315,6 +332,7 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
     });
   }
 });
+
 
 
 
