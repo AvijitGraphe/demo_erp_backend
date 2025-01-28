@@ -1969,7 +1969,6 @@ router.get('/tasks/weekly-priority', authenticateToken, async (req, res) => {
 //Get categorized tasks for a specific user
 router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
-
     try {
         // Define start and end of the week
         const startOfWeek = moment().startOf('week').toDate();
@@ -2135,14 +2134,15 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
 
 //dashboard task summary --------------/
 // Fetch task summary for the current month
-router.get('/brand-task-summary',authenticateToken, async (req, res) => {
+router.get('/brand-task-summary', authenticateToken, async (req, res) => {
     try {
-        // Calculate the start and end of the current month
-        const startDate = moment().startOf('month').toDate();
-        const endDate = moment().endOf('month').toDate();
-        // Define all possible statuses
-        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
-        const summaryData = await Tasks.aggregate([
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+
+        const tasks = await Tasks.aggregate([
             {
                 $match: {
                     task_startdate: { $gte: startDate, $lte: endDate },
@@ -2150,93 +2150,77 @@ router.get('/brand-task-summary',authenticateToken, async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'brands', 
-                    localField: 'brand', 
-                    foreignField: '_id', 
-                    as: 'brandDetails',
+                    from: 'brands',
+                    localField: 'brand_id',
+                    foreignField: '_id',
+                    as: 'brand',
                 },
             },
-            {
-                $unwind: {
-                    path: '$brandDetails',
-                    preserveNullAndEmptyArrays: true, 
-                },
-            },
-            {
-                $group: {
-                    _id: {
-                        brand_name: { $ifNull: ['$brandDetails.brand_name', 'Unassigned'] },
-                        status: '$status',
-                    },
-                    count: { $sum: 1 },
-                    missedDeadlines: {
-                        $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] },
-                    },
-                },
-            },
-            {
-                $group: {
-                    _id: '$_id.brand_name',
-                    tasksByStatus: {
-                        $push: {
-                            status: '$_id.status',
-                            count: '$count',
-                        },
-                    },
-                    totalTasks: { $sum: '$count' },
-                    missedDeadlines: { $sum: '$missedDeadlines' },
-                },
-            },
+            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
             {
                 $project: {
-                    _id: 0,
-                    brand: '$_id',
-                    tasksByStatus: {
-                        $map: {
-                            input: allStatuses,
-                            as: 'status',
-                            in: {
-                                status: '$$status',
-                                count: {
-                                    $reduce: {
-                                        input: {
-                                            $filter: {
-                                                input: '$tasksByStatus',
-                                                cond: { $eq: ['$$this.status', '$$status'] },
-                                            },
-                                        },
-                                        initialValue: 0,
-                                        in: { $add: ['$$value', '$$this.count'] },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    totalTasks: 1,
-                    missedDeadlines: 1,
+                    status: 1,
+                    brand_id: 1,
+                    missed_deadline: 1,
+                    'brand.brand_name': 1,
                 },
             },
         ]);
-        res.status(200).json({ success: true, summary: summaryData });
+
+        console.log("log the tasks data", tasks)
+        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
+        const summary = {};
+
+        tasks.forEach((task) => {
+            const brandName = task.brand.brand_name;
+            const status = task.status;
+            const missedDeadline = task.missed_deadline;
+
+            if (!summary[brandName]) {
+                summary[brandName] = {
+                    totalTasks: 0,
+                    missedDeadlines: 0,
+                };
+                allStatuses.forEach((status) => {
+                    summary[brandName][status] = 0;
+                });
+            }
+
+            summary[brandName][status]++;
+            summary[brandName].totalTasks++;
+            if (missedDeadline) {
+                summary[brandName].missedDeadlines++;
+            }
+        });
+
+        for (const brandName in summary) {
+            allStatuses.forEach((status) => {
+                if (!summary[brandName][status]) {
+                    summary[brandName][status] = 0;
+                }
+            });
+        }
+
+        console.log("log the data ok summary", summary)
+        res.json({ summary });
     } catch (error) {
         console.error('Error fetching task summary:', error);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching task summary.',
-            error: error.message,
-        });
+        res.status(500).json({ error: 'An error occurred while fetching task summary.' });
     }
 });
 
 
 
 //Get user-task-summary
-router.get('/user-task-summary',authenticateToken, async (req, res) => {
+router.get('/user-task-summary', authenticateToken, async (req, res) => {
     try {
-        const startDate = moment().startOf('month').toDate();
-        const endDate = moment().endOf('month').toDate();
-        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
-        const summaryData = await Tasks.aggregate([
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0);
+
+        const tasks = await Tasks.aggregate([
             {
                 $match: {
                     task_startdate: { $gte: startDate, $lte: endDate },
@@ -2244,115 +2228,76 @@ router.get('/user-task-summary',authenticateToken, async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'users', 
-                    localField: 'assignee', 
-                    foreignField: '_id', 
-                    as: 'assigneeDetails',
+                    from: 'users',
+                    localField: 'task_user_id',
+                    foreignField: '_id',
+                    as: 'assignee',
                 },
             },
-            {
-                $unwind: {
-                    path: '$assigneeDetails',
-                    preserveNullAndEmptyArrays: true, 
-                },
-            },
+            { $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: 'profileimages', 
-                    localField: 'assigneeDetails.profileImage',
-                    foreignField: '_id', 
-                    as: 'profileImageDetails',
+                    from: 'profileimages',
+                    localField: 'assignee.profileImage',
+                    foreignField: '_id',
+                    as: 'assignee.profileImage',
                 },
             },
-            {
-                $unwind: {
-                    path: '$profileImageDetails',
-                    preserveNullAndEmptyArrays: true,
-                },
-            },
-            {
-                $group: {
-                    _id: {
-                        userName: {
-                            $cond: [
-                                { $ifNull: ['$assigneeDetails', false] },
-                                {
-                                    $concat: [
-                                        '$assigneeDetails.first_name',
-                                        ' ',
-                                        '$assigneeDetails.last_name',
-                                    ],
-                                },
-                                'Unassigned',
-                            ],
-                        },
-                        status: '$status',
-                    },
-                    count: { $sum: 1 },
-                    onTimeTasks: {
-                        $sum: { $cond: [{ $eq: ['$missed_deadline', false] }, 1, 0] },
-                    },
-                    missedDeadlines: {
-                        $sum: { $cond: [{ $eq: ['$missed_deadline', true] }, 1, 0] },
-                    },
-                    profileImage: { $first: '$profileImageDetails.image_url' },
-                },
-            },
-            {
-                $group: {
-                    _id: '$_id.userName',
-                    tasksByStatus: {
-                        $push: {
-                            status: '$_id.status',
-                            count: '$count',
-                        },
-                    },
-                    totalTasks: { $sum: '$count' },
-                    onTimeTasks: { $sum: '$onTimeTasks' },
-                    missedDeadlines: { $sum: '$missedDeadlines' },
-                    profileImage: { $first: '$profileImage' },
-                },
-            },
+            { $unwind: { path: '$assignee.profileImage', preserveNullAndEmptyArrays: true } },
             {
                 $project: {
-                    _id: 0,
-                    userName: '$_id',
-                    tasksByStatus: {
-                        $map: {
-                            input: allStatuses,
-                            as: 'status',
-                            in: {
-                                status: '$$status',
-                                count: {
-                                    $reduce: {
-                                        input: {
-                                            $filter: {
-                                                input: '$tasksByStatus',
-                                                cond: { $eq: ['$$this.status', '$$status'] },
-                                            },
-                                        },
-                                        initialValue: 0,
-                                        in: { $add: ['$$value', '$$this.count'] },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    totalTasks: 1,
-                    onTimeTasks: 1,
-                    missedDeadlines: 1,
-                    profileImage: 1,
+                    status: 1,
+                    task_user_id: 1,
+                    missed_deadline: 1,
+                    'assignee.first_name': 1,
+                    'assignee.last_name': 1,
+                    'assignee.profileImage.image_url': 1,
                 },
             },
         ]);
-        res.status(200).json({ success: true, summary: summaryData });
-    } catch (error) {
-        console.error('Error fetching user task summary:', error);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching user task summary.',
-            error: error.message,
+
+        const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
+        const summary = {};
+
+        tasks.forEach((task) => {
+            const user = task.assignee;
+            if (!user) return;
+
+            const userName = `${user.first_name} ${user.last_name}`;
+            const profileImage = user.profileImage ? user.profileImage.image_url : null;
+            const status = task.status;
+            const missedDeadline = task.missed_deadline;
+
+            if (!summary[userName]) {
+                summary[userName] = {
+                    onTimeTasks: 0,
+                    missedDeadlines: 0,
+                    profileImage,
+                };
+                allStatuses.forEach((status) => {
+                    summary[userName][status] = 0;
+                });
+            }
+
+            summary[userName][status]++;
+            if (!missedDeadline) {
+                summary[userName].onTimeTasks++;
+            } else {
+                summary[userName].missedDeadlines++;
+            }
         });
+
+        for (const userName in summary) {
+            allStatuses.forEach((status) => {
+                if (!summary[userName][status]) {
+                    summary[userName][status] = 0;
+                }
+            });
+        }
+        res.json({ summary });
+    } catch (error) {
+        console.error('Error fetching task summary:', error);
+        res.status(500).json({ error: 'An error occurred while fetching task summary.' });
     }
 });
 

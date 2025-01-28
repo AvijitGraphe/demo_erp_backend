@@ -96,7 +96,6 @@ const Admin_dash = () => {
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
-                console.log("log the data isnow response ", response);
                 setTasks(response.data.data);
                 setLoading(false);
             } catch (err) {
@@ -114,7 +113,7 @@ const Admin_dash = () => {
         const fetchTaskSummary = async () => {
             try {
                 // Replace with your backend API URL
-                const response = await axios.get(`${config.apiBASEURL}/projectRoutes//brand-task-summary`, {
+                const response = await axios.get(`${config.apiBASEURL}/projectRoutes/brand-task-summary`, {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
                     },
@@ -134,7 +133,7 @@ const Admin_dash = () => {
         const fetchEmployeeTaskSummary = async () => {
             try {
                 // Replace with your backend API URL
-                const response = await axios.get(`${config.apiBASEURL}/projectRoutes//user-task-summary`, {
+                const response = await axios.get(`${config.apiBASEURL}/projectRoutes/user-task-summary`, {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
                     },
