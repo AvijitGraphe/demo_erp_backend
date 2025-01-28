@@ -2167,7 +2167,6 @@ router.get('/brand-task-summary', authenticateToken, async (req, res) => {
             },
         ]);
 
-        console.log("log the tasks data", tasks)
         const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
         const summary = {};
 
@@ -2200,8 +2199,6 @@ router.get('/brand-task-summary', authenticateToken, async (req, res) => {
                 }
             });
         }
-
-        console.log("log the data ok summary", summary)
         res.json({ summary });
     } catch (error) {
         console.error('Error fetching task summary:', error);

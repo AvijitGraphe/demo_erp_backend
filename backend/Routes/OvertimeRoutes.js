@@ -406,8 +406,6 @@ router.get('/overtime/user/:user_id', authenticateToken, async (req, res) => {
               record.approver_name = `${record.approverDetails.first_name} ${record.approverDetails.last_name}`;
           }
       });
-
-      console.log("log the data ok ", groupedRecords);
       // Return the response with grouped records
       res.status(200).json({
           Pending: groupedRecords.Pending,
@@ -430,7 +428,6 @@ router.get('/overtime/:overtime_id', authenticateToken, async (req, res) => {
     try {
         // If overtime_id is a string, we need to convert it to ObjectId for MongoDB
         const overtimeRecord = await Overtime.findById(overtime_id);
-        console.log(overtimeRecord);
         if (!overtimeRecord) {
             return res.status(404).json({ message: 'Overtime record not found.' });
         }
@@ -443,72 +440,77 @@ router.get('/overtime/:overtime_id', authenticateToken, async (req, res) => {
 });
 
   
-
+//dashboardovertime
 router.get('/dashboardovertime', authenticateToken, async (req, res) => {
   try {
-      // Get the start and end dates for the current week
-      const startOfWeek = moment().startOf('week').toDate(); 
-      const endOfWeek = moment().endOf('week').toDate();     
-
-      // Aggregate the overtime records with filters
+      const startOfWeek = moment().startOf('week').toDate();
+      const endOfWeek = moment().endOf('week').toDate();      
       const overtimeRecords = await Overtime.aggregate([
           {
               $match: {
-                  status: 'Pending',  // Filter by status
-                  overtime_date: {
-                      $gte: startOfWeek,  // Start of the current week
-                      $lte: endOfWeek     // End of the current week
-                  }
+                  status: 'Pending',
+                  overtime_date: { $gte: startOfWeek, $lte: endOfWeek } 
               }
           },
           {
               $lookup: {
-                  from: 'users',  // Lookup for the 'requester' field from the 'User' collection
-                  localField: 'requester',  // Field in the 'Overtime' collection
-                  foreignField: '_id',  // Field in the 'User' collection
+                  from: 'users',
+                  localField: 'user_id',
+                  foreignField: '_id',
                   as: 'requester'
               }
           },
           {
-              $unwind: { path: '$requester', preserveNullAndEmptyArrays: true }  // Unwind requester array to get the document itself
-          },
-          {
-              $lookup: {
-                  from: 'profileimages',  // Lookup for the 'profileImage' field from the 'ProfileImage' collection
-                  localField: 'requester.profileImage',  // Field in the 'User' collection (embedded)
-                  foreignField: '_id',  // Field in the 'ProfileImage' collection
-                  as: 'requester.profileImage'
+              $unwind: {
+                  path: '$requester',
+                  preserveNullAndEmptyArrays: true 
               }
           },
           {
               $lookup: {
-                  from: 'users',  // Lookup for the 'approver' field from the 'User' collection
-                  localField: 'approver',
+                  from: 'profileimages',
+                  localField: 'requester.profile_image_id',
+                  foreignField: '_id',
+                  as: 'requester.profileImage'
+              }
+          },
+          {
+              $unwind: {
+                  path: '$requester.profileImage',
+                  preserveNullAndEmptyArrays: true
+              }
+          },
+          {
+              $lookup: {
+                  from: 'users',
+                  localField: 'approver_id',
                   foreignField: '_id',
                   as: 'approver'
               }
           },
           {
-              $unwind: { path: '$approver', preserveNullAndEmptyArrays: true }  // Unwind approver array to get the document itself
+              $unwind: {
+                  path: '$approver',
+                  preserveNullAndEmptyArrays: true 
+              }
           },
           {
               $project: {
+                  _id: 0,
+                  overtime_id: '$_id',
                   status: 1,
-                  overtime_date: 1,
-                  requester: {
-                      first_name: 1,
-                      last_name: 1,
-                      profileImage: { image_url: 1 }  // Only return the image URL of the requester
-                  },
-                  approver: {
-                      first_name: 1,
-                      last_name: 1
-                  }
+                  overtime_date: 1, 
+                  start_time: 1,
+                  end_time: 1,
+                  total_time: 1, 
+                  'requester.first_name': 1,
+                  'requester.last_name': 1,
+                  'requester.profileImage.image_url': 1,
+                  'approver.first_name': 1,
+                  'approver.last_name': 1
               }
           }
       ]);
-
-      // Respond with the filtered records
       res.status(200).json({
           Pending: overtimeRecords
       });
@@ -517,6 +519,7 @@ router.get('/dashboardovertime', authenticateToken, async (req, res) => {
       res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 

@@ -152,11 +152,13 @@ const Admin_dash = () => {
 
 
     const formatTime = (time) => {
-        const [hours, minutes] = time.slice(0, 5).split(':').map(Number); // Get HH:mm and split
-        const suffix = hours >= 12 ? 'PM' : 'AM'; // Determine AM/PM
-        const adjustedHours = hours % 12 || 12; // Convert 24-hour to 12-hour format
-        return `${adjustedHours}:${minutes.toString().padStart(2, '0')} ${suffix}`; // Format time with AM/PM
+        const timePortion = time.split(' ')[1];
+        const [hours, minutes] = timePortion.split(':').map(Number);
+        const suffix = hours >= 12 ? 'PM' : 'AM';
+        const adjustedHours = hours % 12 || 12;
+        return `${adjustedHours}:${minutes.toString().padStart(2, '0')} ${suffix}`;
     };
+    
 
     return (
         <>
@@ -492,7 +494,7 @@ const Admin_dash = () => {
                                                         style={{ width: '35px', height: '35px', objectFit: 'cover' }}
                                                     />
                                                         {`${overtime.requester.first_name} ${overtime.requester.last_name}`}</td>
-                                                    <td>{new Date(overtime.ovetime_date).toLocaleDateString('en-GB')}</td>
+                                                    <td>{new Date(overtime.overtime_date).toLocaleDateString('en-GB')}</td>
                                                     <td>{formatTime(overtime.start_time)}</td> {/* Format start_time */}
                                                     <td>{formatTime(overtime.end_time)}</td>   {/* Format end_time */}
                                                     <td>{(overtime.total_time / 60).toFixed(1)} hrs</td>
