@@ -200,7 +200,7 @@ const AddTask = () => {
                                             value={selectedProject}
                                             onChange={(e) => setSelectedProject(e.target.value)}
                                         >
-                                            <option value="" disabled>Select Project</option>
+                                            <option value="">Select Project</option>
                                             {projects.map((project) => (
                                                 <option key={project._id} value={project._id}>
                                                     {project.project_name}
@@ -330,7 +330,7 @@ const AddTask = () => {
                                                                         value={task._id}
                                                                         onChange={(e) => handleTaskFormChange(index, 'user_id', e.target.value)}
                                                                     >
-                                                                        <option value="" disabled>Select User</option>
+                                                                        <option value="" >Select User</option>
                                                                         {users.map((user) => (
                                                                            
                                                                             <option key={user._id} value={user._id}>

@@ -142,6 +142,9 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
                 profile_image: user.profileImage || null // Include profile image URL
             };
         });
+
+
+        console.log("log the data response",response)
         res.status(200).json(response);
     } catch (error) {
         console.error('Error fetching all users with task details:', error);

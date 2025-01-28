@@ -193,7 +193,6 @@ const ResignationEmployee = () => {
                                         style={{ width: '40px', height: '40px', borderRadius: '50%' }}
                                     />
                                 )}
-
                                 <h6 className='ms-2'>
                                     {resignation.user.first_name} {resignation.user.last_name}
                                     <small className='text-secondary d-block' style={{ textTransform: 'lowercase', fontWeight: '500' }}>{resignation.user.email}</small>
