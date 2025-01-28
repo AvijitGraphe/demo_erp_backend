@@ -258,11 +258,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
             start_time: att.start_time || '00:00:00' 
         }))
         .sort((a, b) => moment(b.date).isBefore(moment(a.date)) ? -1 : 1);  
-    
-    console.log("formattedAttendances", formattedAttendances);
-    
-
-
         res.status(200).json({
             userDetails: {
                 ...user,
@@ -512,7 +507,7 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
             success: true,
             data: {
                 taskCountsByStatus,
-                missedAndOnTimeCounts: missedAndOnTimeCounts[0],
+                missedAndOnTimeCounts:missedAndOnTimeCounts.length > 0 ? missedAndOnTimeCounts[0] : [],
                 yearlyConversionRate,
                 monthlyConversionRates: conversionRates,
                 missedDeadlineTasks,
@@ -547,10 +542,7 @@ router.get('/fetch-report-users', authenticateToken, async (req, res) => {
         let filter = {
             user_type: { $in: userTypes },
             Is_active: true,
-        };
-
-
-        console.log(search, filter);    
+        }; 
         if (search) {
             filter.$or = [
                 { first_name: { $regex: search, $options: 'i' } }, 
@@ -561,9 +553,6 @@ router.get('/fetch-report-users', authenticateToken, async (req, res) => {
         const users = await User.find(filter)
             .select('first_name last_name')  
             .lean();
-
-        console.log(users);
-
         const formattedUsers = users.map(user => ({
             user_id: user._id,
             username: `${user.first_name} ${user.last_name}`,
