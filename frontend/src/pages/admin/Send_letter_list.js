@@ -167,10 +167,6 @@ const Send_letter_list = () => {
     
 
 
-
-
-
-
     const onSearchChange = (e) => {
         setSearchQuery(e.target.value);
         filterData(e.target.value);

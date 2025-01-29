@@ -717,8 +717,308 @@ router.get('/lettersUsers/:userId', authenticateToken, async (req, res) => {
 
 
 
+// POST /api/letters/:letterId/confirm
+router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res) => {
+    const { letterId } = req.params;
+
+    try {
+        // Aggregation to find the letter, related template, and sections
+        const letter = await SendLetter.aggregate([
+            { $match: { _id: mongoose.Types.ObjectId(letterId) } },
+            {
+                $lookup: {
+                    from: 'lettertemplates', // Assuming 'LetterTemplate' collection name
+                    localField: 'template',
+                    foreignField: '_id',
+                    as: 'template',
+                    pipeline: [
+                        { $project: { template_name: 1, template_subject: 1 } }
+                    ]
+                }
+            },
+            {
+                $unwind: { path: '$template', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'sendlettersections', // Assuming 'SendLetterSection' collection name
+                    localField: 'send_letter_sections',
+                    foreignField: '_id',
+                    as: 'send_letter_sections',
+                    pipeline: [
+                        { $project: { section_heading: 1, section_body: 1, section_order: 1 } }
+                    ]
+                }
+            },
+            { $sort: { 'send_letter_sections.section_order': 1 } }
+        ]);
+
+        if (!letter || letter.length === 0) {
+            return res.status(404).json({ error: 'Letter not found' });
+        }
+
+        // Extract letter details
+        const letterData = letter[0];
+        letterData.status = 'Confirmed';
+
+        // Update the letter status
+        await SendLetter.findByIdAndUpdate(letterId, { status: 'Confirmed' });
+
+        // Generate section content
+        const formattedDate = letterData.createdAt
+        ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
+        : 'Invalid Date';
+
+         // Email content
+         const mailOptions = {
+            from:`"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+            to: letter.user_email,
+            subject: `Letter Subject: ${letter.template.template_subject}`,
+            html: `
+               <!DOCTYPE html>
+                    <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Employment Letter</title>
+                        <link rel="preconnect" href="https://fonts.googleapis.com">
+                        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins&display=swap" rel="stylesheet">
+                    </head>
+                    <body style="margin: 0; padding: 0; font-family: Helvetica, Arial, sans-serif; background-color: #f4f4f4;">
+                        <table style="width: 100%; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #ffffff; border: 0; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <td style="padding: 10px 15px; ">
+                                        <span style="display: block; padding-bottom: 20px;">
+                                            <img src="https://ik.imagekit.io/blackboxv2/Graphe-logo/logo%20(1).png?updatedAt=1736238516981" alt="brand-logo" style="width: 120px;">
+                                        </span>
+                                    </td>
+                                    <td style="padding: 10px 15px; text-align: right; float: right;">
+                                        
+                                            <p style="width: 280px; margin: 0; font-size: 14px; font-weight: 400; line-height: 1.5;">
+                                                Godrej Genesis Building, 11th Floor, EN-34, EN Block, Sector V, Bidhannagar, Kolkata, <br/> West Bengal 700105
+                                            </p>
+                                        
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 10px 15px; ">
+                                        <strong style="margin-bottom: 10px; display: block; font-family: Helvetica, Arial, sans-serif;">To,</strong>
+                                        <p style="font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif; margin-bottom:8px;"><strong>${letter.employee_name}</strong>,</p>
+                                        <p style="font-size: 12px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif; margin-bottom:0px;"><strong>${letter.user_email}</strong>,</p>
+                                    </td>
+                                    <td style="padding: 10px 15px;  text-align: right; font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif;">Date: <strong>${formattedDate}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding: 10px 15px;  padding-top: 20px;">
+                                    <p style="font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif;">
+                                        <strong style="display: inline-block; margin-right: 5px;">Subject:</strong>
+                                        <strong style="padding: 0; font-weight: bold;">${letter.template.template_subject}</strong>
+                                        </p>
+                                    </td>
+                                </tr> 
+                                ${sectionsContent} <!-- Insert sections here -->
+                                <tr>
+                                    <td colspan="2" style="padding: 10px 15px;  padding-top: 0px;">
+                                        <div>
+                                            <p style="margin: 0; font-size: 14px; font-weight: 400; line-height: 1.5;">Thanking you</p>
+                                            <span style="margin-top: 30px; margin-bottom: 10px; display: block;">
+                                            ${letter.signature_url
+                    ? `
+                                                           <img src="${letter.signature_url}" alt="Signature" style="width: 110px; height: auto;"/>`
+                    : ''
+                }
+                                            </span>
+                                            <p style="margin: 0 0 30px 0; font-size: 14px; font-weight: 400; font-family: Helvetica, Arial, sans-serif;">${letter.creator_name}<span style="display: block;">${letter.creator_designation}</span></p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="2" style="text-align: center; padding: 10px 15px;  background-color: #313030; font-size: 14px; color: #fff;">
+                                        <small>193/1 2nd Floor, MAHATAMA GANDI ROAD, KOLKATA - 700007, India</small> <br/>
+                                        <small>Email : <a href="mailto:Saurabh@thegraphe.com" style="color: #faea13; text-decoration: none;">Saurabh@thegraphe.com</a></small>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </body>
+                    </html>
+            `,
+        };
+
+         // Send email
+         await transporter.sendMail(mailOptions);
+
+         return res.status(200).json({ message: 'Letter status updated and email sent successfully' });
+        // Send the response
+        res.json({ message: 'Letter confirmed', sectionsContent, formattedDate });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 
+
+
+// POST /api/letters/:letterId/resend
+router.post('/resendletters/:letterId/resend', authenticateToken, async (req, res) => {
+    const { letterId } = req.params;
+    try {
+        // Aggregation to find the letter, related template, and sections
+        const letter = await SendLetter.aggregate([
+            { $match: { _id: mongoose.Types.ObjectId(letterId) } },
+            {
+                $lookup: {
+                    from: 'lettertemplates', 
+                    localField: 'template',
+                    foreignField: '_id',
+                    as: 'template',
+                    pipeline: [
+                        { $project: { template_name: 1, template_subject: 1 } }
+                    ]
+                }
+            },
+            {
+                $unwind: { path: '$template', preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'sendlettersections',
+                    localField: 'send_letter_sections',
+                    foreignField: '_id',
+                    as: 'send_letter_sections',
+                    pipeline: [
+                        { $project: { section_heading: 1, section_body: 1, section_order: 1 } }
+                    ]
+                }
+            },
+            { $sort: { 'send_letter_sections.section_order': 1 } }
+        ]);
+
+        if (!letter || letter.length === 0) {
+            return res.status(404).json({ error: 'Letter not found' });
+        }
+
+        // Extract letter details
+        const letterData = letter[0];
+
+        // Generate section content
+        const sectionsContent = letterData.send_letter_sections
+            .map(
+                (section) => `
+          <tr>
+               <td colspan="2" style="padding: 10px 15px 0 15px;">
+                   <div>
+                       <h6 style="margin: 0 0 10px 0; line-height: 1.5; font-size: 14px; font-family: Helvetica, Arial, sans-serif; font-weight: 600;">${section.section_heading}</h6>
+                       <p style="margin: 0 0 0px 0; font-size: 14px; font-weight: 400; line-height: 24px; font-family: Helvetica, Arial, sans-serif;">
+                           ${section.section_body}
+                       </p>
+                   </div>
+               </td>
+           </tr>
+       `
+            )
+            .join('');
+        
+        const formattedDate = letterData.createdAt
+            ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
+            : 'Invalid Date';
+            
+        const mailOptions = {
+            from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
+            to: letter.user_email,
+            subject: `Letter Subject: ${letter.template.template_subject}`,
+            html: `
+            <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Employment Letter</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins&display=swap" rel="stylesheet">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Helvetica, Arial, sans-serif; background-color: #f4f4f4;">
+                    <table style="width: 100%; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #ffffff; border: 0; border-collapse: collapse;" cellpadding="0" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <td style="padding: 10px 15px; ">
+                                    <span style="display: block; padding-bottom: 20px;">
+                                        <img src="https://ik.imagekit.io/blackboxv2/Graphe-logo/logo%20(1).png?updatedAt=1736238516981" alt="brand-logo" style="width: 120px;">
+                                    </span>
+                                </td>
+                                <td style="padding: 10px 15px; text-align: right; float: right;">
+                                        
+                                            <p style="width: 280px; margin: 0; font-size: 14px; font-weight: 400; line-height: 1.5;">
+                                                Godrej Genesis Building, 11th Floor, EN-34, EN Block, Sector V, Bidhannagar, Kolkata, <br/> West Bengal 700105
+                                            </p>
+                                        
+                                    </td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px 15px; ">
+                                    <strong style="margin-bottom: 10px; display: block; font-family: Helvetica, Arial, sans-serif;">To,</strong>
+                                    <p style="font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif; margin-bottom:8px;"><strong>${letter.employee_name}</strong>,</p>
+                                    <p style="font-size: 12px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif; margin-bottom:0px;"><strong>${letter.user_email}</strong>,</p>
+                                </td>
+                                <td style="padding: 10px 15px;  text-align: right; font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif;">Date: <strong>${formattedDate}</strong></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" style="padding: 10px 15px;  padding-top: 20px;">
+                                <p style="font-size: 14px; font-weight: 400; line-height: 1.5; font-family: Helvetica, Arial, sans-serif;">
+                                    <strong style="display: inline-block; margin-right: 5px;">Subject:</strong>
+                                    <strong style="padding: 0; font-weight: bold;">${letter.template.template_subject}</strong>
+                                    </p>
+                                </td>
+                            </tr> 
+                            ${sectionsContent} <!-- Insert sections here -->
+                            <tr>
+                                <td colspan="2" style="padding: 10px 15px;  padding-top: 0px;">
+                                    <div>
+                                        <p style="margin: 0; font-size: 14px; font-weight: 400; line-height: 1.5;">Thanking you</p>
+                                        <span style="margin-top: 30px; margin-bottom: 10px; display: block;">
+                                        ${letter.signature_url
+                    ? `
+                                                        <img src="${letter.signature_url}" alt="Signature" style="width: 110px; height: auto;"/>`
+                    : ''
+                }
+                                        </span>
+                                        <p style="margin: 0 0 30px 0; font-size: 14px; font-weight: 400; font-family: Helvetica, Arial, sans-serif;">${letter.creator_name}<span style="display: block;">${letter.creator_designation}</span></p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" style="text-align: center; padding: 10px 15px;  background-color: #313030; font-size: 14px; color: #fff;">
+                                    <small>193/1 2nd Floor, MAHATAMA GANDI ROAD, KOLKATA - 700007, India</small> <br/>
+                                    <small>Email : <a href="mailto:Saurabh@thegraphe.com" style="color: #faea13; text-decoration: none;">Saurabh@thegraphe.com</a></small>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </body>
+                </html>
+        `,
+
+        };    
+        await transporter.sendMail(mailOptions);
+        // Respond to the client
+        return res.status(200).json({ message: 'Letter resent successfully' });
+        } catch (error) {
+            console.error('Error resending letter:', error);
+    return res.status(500).json({ error: 'An error occurred while resending the letter' });
+    }
+    });
 
 module.exports = router;
