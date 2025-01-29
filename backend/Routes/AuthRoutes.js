@@ -98,6 +98,35 @@ router.post('/register', async (req, res) => {
 
 
 // Login route
+// router.post('/login', async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     const user = await User.findOne({ email });
+//     if (!user) {
+//       return res.status(400).json({ message: 'Invalid email or password' });
+//     }
+//     if (!user.Is_active) {
+//       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
+//     }
+//     const isPasswordValid = await bcrypt.compare(password, user.password);
+//     if (!isPasswordValid) {
+//       return res.status(400).json({ message: 'Invalid email or password' });
+//     }
+//     const userPayload = { id: user._id, email: user.email };
+//     const accessToken = generateAccessToken(userPayload);
+//     const fullName = `${user.first_name} ${user.last_name}`;
+//     res.status(200).json({
+//       message: 'Login successful',
+//       name: fullName,
+//       accessToken,
+//       role: user.user_type,
+//     });
+//   } catch (error) {
+//     console.error('Error during login:', error);
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -108,10 +137,18 @@ router.post('/login', async (req, res) => {
     if (!user.Is_active) {
       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
     }
+    
+    // Check if the expireDate has passed
+    const currentDate = new Date();
+    if (user.expire_date && new Date(user.expire_date) < currentDate) {
+      return res.status(403).json({ message: 'Your account has expired. Please contact Admin.' });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
+
     const userPayload = { id: user._id, email: user.email };
     const accessToken = generateAccessToken(userPayload);
     const fullName = `${user.first_name} ${user.last_name}`;
@@ -126,6 +163,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 
@@ -219,6 +257,7 @@ router.get('/getallEmplooyee', authenticateToken, async (req, res) => {
           expireDate: 1,
           user_type: 1,
           expire_date:1,
+          createdAt:1,
           joiningDate: "$joindates.joining_date",
         }
       }

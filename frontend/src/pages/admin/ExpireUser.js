@@ -7,6 +7,7 @@ import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
+import { Calendar } from 'primereact/calendar';
 
 const ExpireUser = () => {
     const { accessToken } = useAuth();
@@ -88,6 +89,7 @@ const ExpireUser = () => {
           }
           setEditableRow(null);
           setEditedExpireDate(null);
+          fetchApplication();
       } catch (error) {
           console.error('Error saving the expire date:', error);
       }
@@ -156,27 +158,28 @@ const ExpireUser = () => {
                                     <Column field="email" header="Email"></Column>
                                     <Column field="user_type" header="Designation" sortable></Column>
                                     <Column
-                                        field="joiningDate"
-                                        header="Joining Date"
+                                        field="createdAt"
+                                        header="Start Date"
                                         body={(rowData) => formatDate(rowData.joiningDate)}
                                         sortable
                                     ></Column>
-                                    <Column
-                                        field="expireDate"
-                                        header="Expire Date"
-                                        body={(rowData) =>
-                                            editableRow === rowData.user_id ? (
-                                                <InputText
-                                                    value={editedExpireDate}
-                                                    onChange={(e) => setEditedExpireDate(e.target.value)}
-                                                    type="date"
-                                                />
-                                            ) : (
-                                                rowData.expire_date
-                                            )
-                                        }
-                                        sortable
-                                    ></Column>
+                                   <Column
+                                    // field="expireDate"
+                                    header="Expire Date"
+                                    body={(rowData) =>
+                                        editableRow === rowData.user_id ? (
+                                            <Calendar 
+                                                value={editedExpireDate} 
+                                                onChange={(e) => setEditedExpireDate(e.value)} 
+                                                minDate={new Date()}
+                                            />
+                                        ) : (
+                                            rowData.expire_date ? formatDate(rowData.expire_date) : ''
+                                        )
+                                    }
+                                    sortable
+                                ></Column>
+
                                     <Column
                                         className="text-center"
                                         header="Action"
