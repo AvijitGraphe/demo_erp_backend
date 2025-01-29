@@ -242,8 +242,7 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
                         },
                         {
                             $project: {
-                                _id: 0,
-                                id: '$_id',
+                                ticket_id: '$_id',
                                 createdAt: 1,
                                 updatedAt: 1,
                                 subject: 1,
@@ -302,13 +301,13 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
             }
         ]);
 
-        console.log("result the", result)
         res.status(200).json(result[0]);
     } catch (error) {
         console.error('Error fetching tickets:', error);
         res.status(500).json({ error: 'Failed to fetch tickets' });
     }
 });
+
 
 
 

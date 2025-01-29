@@ -45,6 +45,7 @@ const TaskLog = () => {
                         ])
                     ).values()
                 );
+                console.log("response  brand", response.data)
                 setBrands(uniqueBrands);
                 setProjects(projects);
             }

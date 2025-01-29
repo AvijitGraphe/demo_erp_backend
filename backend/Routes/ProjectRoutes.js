@@ -711,42 +711,35 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
 router.get('/projects-by-brand', authenticateToken, async (req, res) => {
     const { brand_name } = req.query;
 
-
     try {
         if (!brand_name) {
             return res.status(400).json({ message: 'Brand name is required' });
         }
 
-        // Use aggregation to find projects associated with the given brand_name
         const projects = await Projects.aggregate([
             {
                 $lookup: {
-                    from: 'brands',          // The collection to join with
-                    localField: 'brand_id',   // Field in Projects collection to join on
-                    foreignField: '_id',      // Field in Brands collection to join on
-                    as: 'brand'              // The name of the field to store the joined data
+                    from: 'brands',
+                    localField: 'brand_id',
+                    foreignField: '_id',
+                    as: 'brand'
                 }
             },
-            {
-                $unwind: { 
-                    path: '$brand',            
-                    preserveNullAndEmptyArrays: true 
-                }
-            },
-            {
-                $match: {
-                    'brand.brand_name': { $regex: new RegExp(brand_name, 'i') } 
-                }
-            },
+            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
+            { $match: { 'brand.brand_name': { $regex: new RegExp(brand_name, 'i') } } },
             {
                 $project: {
                     _id: 1,
                     project_name: 1,
-                    brand: 1  
+                    brand: {
+                        brand_id: '$brand._id',  // Rename _id to brand_id
+                        brand_name: '$brand.brand_name',
+                        createdAt: '$brand.createdAt',
+                        updatedAt: '$brand.updatedAt'
+                    }
                 }
             }
         ]);
-        
 
         if (projects.length === 0) {
             return res.status(404).json({ message: 'No projects found for the specified brand' });
