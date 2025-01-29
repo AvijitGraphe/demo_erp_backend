@@ -7,6 +7,8 @@ require('dotenv').config();
 const router = express.Router();
 const  mongoose = require("mongoose")
 const Role = require('../Models/Role');
+const UserDetails = require('../Models/UserDetails');
+const JoiningDate = require('../Models/JoiningDate');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 // Generate JWT tokens with 12 hours expiration
@@ -145,6 +147,95 @@ router.get('/status', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error checking status', error });
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//update the expire employee data
+router.post("/updateExpiredate", authenticateToken, async (req, res) => {
+  const { expire_date, user_id } = req.body;
+  console.log(expire_date, user_id)
+  try {
+      const userlog = await User.findById(user_id);
+      if (!userlog) {
+          return res.status(404).json({ message: 'User Not Found!' });
+      }
+      const result = await User.updateOne({ _id: userlog._id }, { $set: { expire_date } });
+      if (result.modifiedCount === 0) {
+          return res.status(400).json({ message: 'No changes were made to the user.' });
+      }
+      
+      await ExpireUser.insertOne({
+          user_id: userlog._id,
+          expire_date: expire_date,
+          updatedAt: new Date(),
+      });
+      res.status(200).json({ message: 'Expire date updated successfully' });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Expire update failed" });
+  }
+});
+
+
+
+//get the expire employee data
+router.get('/getallEmplooyee', authenticateToken, async (req, res) => {
+  try {
+    const employees = await User.aggregate([
+      {
+        $lookup: {
+          from: "joiningdates",
+          localField: "_id",
+          foreignField: "user_id",
+          as: "joindates",
+        }
+      },
+      {
+        $unwind: {
+          path: "$joindates",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          first_name: 1,
+          last_name: 1,
+          email: 1,
+          phone: 1,
+          expireDate: 1,
+          user_type: 1,
+          user_id: "$_id",
+          joiningDate: "$joindates.joining_date",
+        }
+      }
+    ]);
+
+    if (!employees || employees.length === 0) {
+      return res.status(404).json({ message: "No employees found" });
+    }
+
+    res.json(employees);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch employees" });
+  }
+});
+
+
+
 
 
 

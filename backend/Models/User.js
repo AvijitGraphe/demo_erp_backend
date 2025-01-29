@@ -34,6 +34,9 @@ const UserSchema = new Schema({
     enum:['Founder','Admin','SuperAdmin','HumanResource','Accounts','Department_Head','Employee','Social_Media_Manager','Task_manager','Ex_employee','Unverified'],
     default: 'Unverified',
   },
+  expire_date:{
+    type: Date,
+  }
 }, {
   timestamps: true,
 });

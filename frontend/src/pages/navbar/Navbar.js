@@ -69,6 +69,7 @@ const Navbar = () => {
     const [isSubmenuOpen5, setIsSubmenuOpen5] = useState(false);
     const [isSubmenuOpen6, setIsSubmenuOpen6] = useState(false);
     const [isSubmenuOpen7, setIsSubmenuOpen7] = useState(false);
+    const [isSubmenuOpen8, setIsSubmenuOpen8] = useState(false);
     const [profileImageUrl, setProfileImageUrl] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [checkedIn, setCheckedIn] = useState(false);
@@ -101,6 +102,10 @@ const Navbar = () => {
     const toggleSubmenu7 = () => {
         setIsSubmenuOpen7(!isSubmenuOpen7);
     };
+
+    const toggleSubmenu8 = ()=>{
+        setIsSubmenuOpen8(!isSubmenuOpen8);
+    }
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -446,7 +451,32 @@ const Navbar = () => {
                                             Resignation List
                                         </MenuItem>
                                     </NavLink>
+                                </div>
+                            )}
+                        </div>
 
+
+                        {/* // expire user list */}
+                        
+                        <div>
+                            <div onClick={toggleSubmenu8} style={{ cursor: 'pointer' }}>
+                                <MenuItem
+                                    className={
+                                        isActive('/dashboard/exp_demo_uri') 
+                                            ? 'active' : ''}
+                                    icon={<FiUsers />
+                                    }>
+                                    Exp Demo url
+                                    <span className="subIcon">
+                                        {isSubmenuOpen8 ? <TbMinus /> : <TbPlus />}
+                                    </span>
+                                </MenuItem>
+                            </div>
+                            {isSubmenuOpen8 && (
+                                <div className="submenu_padding">
+                                    <NavLink to="/dashboard/exp_demo_uri" activeClassName="active">
+                                        <MenuItem icon={<HiOutlineUsers />}>Exp User List</MenuItem>
+                                    </NavLink>
                                 </div>
                             )}
                         </div>

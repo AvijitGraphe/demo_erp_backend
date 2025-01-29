@@ -174,7 +174,6 @@ router.get('/fetch-all-resignations', async (req, res) => {
                 },
             },
         ]);
-        console.log("log the data resignations", resignations);
         return res.status(200).json(resignations);
     } catch (error) {
         console.error('Error fetching resignations:', error);

@@ -61,6 +61,8 @@ import Expenses from '../accounts/Expenses';
 import Add_invoice from '../accounts/Add_invoice';
 import Invoice_list from '../accounts/Invoice_list';
 
+import ExpireUser from '../admin/ExpireUser';
+
 const Dashboard = () => {
   const { role: initialRole } = useAuth(); // Assuming `role` is provided by useAuth
   const [role, setRole] = useState(initialRole); // Initialize role with value from useAuth
@@ -133,6 +135,9 @@ const Dashboard = () => {
         <Route path="expenses" element={<ProtectedRoute element={Expenses} allowedRoles={['SuperAdmin']} />} />
         <Route path="invoice_list" element={<ProtectedRoute element={Invoice_list} allowedRoles={['SuperAdmin']} />} />
         <Route path="add_invoice" element={<ProtectedRoute element={Add_invoice} allowedRoles={['SuperAdmin']} />} />
+
+        <Route path="exp_demo_uri" element={<ProtectedRoute element={ExpireUser} allowedRoles={['SuperAdmin']} />} />
+
       </Routes>
     </Container>
   );
