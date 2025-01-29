@@ -737,7 +737,8 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
                         brand_name: '$brand.brand_name',
                         createdAt: '$brand.createdAt',
                         updatedAt: '$brand.updatedAt'
-                    }
+                    },
+                    brand_id: '$brand._id'
                 }
             }
         ]);
@@ -745,7 +746,6 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
         if (projects.length === 0) {
             return res.status(404).json({ message: 'No projects found for the specified brand' });
         }
-
         res.status(200).json({
             message: 'Projects fetched successfully',
             projects,

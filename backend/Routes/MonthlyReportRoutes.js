@@ -16,160 +16,220 @@ const mongoose = require('mongoose');
 
 // GET /monthly-report
 // Fetch monthly report for a brand and project
+
 router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
     const { brandId, projectId, month } = req.query;
-
-    if (!brandId || !projectId || !month) {
-        return res.status(400).json({ error: 'brand_name, project_name, and month are required' });
-    }
+    const brandObjId = new mongoose.Types.ObjectId(brandId);
+    const projectObjId = new mongoose.Types.ObjectId(projectId);
 
     try {
-        // Step 1: Fetch Brand Data
-        const brand = await Brand.findOne({
-            where: { brand_id: brandId },
-        });
-
-        if (!brand) {
-            return res.status(404).json({ error: 'Brand not found' });
-        }
-
-        // Step 2: Fetch Project Data
-        const project = await Projects.findOne({
-            where: {
-                project_id: projectId,
-                brand_id: brand.brand_id,
-            },
-        });
-
-        if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        // Step 3: Fetch Lead Details
-        const lead = await User.findOne({
-            where: { user_id: project.lead_id },
-            attributes: ['first_name', 'last_name'],
-            include: {
-                model: ProfileImage,
-                as: 'profileImage',
-                attributes: ['image_url'],
-            },
-        });
-
-        // Step 4: Fetch Member Details
-        const memberIds = project.member_id || [];
-        const members = await User.findAll({
-            where: {
-                user_id: {
-                    [Op.in]: memberIds,
-                },
-            },
-            attributes: ['first_name', 'last_name'],
-            include: {
-                model: ProfileImage,
-                as: 'profileImage',
-                attributes: ['image_url'],
-            },
-        });
-
-        // Step 5: Fetch Task Data
-        const tasks = await Tasks.findAll({
-            where: {
-                project_id: project.project_id,
-                [Op.and]: [
-                    sequelize.where(
-                        sequelize.fn('MONTH', sequelize.col('task_startdate')),
-                        month
-                    ),
-                ],
-            },
-            include: [
-                {
-                    model: User,
-                    as: 'assignee', // Assuming 'assignee' alias for user in task-user association
-                    attributes: ['first_name', 'last_name'],
-                    include: {
-                        model: ProfileImage,
-                        as: 'profileImage', // Assuming 'profileImage' alias for user-profile association
-                        attributes: ['image_url'],
-                    },
-                },
-            ],
-        });
-
-        // Step 6: Priority Tasks and Statistics
-        const priorityTasks = tasks.filter(task => task.priority_flag === 'Priority');
-        const priorityTaskDetails = priorityTasks.map(task => ({
-            task_id: task.task_id,
-            task_name: task.task_name,
-            deadline: task.task_deadline,
-            status: task.status,
-            missed_deadline: task.missed_deadline,
-            assignee: task.assignee
-                ? {
-                    first_name: task.assignee.first_name,
-                    last_name: task.assignee.last_name,
-                    profile_image: task.assignee.profileImage?.image_url || null,
+        const result = await Projects.aggregate([
+            { $match: { _id: projectObjId, brand_id: brandObjId } },
+            {
+                $lookup: {
+                    from: "brands",
+                    localField: "brand_id",
+                    foreignField: "_id",
+                    as: "brand"
                 }
-                : null, // If no assignee
-        }));
-
-        const taskCountByStatus = tasks.reduce((acc, task) => {
-            acc[task.status] = (acc[task.status] || 0) + 1;
-            return acc;
-        }, {});
-
-        const missedDeadlineCount = tasks.filter(task => task.missed_deadline).length;
-
-        // Step 7: Task Logs with User Details
-        const taskLogs = await TaskStatusLogger.findAll({
-            where: {
-                task_id: tasks.map(task => task.task_id),
             },
-            order: [['task_id', 'ASC']],
-            include: [
-                {
-                    model: Tasks,
-                    as: 'task',
-                    attributes: ['task_name', 'task_description'], // Include task name and description
-                },
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['first_name', 'last_name'],
-                    include: {
-                        model: ProfileImage,
-                        as: 'profileImage',
-                        attributes: ['image_url'],
+            { $unwind: "$brand" },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "lead_id",
+                    foreignField: "_id",
+                    as: "lead",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "profileimages",
+                                localField: "profileImage",
+                                foreignField: "_id",
+                                as: "profileImage"
+                            }
+                        },
+                        { $unwind: { path: "$profileImage", preserveNullAndEmptyArrays: true } },
+                        { $project: { first_name: 1, last_name: 1, profileImage: 1 } }
+                    ]
+                }
+            },
+            { $unwind: { path: "$lead", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "member_id",
+                    foreignField: "_id",
+                    as: "members",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "profileimages",
+                                localField: "profileImage",
+                                foreignField: "_id",
+                                as: "profileImage"
+                            }
+                        },
+                        { $unwind: { path: "$profileImage", preserveNullAndEmptyArrays: true } },
+                        { $project: { first_name: 1, last_name: 1, profileImage: 1 } }
+                    ]
+                }
+            },
+            {
+                $lookup: {
+                    from: "tasks",
+                    let: { projectId: "$_id" },
+                    pipeline: [
+                        { 
+                            $match: { 
+                                $expr: { $eq: ["$project_id", "$$projectId"] },
+                                $expr: { $eq: [{ $month: "$task_startdate" }, parseInt(month)] }
+                            } 
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "assignee",
+                                foreignField: "_id",
+                                as: "assignee",
+                                pipeline: [
+                                    {
+                                        $lookup: {
+                                            from: "profileimages",
+                                            localField: "profileImage",
+                                            foreignField: "_id",
+                                            as: "profileImage"
+                                        }
+                                    },
+                                    { $unwind: { path: "$profileImage", preserveNullAndEmptyArrays: true } },
+                                    { $project: { first_name: 1, last_name: 1, profileImage: 1 } }
+                                ]
+                            }
+                        },
+                        { $unwind: { path: "$assignee", preserveNullAndEmptyArrays: true } }
+                    ],
+                    as: "tasks"
+                }
+            },
+            {
+                $lookup: {
+                    from: "taskstatusloggers",
+                    let: { taskIds: "$tasks._id" },
+                    pipeline: [
+                        { $match: { $expr: { $in: ["$task_id", "$$taskIds"] } } },
+                        {
+                            $lookup: {
+                                from: "tasks",
+                                localField: "task_id",
+                                foreignField: "_id",
+                                as: "task",
+                                pipeline: [{ $project: { task_name: 1, task_description: 1 } }]
+                            }
+                        },
+                        { $unwind: "$task" },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "user",
+                                foreignField: "_id",
+                                as: "user",
+                                pipeline: [
+                                    {
+                                        $lookup: {
+                                            from: "profileimages",
+                                            localField: "profileImage",
+                                            foreignField: "_id",
+                                            as: "profileImage"
+                                        }
+                                    },
+                                    { $unwind: { path: "$profileImage", preserveNullAndEmptyArrays: true } },
+                                    { $project: { first_name: 1, last_name: 1, profileImage: 1 } }
+                                ]
+                            }
+                        },
+                        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } }
+                    ],
+                    as: "taskLogs"
+                }
+            },
+            {
+                $project: {
+                    brand: {
+                        brand_id: "$brand._id",
+                        brand_name: "$brand.brand_name",
+                        createdAt: "$brand.createdAt",
+                        updatedAt: "$brand.updatedAt"
                     },
-                },
-            ],
-        });
+                    project: {
+                        project_id: "$_id",
+                        project_name: 1,
+                        lead: 1,
+                        members: 1,
+                        createdAt: 1,
+                        updatedAt: 1
+                    },
+                    taskStatistics: {
+                        totalTasks: { $size: "$tasks" },
+                        taskCountByStatus: {
+                            $arrayToObject: {
+                                $map: {
+                                    input: "$tasks",
+                                    as: "t",
+                                    in: { k: "$$t.status", v: { $sum: 1 } }
+                                }
+                            }
+                        },
+                        missedDeadlineCount: {
+                            $sum: {
+                                $map: {
+                                    input: "$tasks",
+                                    as: "t",
+                                    in: { $cond: [{ $eq: ["$$t.missed_deadline", true] }, 1, 0] }
+                                }
+                            }
+                        },
+                        priorityTasks: {
+                            count: {
+                                $size: {
+                                    $filter: {
+                                        input: "$tasks",
+                                        cond: { $eq: ["$$this.priority_flag", "Priority"] }
+                                    }
+                                }
+                            },
+                            details: {
+                                $map: {
+                                    input: {
+                                        $filter: {
+                                            input: "$tasks",
+                                            cond: { $eq: ["$$this.priority_flag", "Priority"] }
+                                        }
+                                    },
+                                    as: "pt",
+                                    in: {
+                                        task_id: "$$pt._id",
+                                        task_name: "$$pt.task_name",
+                                        deadline: "$$pt.task_deadline",
+                                        status: "$$pt.status",
+                                        missed_deadline: "$$pt.missed_deadline",
+                                        assignee: "$$pt.assignee"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    taskLogs: 1
+                }
+            }
+        ]);
 
-        // Step 8: Response
-        return res.json({
-            brand,
-            project: {
-                ...project.toJSON(),
-                lead,
-                members,
-            },
-            taskStatistics: {
-                totalTasks: tasks.length,
-                taskCountByStatus,
-                missedDeadlineCount,
-                priorityTasks: {
-                    count: priorityTasks.length,
-                    details: priorityTaskDetails,
-                },
-            },
-            taskLogs,
-        });
+        if (result.length === 0) return res.status(404).json({ error: "Project not found" });
+        res.json(result[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: "Internal server error" });
     }
-});
+})
 
 
 

@@ -55,6 +55,7 @@ const TaskLog = () => {
     };
 
     const fetchProjectData = async () => {
+        console.log("selectedBrand", selectedBrand)
         try {
             const selectedMonth = date.getMonth() + 1; // `getMonth` is 0-indexed
             const formattedMonth = selectedMonth < 10 ? `0${selectedMonth}` : `${selectedMonth}`; // Ensure two-digit format
