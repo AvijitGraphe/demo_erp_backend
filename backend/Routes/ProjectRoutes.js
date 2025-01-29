@@ -493,133 +493,130 @@ router.get('/all-projects', authenticateToken, async (req, res) => {
 // Fetch Projects by User API with Pagination and Filters
 router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
-    const { page = 1, limit = 10, brand_name, end_date } = req.query;
-    const offset = (page - 1) * limit;
+    const { brand_name, end_date } = req.query;
+    const userId = new mongoose.Types.ObjectId(user_id);
 
     try {
-        const brandConditions = {};
-        
-        // Fetch user type for the given user_id
-        const user = await User.findById(user_id).select('user_type');
-        
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        const user = await User.findById(userId).select('user_type');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const pipeline = [];
+        const privilegedRoles = ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'];
+
+        if (!privilegedRoles.includes(user.user_type)) {
+            pipeline.push({
+                $match: {
+                    $expr: {
+                        $or: [
+                            { $eq: ["$lead_id", userId] },
+                            { $in: [userId, { $ifNull: ["$member_id", []] }] }
+                        ]
+                    }
+                }
+            });
         }
 
-        const userType = user.user_type;
-        let filterConditions = {};
-
-        // If user_type is one of the privileged roles, fetch all projects
-        if (['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'].includes(userType)) {
-            filterConditions = {}; // Fetch all projects without filtering by user_id
-        } else {
-            // For other user types, apply the filtering logic
-            filterConditions = {
-                $or: [
-                    { 'lead_id': user_id },
-                    { 'member_id': user_id },
-                ],
-            };
-        }
-
-        // Filter by brand_name (case-insensitive match)
         if (brand_name) {
-            brandConditions.brand_name = { $regex: brand_name, $options: 'i' }; // Case-insensitive match
-        }
-
-        // Filter by end_date
-        if (end_date) {
-            filterConditions.end_date = { $lte: new Date(end_date) };
-        }
-
-        // Fetch projects with filters, pagination, and associated data using aggregation
-        const projects = await Projects.aggregate([
-            { $match: filterConditions },
-            {
+            pipeline.push({
                 $lookup: {
-                    from: 'brands', // Assuming 'brands' collection name
-                    localField: 'brand_id', // Assuming Projects have a 'brand_id' field
-                    foreignField: '_id', // Assuming Brands have an '_id' field
-                    as: 'brand',
-                },
-            },
-            {
-                $unwind: { path: '$brand', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $lookup: {
-                    from: 'users', // Assuming 'users' collection name
-                    localField: 'lead_id', // Assuming Projects have a 'lead_id' field
-                    foreignField: '_id', // Assuming Users have an '_id' field
-                    as: 'lead',
-                },
-            },
-            {
-                $unwind: { path: '$lead', preserveNullAndEmptyArrays: true },
-            },
-            {
-                $lookup: {
-                    from: 'profileimages', // Assuming 'profileimages' collection name
-                    localField: 'lead.profile_image_id', // Assuming Users have a 'profile_image_id' field
+                    from: 'brands',
+                    localField: 'brand_id',
                     foreignField: '_id',
-                    as: 'lead.profileImage',
-                },
-            },
+                    as: 'brand',
+                    pipeline: [
+                        { $match: { brand_name: { $regex: brand_name, $options: 'i' } } },
+                        { $project: { brand_name: 1 } }
+                    ]
+                }
+            });
+        } else {
+            pipeline.push({
+                $lookup: {
+                    from: 'brands',
+                    localField: 'brand_id',
+                    foreignField: '_id',
+                    as: 'brand',
+                    pipeline: [{ $project: { brand_name: 1 } }]
+                }
+            });
+        }
+
+        pipeline.push(
+            { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
             {
-                $project: {
-                    'lead.profileImage': { $arrayElemAt: ['$lead.profileImage', 0] },
-                    brand_name: '$brand.brand_name',
-                    brand_id: '$brand._id',
-                    lead: {
-                        user_id: '$lead._id',
-                        first_name: '$lead.first_name',
-                        last_name: '$lead.last_name',
-                        profile_image: '$lead.profileImage.image_url',
-                    },
-                    project_id: 1,
-                    end_date: 1,
-                    member_id: 1,
-                },
+                $lookup: {
+                    from: 'users',
+                    localField: 'lead_id',
+                    foreignField: '_id',
+                    as: 'lead',
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: 'profileImage',
+                                foreignField: '_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }]
+                            }
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                        { $project: { user_id: '$_id', first_name: 1, last_name: 1, profileImage: 1 } }
+                    ]
+                }
             },
-            { $skip: offset },
-            { $limit: parseInt(limit, 10) },
-        ]);
-
-        // Fetch member details for each project (populate members)
-        const memberIds = projects.reduce((acc, project) => {
-            if (Array.isArray(project.member_id)) {
-                return acc.concat(project.member_id);
+            { $unwind: { path: '$lead', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'member_id',
+                    foreignField: '_id',
+                    as: 'members',
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: 'profileImage',
+                                foreignField: '_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }]
+                            }
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+                        { $project: { user_id: '$_id', first_name: 1, last_name: 1, profileImage: 1 } }
+                    ]
+                }
             }
-            return acc;
-        }, []);
+        );
 
-        const uniqueMemberIds = [...new Set(memberIds)]; // Remove duplicate member IDs
+        if (end_date) {
+            pipeline.push({ $match: { end_date: { $lte: new Date(end_date) } } });
+        }
 
-        const members = await User.find({ '_id': { $in: uniqueMemberIds } })
-            .select('user_id first_name last_name')
-            .populate('profileImage', 'image_url');
-
-        // Enrich the project data with member details
-        const enrichedProjects = projects.map((project) => {
-            const membersForProject = members.filter((member) =>
-                project.member_id.includes(member._id.toString())
-            );
-            return { ...project, members: membersForProject };
+        pipeline.push({
+            $project: {
+                _id: 0,
+                project_id: '$_id',
+                createdAt: 1,
+                updatedAt: 1,
+                creator_designation: 1,
+                creator_name: 1,
+                employee_name: 1,
+                status: 1,
+                end_date: 1,
+                brand: 1,
+                lead: 1,
+                members: 1
+            }
         });
-        // Total count for pagination
-        const total = await Projects.countDocuments(filterConditions);
-        res.status(200).json({
-            message: 'Projects fetched successfully',
-            projects: enrichedProjects,
-            total,
-            page: parseInt(page, 10),
-            pages: Math.ceil(total / limit),
-        });
+
+        const projects = await Projects.aggregate(pipeline);
+        res.status(200).json({ message: 'Projects fetched successfully', projects });
     } catch (error) {
-        console.error('Error fetching projects for user:', error);
+        console.error('Error fetching projects:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 
 
