@@ -729,10 +729,11 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
             { $match: { 'brand.brand_name': { $regex: new RegExp(brand_name, 'i') } } },
             {
                 $project: {
-                    _id: 1,
+                    _id: 0, // Exclude the default _id
+                    project_id: '$_id', // Rename _id to project_id
                     project_name: 1,
                     brand: {
-                        brand_id: '$brand._id',  // Rename _id to brand_id
+                        brand_id: '$brand._id',
                         brand_name: '$brand.brand_name',
                         createdAt: '$brand.createdAt',
                         updatedAt: '$brand.updatedAt'
