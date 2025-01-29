@@ -422,9 +422,6 @@ router.post('/send-letter', authenticateToken, upload.single('signature'), async
 router.delete('/send-letter/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-
-        console.log("log the data", id);
-
         // Ensure that the id is converted to ObjectId
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid SendLetter ID.' });
