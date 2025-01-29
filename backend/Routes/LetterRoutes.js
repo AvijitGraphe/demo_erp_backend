@@ -487,7 +487,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
                     pipeline: [
                         {
                             $project: {
-                                _id:1,
+                                _id: 1,
                                 first_name: 1,
                                 last_name: 1,
                                 email: 1,
@@ -545,6 +545,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
             {
                 $project: {
                     _id: 0,
+                    send_letter_id: { $arrayElemAt: ['$letters._id', 0] }, // Rename _id to send_letter_id
                     employee_name: 1,
                     user: 1,
                     letters: {
@@ -555,7 +556,8 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
                                 $mergeObjects: [
                                     '$$letter',
                                     {
-                                        user: undefined,
+                                        send_letter_id: '$$letter._id', // Rename _id to send_letter_id
+                                        user: undefined, // Remove user data from letter
                                         send_letter_sections: '$$letter.send_letter_sections'
                                     }
                                 ]
@@ -566,6 +568,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
             },
             { $sort: { employee_name: 1 } }
         ]);
+
         console.log("log the data ", result);
         res.status(200).json(result);
     } catch (error) {
@@ -573,6 +576,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch send letters' });
     }
 });
+
 
 
 
