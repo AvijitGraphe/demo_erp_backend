@@ -9,9 +9,9 @@ const router = express.Router();
 const mongoose = require("mongoose")
 // Initialize ImageKit
 const imagekit = new ImageKit({
-    publicKey: "public_UCxvoHx58ajkX85Q6oBFCP7pSuI=",
-    privateKey: "private_ATOOFtW1RZ2IoJWSF41Jbu46lDM=",
-    urlEndpoint: "https://ik.imagekit.io/blackboxv2",
+    publicKey: "public_UCxvoHx58ajkX85Q6oBFCP7pSuI9=",
+    privateKey: "private_ATOOFtW1RZ2IoJWSF41Jbu46lDM9=",
+    urlEndpoint: "https://ik.imagekit.io/blackboxv29",
   });
   
   // Multer setup for file uploads

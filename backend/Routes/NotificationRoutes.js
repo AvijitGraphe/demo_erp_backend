@@ -55,7 +55,7 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
                 { _id: { $in: unsentNotificationIds } },
                 { $set: { is_sent: true } }
             );
-            console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
+            // console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
         }
         res.json({ notifications, unreadCount });
     } catch (error) {
@@ -142,7 +142,7 @@ router.get('/notifications_push/:userId', authenticateToken, async (req, res) =>
                 { _id: { $in: unsentNotificationIds } },
                 { $set: { is_sent: true } }
             );
-            console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
+            // console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
         }
         res.json({ notifications });
     } catch (error) {
