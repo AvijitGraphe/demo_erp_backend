@@ -596,6 +596,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
             $project: {
                 _id: 0,
                 project_id: '$_id',
+                project_name: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 creator_designation: 1,
@@ -608,7 +609,6 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 members: 1
             }
         });
-
         const projects = await Projects.aggregate(pipeline);
         res.status(200).json({ message: 'Projects fetched successfully', projects });
     } catch (error) {
