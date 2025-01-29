@@ -9,6 +9,7 @@ const  mongoose = require("mongoose")
 const Role = require('../Models/Role');
 const UserDetails = require('../Models/UserDetails');
 const JoiningDate = require('../Models/JoiningDate');
+const ExpireUser = require('../Models/ExpireUser');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 // Generate JWT tokens with 12 hours expiration
@@ -175,8 +176,8 @@ router.post("/updateExpiredate", authenticateToken, async (req, res) => {
       if (result.modifiedCount === 0) {
           return res.status(400).json({ message: 'No changes were made to the user.' });
       }
-      
-      await ExpireUser.insertOne({
+
+      await ExpireUser.create({
           user_id: userlog._id,
           expire_date: expire_date,
           updatedAt: new Date(),
@@ -210,13 +211,14 @@ router.get('/getallEmplooyee', authenticateToken, async (req, res) => {
       },
       {
         $project: {
+          user_id: "$_id",
           first_name: 1,
           last_name: 1,
           email: 1,
           phone: 1,
           expireDate: 1,
           user_type: 1,
-          user_id: "$_id",
+          expire_date:1,
           joiningDate: "$joindates.joining_date",
         }
       }

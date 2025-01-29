@@ -14,4 +14,4 @@ const ExpireEmployeeSchema = new Schema({
     timestamps: true,
 });
 
-module.exports = mongoose.model('ExpireEmployee', ExpireEmployeeSchema);
+module.exports = mongoose.model('ExpireUser', ExpireEmployeeSchema);

@@ -117,6 +117,8 @@ const ExpireUser = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
+            console.log(response.data);
+            
             setEmployees(response.data);
         } catch (error) {
             console.error("Error fetching employees:", error);
@@ -170,7 +172,7 @@ const ExpireUser = () => {
                                                     type="date"
                                                 />
                                             ) : (
-                                                rowData.expireDate
+                                                rowData.expire_date
                                             )
                                         }
                                         sortable
