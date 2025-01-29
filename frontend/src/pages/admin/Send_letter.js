@@ -253,7 +253,7 @@ const Send_letter = () => {
     const fetchSelectedUserDetails = async (userId) => {
         setVideoDialogVisible(true); // Show video dialog
         try {
-            const response = await axios.get(`${config.apiBASEURL}/letterRoutes//Selected-user-details`, {
+            const response = await axios.get(`${config.apiBASEURL}/letterRoutes/Selected-user-details`, {
                 params: { userId },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });

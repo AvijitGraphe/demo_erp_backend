@@ -477,76 +477,103 @@ router.delete('/send-letter/:id', authenticateToken, async (req, res) => {
 // Fetch all SendLetters grouped by unique employee_name
 router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
     try {
-        const sendLetters = await SendLetter.aggregate([
+        const result = await SendLetter.aggregate([
             {
                 $lookup: {
                     from: 'users',
                     localField: 'user_id',
                     foreignField: '_id',
                     as: 'user',
+                    pipeline: [
+                        {
+                            $project: {
+                                _id:1,
+                                first_name: 1,
+                                last_name: 1,
+                                email: 1,
+                                user_type: 1
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'profileimages',
+                                localField: 'profileImage',
+                                foreignField: '_id',
+                                as: 'profileImage',
+                                pipeline: [{ $project: { image_url: 1 } }]
+                            }
+                        },
+                        { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } }
+                    ]
                 }
             },
-            {
-                $lookup: {
-                    from: 'profileimages',
-                    localField: 'user.profileImage',
-                    foreignField: '_id',
-                    as: 'profileImage',
-                }
-            },
+            { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'sendlettersections',
                     localField: '_id',
                     foreignField: 'send_letter_id',
                     as: 'send_letter_sections',
+                    pipeline: [
+                        { $sort: { section_order: 1 } },
+                        {
+                            $project: {
+                                section_id: 1,
+                                section_heading: 1,
+                                section_body: 1,
+                                section_order: 1
+                            }
+                        }
+                    ]
                 }
             },
-            {
-                $unwind: {
-                    path: '$send_letter_sections',
-                    preserveNullAndEmptyArrays: true,
-                }
-            },
-            {
-                $sort: {
-                    'employee_name': 1,
-                    'send_letter_sections.section_order': 1,
-                }
-            },
+            { $sort: { employee_name: 1 } },
             {
                 $group: {
-                    _id: '$employee_name',
+                    _id: {
+                        $cond: {
+                            if: { $ifNull: ['$user', false] },
+                            then: '$employee_name',
+                            else: '$_id'
+                        }
+                    },
+                    employee_name: { $first: '$employee_name' },
                     user: { $first: '$user' },
-                    letters: { $push: '$$ROOT' },
+                    letters: { $push: '$$ROOT' }
                 }
             },
             {
-                $addFields: {
-                    user: { $ifNull: ['$user', null] },
+                $project: {
+                    _id: 0,
+                    employee_name: 1,
+                    user: 1,
+                    letters: {
+                        $map: {
+                            input: '$letters',
+                            as: 'letter',
+                            in: {
+                                $mergeObjects: [
+                                    '$$letter',
+                                    {
+                                        user: undefined,
+                                        send_letter_sections: '$$letter.send_letter_sections'
+                                    }
+                                ]
+                            }
+                        }
+                    }
                 }
-            }
+            },
+            { $sort: { employee_name: 1 } }
         ]);
-
-        const result = sendLetters.map(letter => ({
-            employee_name: letter._id,
-            user: letter.user,
-            letters: letter.letters.map(letterItem => ({
-                ...letterItem,
-                send_letter_id: letterItem._id, // Renaming _id to send_letter_id
-                _id: undefined, // Removing _id from individual letter item
-            }))
-        }));
-        
-
-        console.log("log the data ok result", result);
-
+        console.log("log the data ", result);
         res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching send letters:', error);
         res.status(500).json({ error: 'Failed to fetch send letters' });
     }
 });
+
 
 
 
@@ -666,7 +693,7 @@ router.get('/lettersUsers/:userId', authenticateToken, async (req, res) => {
 
         const letters = await SendLetter.aggregate([
             {
-                $match: { user_id: mongoose.Types.ObjectId(userId), status: 'Confirmed' }
+                $match: { user_id:new mongoose.Types.ObjectId(userId), status: 'Confirmed' }
             },
             {
                 $lookup: {
@@ -724,7 +751,7 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
     try {
         // Aggregation to find the letter, related template, and sections
         const letter = await SendLetter.aggregate([
-            { $match: { _id: mongoose.Types.ObjectId(letterId) } },
+            { $match: { _id:new mongoose.Types.ObjectId(letterId) } },
             {
                 $lookup: {
                     from: 'lettertemplates', // Assuming 'LetterTemplate' collection name
@@ -769,7 +796,9 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
         ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
         : 'Invalid Date';
 
-         // Email content
+        console.log("logn the data letter  letter", letter)
+         // E
+         // mail content
          const mailOptions = {
             from:`"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
             to: letter.user_email,
@@ -873,7 +902,7 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
     try {
         // Aggregation to find the letter, related template, and sections
         const letter = await SendLetter.aggregate([
-            { $match: { _id: mongoose.Types.ObjectId(letterId) } },
+            { $match: { _id: new mongoose.Types.ObjectId(letterId) } },
             {
                 $lookup: {
                     from: 'lettertemplates', 
@@ -930,7 +959,7 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
         const formattedDate = letterData.createdAt
             ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
             : 'Invalid Date';
-            
+
         const mailOptions = {
             from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
             to: letter.user_email,
