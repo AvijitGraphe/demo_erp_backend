@@ -99,39 +99,72 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Fetch the expiration data
+    const expireData = await ExpireUser.findOne();
+    console.log("expireData", expireData);
+    
+    // If expiration data exists, check if the account is expired
+    if (expireData) {
+      const currentDate = new Date();  // Get the current date and time
+      console.log("currentDate", currentDate);
+      
+      // Convert current date to the start of the day (midnight) in UTC (Year, Month, Day only)
+      const currentDateMidnightUTC = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()));
+      console.log("currentDateMidnightUTC:", currentDateMidnightUTC);
+      
+      // Convert expire date to the start of the day (midnight) in UTC (Year, Month, Day only)
+      const expireDateMidnightUTC = new Date(Date.UTC(expireData.expire_date.getUTCFullYear(), expireData.expire_date.getUTCMonth(), expireData.expire_date.getUTCDate()));
+      console.log("expireDateMidnightUTC:", expireDateMidnightUTC);
+      
+      // If the expiration date is today or has passed, deny login
+      if (expireDateMidnightUTC <= currentDateMidnightUTC) {
+        return res.status(403).json({ message: 'Your account has expired. Please contact Admin.' });
+      }
+    }
+
+    // Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-    if (!user.Is_active) {
+
+    // Check if the user is active
+    if (!user.isActive) {
       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
     }
-    
-    // Check if the expireDate has passed
-    const currentDate = new Date();
-    if (user.expire_date && new Date(user.expire_date) < currentDate) {
-      return res.status(403).json({ message: 'Your account has expired. Please contact Admin.' });
-    }
 
+    // Compare the provided password with the hashed password in the database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
+    // If successful, generate tokens
     const userPayload = { id: user._id, email: user.email };
     const accessToken = generateAccessToken(userPayload);
-    const fullName = `${user.first_name} ${user.last_name}`;
+
+    // Send tokens in response to be stored in session storage
+    const fullName = `${user.firstName} ${user.lastName}`;
     res.status(200).json({
       message: 'Login successful',
       name: fullName,
       accessToken,
-      role: user.user_type,
+      role: user.userType,
     });
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+
+
+
+
+
+
 
 
 
@@ -163,77 +196,59 @@ router.get('/status', authenticateToken, async (req, res) => {
 
 //update the expire employee data
 router.post("/updateExpiredate", authenticateToken, async (req, res) => {
-  const { expire_date, user_id } = req.body;
-  console.log(expire_date, user_id)
+  const { expire_date, expire_id } = req.body;
+  console.log(expire_date, expire_id);
+  
   try {
-      const userlog = await User.findById(user_id);
-      if (!userlog) {
-          return res.status(404).json({ message: 'User Not Found!' });
-      }
-      const result = await User.updateOne({ _id: userlog._id }, { $set: { expire_date } });
+    const existingExpireUser = await ExpireUser.findById(expire_id);
+    if (existingExpireUser) {
+      const result = await ExpireUser.updateOne(
+        { _id: expire_id },
+        { $set: { expire_date, updatedAt: new Date() } }
+      );
+
       if (result.modifiedCount === 0) {
-          return res.status(400).json({ message: 'No changes were made to the user.' });
+        return res.status(400).json({ message: 'No changes were made to the expire date.' });
       }
 
+      return res.status(200).json({ message: 'Expire date updated successfully' });
+    } else {
       await ExpireUser.create({
-          user_id: userlog._id,
-          expire_date: expire_date,
-          updatedAt: new Date(),
+        _id: expire_id,
+        expire_date: expire_date,
+        updatedAt: new Date(),
       });
-      res.status(200).json({ message: 'Expire date updated successfully' });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Expire update failed" });
-  }
-});
 
-
-
-//get the expire employee data
-router.get('/getallEmplooyee', authenticateToken, async (req, res) => {
-  try {
-    const employees = await User.aggregate([
-      {
-        $lookup: {
-          from: "joiningdates",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "joindates",
-        }
-      },
-      {
-        $unwind: {
-          path: "$joindates",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          user_id: "$_id",
-          first_name: 1,
-          last_name: 1,
-          email: 1,
-          phone: 1,
-          expireDate: 1,
-          user_type: 1,
-          expire_date:1,
-          createdAt:1,
-          joiningDate: "$joindates.joining_date",
-        }
-      }
-    ]);
-
-    if (!employees || employees.length === 0) {
-      return res.status(404).json({ message: "No employees found" });
+      return res.status(200).json({ message: 'New expire date created successfully' });
     }
-
-    res.json(employees);
-
+    
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to fetch employees" });
+    res.status(500).json({ message: "Expire date update failed" });
   }
 });
+
+
+
+router.get("/getallExpiredate", authenticateToken, async (req, res) => {
+  try {
+    const data = await ExpireUser.find().lean();
+    const modifiedData = data.map(item => ({
+      expire_id: item._id,
+      expire_date: item.expire_date,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
+    console.log(data);
+    
+    return res.status(200).json(modifiedData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Expire date update failed" });
+  }
+});
+
+
 
 
 

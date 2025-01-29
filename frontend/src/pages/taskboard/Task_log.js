@@ -45,7 +45,6 @@ const TaskLog = () => {
                         ])
                     ).values()
                 );
-                console.log("response  brand", response.data)
                 setBrands(uniqueBrands);
                 setProjects(projects);
             }
@@ -73,6 +72,7 @@ const TaskLog = () => {
                     },
                 }
             );
+            console.log("log the data monthly ", response.data)
             setProjectData(response.data);
         } catch (err) {
             console.error("Failed to fetch data:", err.response?.data?.error || "Error occurred");
