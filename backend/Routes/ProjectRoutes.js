@@ -597,6 +597,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 _id: 0,
                 project_id: '$_id',
                 project_name: 1,
+                priority:1,
                 createdAt: 1,
                 updatedAt: 1,
                 creator_designation: 1,
