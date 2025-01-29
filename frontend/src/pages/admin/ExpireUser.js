@@ -9,6 +9,7 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Calendar } from 'primereact/calendar';
 
+
 const ExpireUser = () => {
     const { accessToken } = useAuth();
     const [employees, setEmployees] = useState([]);
@@ -118,9 +119,7 @@ const ExpireUser = () => {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 },
-            });
-            console.log(response.data);
-            
+            });            
             setEmployees(response.data);
         } catch (error) {
             console.error("Error fetching employees:", error);

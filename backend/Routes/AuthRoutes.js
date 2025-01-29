@@ -161,15 +161,6 @@ router.get('/status', authenticateToken, async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
 //update the expire employee data
 router.post("/updateExpiredate", authenticateToken, async (req, res) => {
   const { expire_date, user_id } = req.body;
