@@ -518,7 +518,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
                         { $sort: { section_order: 1 } },
                         {
                             $project: {
-                                section_id: 1,
+                                section_id: '$_id',  // Rename _id to section_id
                                 section_heading: 1,
                                 section_body: 1,
                                 section_order: 1
@@ -557,7 +557,7 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
                                     '$$letter',
                                     {
                                         send_letter_id: '$$letter._id', // Rename _id to send_letter_id
-                                        user: undefined, // Remove user data from letter
+                                        user: '$$letter.user', // Ensure user data is included
                                         send_letter_sections: '$$letter.send_letter_sections'
                                     }
                                 ]
@@ -576,6 +576,8 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch send letters' });
     }
 });
+
+
 
 
 
@@ -759,7 +761,7 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
             {
                 $lookup: {
                     from: 'lettertemplates', // Assuming 'LetterTemplate' collection name
-                    localField: 'template',
+                    localField: 'template_id',
                     foreignField: '_id',
                     as: 'template',
                     pipeline: [
@@ -773,8 +775,8 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
             {
                 $lookup: {
                     from: 'sendlettersections', // Assuming 'SendLetterSection' collection name
-                    localField: 'send_letter_sections',
-                    foreignField: '_id',
+                    localField: '_id',
+                    foreignField: 'send_letter_id',
                     as: 'send_letter_sections',
                     pipeline: [
                         { $project: { section_heading: 1, section_body: 1, section_order: 1 } }
@@ -788,6 +790,8 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
             return res.status(404).json({ error: 'Letter not found' });
         }
 
+        console.log("logn the data letter  letter  letter.template.template_subject", letter.template.template_subject);
+        
         // Extract letter details
         const letterData = letter[0];
         letterData.status = 'Confirmed';
@@ -800,7 +804,7 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
         ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
         : 'Invalid Date';
 
-        console.log("logn the data letter  letter", letter)
+
          // E
          // mail content
          const mailOptions = {
@@ -924,8 +928,8 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
             {
                 $lookup: {
                     from: 'sendlettersections',
-                    localField: 'send_letter_sections',
-                    foreignField: '_id',
+                    localField: '_id',
+                    foreignField: 'send_letter_id',
                     as: 'send_letter_sections',
                     pipeline: [
                         { $project: { section_heading: 1, section_body: 1, section_order: 1 } }
@@ -941,6 +945,8 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
 
         // Extract letter details
         const letterData = letter[0];
+
+        console.log("logn the data letter  letter  letter.template.template_subject", letter.template.template_subject);
 
         // Generate section content
         const sectionsContent = letterData.send_letter_sections
@@ -964,6 +970,7 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
             ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
             : 'Invalid Date';
 
+        console.log("log the data is mail", letter)    ;
         const mailOptions = {
             from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
             to: letter.user_email,
