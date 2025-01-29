@@ -40,8 +40,6 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       Role_id: '679098175ea402d05759f3e5',  // Default role ID
     });
-
-    console.log(newUser);
     // Save the new user to the database
     await newUser.save();
     // Construct full name
