@@ -64,9 +64,10 @@ const Daily_task = () => {
                 params: { start_date, end_date },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            const data = response.data.data || {};
+            const data = response.data.data || {}; 
+            console.log("log the data", data);
+                       
             setTasksheetsData(data);
-
             // Extract employee data with missed deadline counts
             const employees = Object.values(data).map(({ userDetails, missedDeadlineCounts }) => ({
                 id: userDetails.user_id,

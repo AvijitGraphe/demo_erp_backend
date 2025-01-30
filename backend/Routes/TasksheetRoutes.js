@@ -261,6 +261,8 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
       },
     ]);
 
+    // console.log("tasksheets", tasksheets);
+    
     if (!tasksheets.length) {
       return res.status(200).json({
         success: true,
@@ -329,6 +331,137 @@ router.get('/tasksheets', authenticateToken, async (req, res) => {
     });
   }
 });
+
+
+// router.get('/tasksheets', authenticateToken, async (req, res) => {
+//     const { start_date, end_date } = req.query;
+//     if (!start_date || !end_date) return res.status(400).json({ success: false, message: 'Start/end date required' });
+
+//     try {
+//         const pipeline = [
+//             { $match: { 
+//                 tasksheet_date: { 
+//                     $gte: new Date(start_date), 
+//                     $lte: new Date(end_date) 
+//                 } 
+//             }},
+//             { $lookup: {
+//                 from: 'users',
+//                 localField: 'user_id',
+//                 foreignField: '_id',
+//                 as: 'User',
+//                 pipeline: [{ $lookup: {
+//                     from: 'profileimages',
+//                     localField: 'profileImage',
+//                     foreignField: '_id',
+//                     as: 'profileImage'
+//                 }}]
+//             }},
+
+//             { $unwind: '$User' },
+
+//             { $lookup: {
+//                 from: 'tasks',
+//                 localField: 'task_id',
+//                 foreignField: '_id',
+//                 as: 'Task',
+//                 pipeline: [{ $lookup: {
+//                     from: 'subtasksheets',
+//                     localField: '_id',
+//                     foreignField: 'task_id',
+//                     as: 'Subtasksheets',
+//                     pipeline: [{ $lookup: {
+//                         from: 'subtasks',
+//                         localField: 'subtask_id',
+//                         foreignField: '_id',
+//                         as: 'Subtask'
+//                     }}]
+//                 }},
+//                 { $lookup: {
+//                     from: 'projects',
+//                     localField: 'project_id',
+//                     foreignField: '_id',
+//                     as: 'project',
+//                     pipeline: [{ $lookup: {
+//                         from: 'brands',
+//                         localField: 'brand_id',
+//                         foreignField: '_id',
+//                         as: 'brand'
+//                     }}]
+//                 }}
+//             ]},
+
+//             { $unwind: '$Task' },
+
+//             { $group: {
+//                 _id: { 
+//                     userId: '$User._id', 
+//                     date: '$tasksheet_date' 
+//                 },
+//                 userDetails: { $first: {
+//                     user_id: '$User._id',
+//                     name: { $concat: ['$User.first_name', ' ', '$User.last_name'] },
+//                     email: '$User.email',
+//                     profileImage: { $arrayElemAt: ['$User.profileImage.image_url', 0] }
+//                 }},
+//                 tasksheets: { $push: '$$ROOT' },
+//                 missedTrueCount: { $sum: { $cond: ['$missed_deadline', 1, 0] } },
+//                 missedFalseCount: { $sum: { $cond: ['$missed_deadline', 0, 1] } }
+//             }},
+//             { $group: {
+//                 _id: '$_id.userId',
+//                 userDetails: { $first: '$userDetails' },
+//                 missedDeadlineCounts: { $first: {
+//                     missedTrueCount: '$missedTrueCount',
+//                     missedFalseCount: '$missedFalseCount'
+//                 }},
+//                 tasksheets: { $push: {
+//                     date: '$_id.date',
+//                     entries: '$tasksheets'
+//                 }}
+//             }},
+//             { $project: {
+//                 _id: 0,
+//                 'userDetails.user_id': 1,
+//                 'userDetails.name': 1,
+//                 'userDetails.email': 1,
+//                 'userDetails.profileImage': 1,
+//                 'missedDeadlineCounts.missedTrueCount': 1,
+//                 'missedDeadlineCounts.missedFalseCount': 1,
+//                 tasksheets: {
+//                     $arrayToObject: {
+//                         $map: {
+//                             input: '$tasksheets',
+//                             as: 't',
+//                             in: { 
+//                                 k: { $dateToString: { format: '%Y-%m-%d', date: '$$t.date' } }, 
+//                                 v: '$$t.entries' 
+//                             }
+//                         }
+//                     }
+//                 }
+//             }},
+//             { $sort: { 'userDetails.user_id': 1 } }
+//         ];
+
+//         const result = await Tasksheet.aggregate(pipeline);
+        
+//         if (!result.length) return res.status(200).json({ success: true, data: null });
+        
+//         const formattedData = result.reduce((acc, curr) => {
+//             acc[curr.userDetails.user_id] = curr;
+//             return acc;
+//         }, {});
+
+//         res.status(200).json({ success: true, data: formattedData });
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({ success: false, message: 'Server error', error: error.message });
+//     }
+// });
+
+
+
 
 
 
