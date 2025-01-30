@@ -125,7 +125,7 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
                                         <option value="inactive">Inactive</option>
                                     </Form.Control>
                                 </Col>
-                                <Col lg={12} md={12} className="mt-3">
+                                {/* <Col lg={12} md={12} className="mt-3">
                                     <Form.Label>
                                         Upload Image <span className="text-danger">*</span>
                                     </Form.Label>
@@ -135,7 +135,7 @@ const AddHoliday = ({ onSuccess, fetchHolidays }) => {
                                         onChange={(e) => setImage(e.target.files[0])}
                                         // required
                                     />
-                                </Col>
+                                </Col> */}
                             </Row>
                         </Card.Body>
                     </Card>

@@ -190,14 +190,14 @@ const Add_policy = () => {
                                         onTextChange={(e) => setText(e.htmlValue)}
                                         style={{ height: '250px' }}
                                     />
-                                    <Form.Group controlId="formFile" className="mt-3">
+                                    {/* <Form.Group controlId="formFile" className="mt-3">
                                         <Form.Label>Add signature</Form.Label>
                                         <Form.Control
                                             type="file"
                                             className="ms-0"
                                             onChange={(e) => setPolicyFile(e.target.files[0])}
                                         />
-                                    </Form.Group>
+                                    </Form.Group> */}
                                     <div className="d-flex justify-content-end">
                                         {isEditMode && (
                                             <Button

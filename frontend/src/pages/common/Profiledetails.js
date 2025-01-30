@@ -255,7 +255,7 @@ const ProfileDetails = () => {
                                                 style={{ width: '120px', height: '120px' }}
                                                 className='rounded-circle'
                                             />
-                                            <FileUpload
+                                            {/* <FileUpload
                                                 mode="basic"
                                                 name="image"  // Change the name to 'image' as expected by the backend
                                                 url={`${config.apiBASEURL}/profile-image/upload-or-update-profile-image/${userId}`}
@@ -264,7 +264,7 @@ const ProfileDetails = () => {
                                                 onUpload={onUpload}
                                                 auto
                                                 className='FlUpload'
-                                            />
+                                            /> */}
                                         </div>
                                         <div className='ms-3'>
                                             <h3 className='fw-bold mb-0 text-black'>{mainUserDetails?.first_name} {mainUserDetails?.last_name}<small className='digi'>{mainUserDetails?.role[0].role_name || 'Not Specified'}</small></h3>
