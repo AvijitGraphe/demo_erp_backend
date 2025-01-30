@@ -2224,12 +2224,6 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
 
 
 
-
-
-
-
-
-
 //dashboard task summary --------------/
 // Fetch task summary for the current month
 router.get('/brand-task-summary', authenticateToken, async (req, res) => {
