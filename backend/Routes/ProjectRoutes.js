@@ -526,6 +526,9 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                     ]
                 }
             });
+            pipeline.push({
+                $match: { 'brand.0': { $exists: true } } // Ensure only projects with matching brand are returned
+            });
         } else {
             pipeline.push({
                 $lookup: {
@@ -594,7 +597,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 _id: 0,
                 project_id: '$_id',
                 project_name: 1,
-                priority:1,
+                priority: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 creator_designation: 1,
@@ -607,6 +610,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 members: 1
             }
         });
+
         const projects = await Projects.aggregate(pipeline);
         res.status(200).json({ message: 'Projects fetched successfully', projects });
     } catch (error) {
@@ -614,6 +618,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 
 
