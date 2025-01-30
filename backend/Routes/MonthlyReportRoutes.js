@@ -345,7 +345,7 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                         {
                             $lookup: {
                                 from: "users",
-                                localField: "user",
+                                localField: "task_user_id",
                                 foreignField: "_id",
                                 as: "user",
                                 pipeline: [
@@ -382,7 +382,8 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                         members: 1, 
                         createdAt: "$createdAt",
                         updatedAt: 1,
-                        member: '$project.member'
+                        member: '$project.member',
+                        
                     },
                     taskStatistics: {
                         totalTasks: { $size: "$tasks" },
