@@ -18,9 +18,6 @@ export default function () {
     const url = `${baseUrl}/fetch-monthly-report?brandId=${params.brandId}&projectId=${params.projectId}&month=${params.month}`;
     // Send the GET request to the API
     const res = http.get(url, { headers });
-    console.log('Response Status:', res.status);
-    console.log('Response Body:', res.body);
-
     check(res, {
       'Status is 200': (r) => r.status === 200,  
       'Response contains brand data': (r) => r.body.includes('brand'),  

@@ -70,7 +70,6 @@ const Taskboard_admin = () => {
     const [taskType, setTaskType] = useState(""); // Default is empty
     // Fetch tasks from the API
     const fetchTasks = async () => {
-        console.log("log the data selectedBrand", selectedBrand)
         try {
             setIsLoading(true); // Set loading state
             setColumns({}); // Reset columns
@@ -104,7 +103,7 @@ const Taskboard_admin = () => {
             const response = await axios.get(`${config.apiBASEURL}/projectRoutes/fetch-all-users`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            console.log("log thr data", response.data)
+
             setUsers(response.data || []);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -119,7 +118,6 @@ const Taskboard_admin = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
-            console.log("log the data", response.data)
             setBrands(response.data || []);
         } catch (error) {
             console.error("Error fetching brands:", error);
@@ -257,7 +255,6 @@ const Taskboard_admin = () => {
     };
 
     const handleView = (taskId) => {
-        console.log("log the data", taskId);
         navigate(`/dashboard/view_task/${taskId}`);
     };
 
@@ -344,9 +341,7 @@ const Taskboard_admin = () => {
                     },
                 }
             );
-
             if (response.status === 200) {
-                console.log("Deadline updated successfully:", response.data);
                 fetchTasks(); // Refresh tasks to reflect changes
                 setDeadlineDialogVisible(false);
                 resetDialogState();

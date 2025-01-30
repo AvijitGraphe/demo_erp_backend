@@ -42,7 +42,6 @@ const EditEmploymentletter = () => {
                 }
             );
 
-            console.log("log the response", response.data)
             
             const { template_name, template_subject, sections } = response.data;
             setTemplateName(template_name);

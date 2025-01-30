@@ -43,8 +43,6 @@ const Project_details = () => {
                         Authorization: `Bearer ${accessToken}`
                     }
                 });
-
-                console.log("log the data is now", response)
                 const { tasks, taskCountByStatus } = response.data;
 
                 // Categorize tasks by status
@@ -54,7 +52,7 @@ const Project_details = () => {
                 const inChangesTasks = tasks.filter(task => task.status === 'InChanges');
                 const completedTasks = tasks.filter(task => task.status === 'Completed');
 
-                console.log("log hte data", inReviewTasks);
+
                 
 
                 // Set the tasks and task counts in state

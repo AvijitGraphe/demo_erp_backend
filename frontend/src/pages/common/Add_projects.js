@@ -51,7 +51,6 @@ const AddProjects = () => {
                         headers: { Authorization: `Bearer ${accessToken}` },
                     }
                 );
-                console.log("logn the data", data)
                 setUsers(data);
             } catch (error) {
                 console.error("Error fetching users:", error);

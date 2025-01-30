@@ -51,8 +51,6 @@ const AddLeaveType = () => {
       const response = await axios.get(`${config.apiBASEURL}/leaveRoutes/get-all-leave-types`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      console.log("log the data", response.data);
-      
       setLeaveTypes(response.data || []);
     } catch (error) {
       console.error("Error fetching leave types:", error);

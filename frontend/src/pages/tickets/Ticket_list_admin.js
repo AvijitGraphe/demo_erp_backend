@@ -64,8 +64,6 @@ const Ticket_list_admin = () => {
                     subject: searchTerm,
                 },
             });
-
-            console.log("log the data fetchalltickets", response)
             setTickets(response.data.tickets);
             setCounts(response.data.counts);
         } catch (error) {

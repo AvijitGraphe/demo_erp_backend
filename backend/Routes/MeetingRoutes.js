@@ -58,8 +58,7 @@ router.get('/fetch-all-users', authenticateToken, async (req, res) => {
 router.post('/add-or-edit-meeting', async (req, res) => {
     const { meeting_id, date, start_time, end_time, purpose, meeting_member_id } = req.body;
 
-    console.log("lg the  meeting_id, date, start_time, end_time, purpose, meeting_member_id",  meeting_id, date, start_time, end_time, purpose, meeting_member_id)
-    // Validate required fields
+ // Validate required fields
     if (!date || !start_time || !end_time || !purpose) {
         return res.status(400).json({
             success: false,

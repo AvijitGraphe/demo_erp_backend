@@ -33,7 +33,7 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
             _id: user_type_id,
             role_name: { $ne: 'SuperAdmin'}
         });
-        console.log("log the data role", role);
+
         if (!role) {
             return res.status(404).json({ message: 'Role not found or role is SuperAdmin' });
         }
@@ -59,7 +59,7 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
         // Step 4: Parse and format start_time into local time
         const localTime = moment.utc(start_time).tz('Asia/Kolkata');
         const formattedTime = localTime.format('HH:mm:ss');
-        console.log(formattedTime);
+
 
         if (!formattedTime) {
             return res.status(400).json({ message: 'Invalid start_time format. Expected ISO 8601 format.' });
@@ -227,8 +227,6 @@ router.get('/users_verified', authenticateToken, async (req, res) => {
 // Employee Promotion API
 router.post('/promotion-users', authenticateToken, async (req, res) => {
     const { user_id, user_type, user_role_id } = req.body;
-
-    console.log(" user_id, user_type, user_role_id",  user_id, user_type, user_role_id);
     
     if (!user_id || !user_type, !user_role_id) {
         return res.status(400).json({ message: 'user_id and user_type are required' });

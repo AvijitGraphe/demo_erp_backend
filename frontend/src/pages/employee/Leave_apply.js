@@ -53,7 +53,7 @@ const Leave_apply = () => {
                     params: { start_date: startDate, end_date: endDate },
                 }
             );
-            console.log("log the data is now ", response.data)
+       
             
             if (response.data.success) {
                 const combinedRequests = [

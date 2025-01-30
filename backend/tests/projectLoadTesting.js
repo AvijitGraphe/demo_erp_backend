@@ -581,8 +581,7 @@ export default function () {
           'Subtask created successfully': (r) => r.status === 201,
         });
     
-        // Optionally, log the response for debugging or verification
-        console.log('Add Subtask Response:', res.body);
+
     
         // Simulate a short delay to mimic user behavior
         sleep(1);
@@ -617,8 +616,7 @@ export default function () {
           'Subtask updated successfully': (r) => r.status === 200,
         });
     
-        // Optionally, log the response for debugging or verification
-        console.log('Update Subtask Response:', res.body);
+
     
         // Simulate a short delay to mimic user behavior
         sleep(1);

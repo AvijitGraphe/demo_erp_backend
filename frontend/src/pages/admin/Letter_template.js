@@ -41,7 +41,7 @@ const Letter_template = () => {
             const response = await axios.get(`${config.apiBASEURL}/letterRoutes/fetchallletters`, {
                 headers: { Authorization: `Bearer ${accessToken}` }, // Add Authorization header
             });
-            console.log("log rhe data ", response.data)
+         
             setTemplates(response.data);
             setError('');
             showMessage('success', 'Letter templates fetched successfully');
@@ -88,7 +88,6 @@ const Letter_template = () => {
                 fetchTemplateDetails(templateId); // Fetch template details and show in dialog
                 break;
             case 'edit':
-                console.log(`Editing template with ID: ${templateId}`);
                 navigate(`/dashboard/editemployletter/${templateId}`); // Navigate to the edit page
                 break;
             case 'delete':

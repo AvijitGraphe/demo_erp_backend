@@ -26,7 +26,6 @@ function EmpLeaverequest({ onSuccess }) {
                 const response = await axios.get(`${config.apiBASEURL}/leaveRoutes/fetch-leave-balances/${userId}`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
-                console.log("log the data is now", response.data)
                 setLeaves(response.data);
             } catch (error) {
                 console.error("Error fetching leave balances:", error);

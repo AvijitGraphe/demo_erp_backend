@@ -39,10 +39,6 @@ const AddMeeting = ({ onSuccess, fetchmeetings }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Log selected members to ensure they are correctly selected
-        console.log("Selected Members:", selectedMembers);
-
         // Prepare meeting data to be sent to the backend
         const meetingData = {
             date,

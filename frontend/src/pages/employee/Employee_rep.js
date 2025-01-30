@@ -59,8 +59,6 @@ const Employee_rep = () => {
                 params: { userId: userId, month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-
-            console.log("log the data response "  , response)
             setAttendanceData(response.data);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -99,7 +97,7 @@ const Employee_rep = () => {
                 params: { month, year },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-            // console.log("log the data is now response____", response)
+
             setTaskStats(response.data);
         } catch (error) {
             console.error('Error fetching task stats:', error);

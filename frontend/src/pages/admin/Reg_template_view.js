@@ -57,8 +57,6 @@ const Reg_template_view = () => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
-
-            console.log("response, response", response)
             setResignation(response.data);
         } catch (error) {
             console.error('Error fetching resignation details:', error);

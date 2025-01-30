@@ -37,7 +37,6 @@ const Exemployee = () => {
                 `${config.apiBASEURL}/user-profile/main-user-details?userId=${userId}`,
                 { headers }
             );
-            console.log("Main User Details:", response.data);
             setMainUserDetails(response.data);
         } catch (err) {
             console.error("Error fetching main user details:", err.message);

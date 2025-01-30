@@ -118,7 +118,6 @@ function Profileinformation({ userId, userDetails, setVisibleModal1, fetchUserDe
                     },
                 }
             );
-            console.log(response.data);
             setVisibleModal1(false);
             if (fetchUserDetails) fetchUserDetails(); // Fetch data on successful update
         } catch (error) {

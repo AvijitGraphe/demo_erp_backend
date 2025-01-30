@@ -22,7 +22,7 @@ const UpdateDesignation = () => {
                 const response = await axios.get(`${config.apiBASEURL}/promotion/users_verified`, {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 });
-                console.log("log the data response", response)
+               
                 setEmployees(response.data.users);
             } catch (error) {
                 console.error('Error fetching employees:', error);

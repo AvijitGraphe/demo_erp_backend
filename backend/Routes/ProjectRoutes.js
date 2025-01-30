@@ -212,7 +212,6 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
             },
         ]);
 
-        console.log("log the data is now", users)
 
         const tasksToday = await Tasks.aggregate([
             { $match: { 
@@ -227,7 +226,7 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
             },
         ]);
 
-        console.log("tasksToday ", tasksToday);
+
         
         const taskCountMap = {};
         tasksToday.forEach(task => {
@@ -254,8 +253,6 @@ router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
                 profile_image: user.profileImage?.image_url || null,
             };
         });
-
-        console.log("response++++", response);
         res.status(200).json(response);
     } catch (error) {
         console.error('Error fetching all users with task details:', error);
@@ -2213,7 +2210,6 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             ),
         };
 
-        console.log("log the data ok , categorizedTasks", categorizedTasks)
         res.status(200).json({ success: true, data: categorizedTasks });
     } catch (error) {
         console.error('Error fetching categorized tasks:', error);

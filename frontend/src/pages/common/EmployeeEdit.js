@@ -85,8 +85,6 @@ const EmployeeEdit = () => {
 
             const newImageUrl = response.imageUrl;  // Extract image URL from the response
             setProfileImageUrl(newImageUrl);  // Update the profile image URL in the state
-
-            console.log('Profile image updated successfully:', newImageUrl);
         } catch (error) {
             console.error('Error handling upload response:', error);
         }
@@ -98,7 +96,6 @@ const EmployeeEdit = () => {
                 `${config.apiBASEURL}/user-profile/getUserDetails?userId=${user_id}`,
                 { headers }
             );
-            console.log("User Details:", response.data);
             setUserDetails(response.data);
         } catch (err) {
             console.error("Error fetching user details:", err.message);
@@ -112,7 +109,7 @@ const EmployeeEdit = () => {
                 `${config.apiBASEURL}/user-profile/getBankDetails?userId=${user_id}`,
                 { headers }
             );
-            console.log("Bank Details:", response.data);
+
             setBankDetails(response.data);
         } catch (err) {
             console.error("Error fetching bank details:", err.message);
@@ -126,7 +123,7 @@ const EmployeeEdit = () => {
                 `${config.apiBASEURL}/user-profile/getEducationInfo?userId=${user_id}`,
                 { headers }
             );
-            console.log("Education Info:", response.data);
+
             setEducationInfo(response.data);
         } catch (err) {
             console.error("Error fetching education info:", err.message);
@@ -140,7 +137,6 @@ const EmployeeEdit = () => {
                 `${config.apiBASEURL}/user-profile/getEmergencyContact?userId=${user_id}`,
                 { headers }
             );
-            console.log("Emergency Contact:", response.data);
             setEmergencyContact(response.data);
         } catch (err) {
             console.error("Error fetching emergency contact:", err.message);
@@ -154,7 +150,7 @@ const EmployeeEdit = () => {
                 `${config.apiBASEURL}/user-profile/main-user-details?userId=${user_id}`,
                 { headers }
             );
-            console.log("Main User Details:", response.data);
+
             setMainUserDetails(response.data);
         } catch (err) {
             console.error("Error fetching main user details:", err.message);

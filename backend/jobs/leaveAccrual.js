@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const LeaveBalance = require('../models/LeaveBalance');
-const User = require('../models/User');
+const User = require('../Models/User');
 const LeaveRequest = require('../models/Dleav');
 const { calculateAccruedLeaves } = require('../utils/calculateAccruedLeaves');
 const LeaveAdjustment = require('../models/LeaveAdjustment');
@@ -69,7 +69,6 @@ const updateLeaveBalances = async () => {
       }
     }
 
-    console.log('Leave balances updated successfully');
     fs.appendFileSync('cron.log', `${new Date().toISOString()} - Leave balances updated successfully\n`);
   } catch (error) {
     console.error('Error updating leave balances:', error);

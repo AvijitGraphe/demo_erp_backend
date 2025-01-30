@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext';
 
 const Download_Letter = ({ letter }) => {
     const [visible, setVisible] = useState(false);
-    console.log(letter);
     return (
         <>
             <div className='letterTable'>

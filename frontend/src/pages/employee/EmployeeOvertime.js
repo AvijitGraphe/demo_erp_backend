@@ -34,8 +34,6 @@ const EmployeeOvertime = () => {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 params,
             });
-
-            console.log("log the data", response.data)
             const { Pending, Approved, Rejected } = response.data;
             setData([...Pending, ...Approved, ...Rejected]);
         } catch (error) {

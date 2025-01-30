@@ -97,7 +97,6 @@ const Addprojects = ({ users, members, brands, onHide }) => {
 
         try {
             const response = await axios.post(`${config.apiBASEURL}/project/addProject`, projectData);
-            console.log('Project created successfully:', response.data);
             onHide();
         } catch (error) {
             console.error('Error creating project:', error);

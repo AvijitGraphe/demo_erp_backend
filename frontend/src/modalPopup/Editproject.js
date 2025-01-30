@@ -123,7 +123,6 @@ const EditProject = ({ users, members, brands, projectDetails, onHide }) => {
                 department,
                 missed_deadline: missedDeadline ?? 0
             });
-            console.log('Project updated:', response.data);
             onHide();
         } catch (error) {
             console.error('Error updating project:', error);

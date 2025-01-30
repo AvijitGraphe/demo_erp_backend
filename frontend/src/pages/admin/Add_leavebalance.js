@@ -63,8 +63,6 @@ const Add_leavebalance = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
-            console.log("log the data", response.data);
-            
             setUsers(response.data.data);
         } catch (err) {
             setError('Failed to fetch leave balances.');

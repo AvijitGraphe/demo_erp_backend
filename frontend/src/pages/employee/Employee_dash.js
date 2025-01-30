@@ -88,7 +88,6 @@ const Employee_dash = () => {
                         userId: userId,
                     },
                 });
-                console.log("response", response)
                 setAttendanceData(response.data);
             } catch (error) {
                 console.error('Error fetching attendance data:', error);

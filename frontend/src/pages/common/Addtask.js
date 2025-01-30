@@ -44,8 +44,6 @@ const AddTask = () => {
                     `${config.apiBASEURL}/projectRoutes/fetch-all-users`,
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                 );
-                console.log("log the data", usersResponse.data)
-
                 setUsers(usersResponse.data);
             } catch (error) {
                 console.error("Error fetching users:", error);
@@ -66,8 +64,8 @@ const AddTask = () => {
                 const uniqueBrands = Array.from(
                     new Map(
                         projects.map((project) =>   [
-                            project.brand._id,
-                            { id: project.brand._id, name: project.brand.brand_name },
+                            project.brand.brand_id,
+                            { id: project.brand.brand_id, name: project.brand.brand_name },
                         ]
                     )
                     ).values()
@@ -109,7 +107,6 @@ const AddTask = () => {
                         }
                     );
                     const usersData = response.data;
-                    console.log("log the usedetails ok", usersData);
                     const userDetails = usersData.find(
                         (user) => user.user_id === user_id
                     );
@@ -140,8 +137,6 @@ const AddTask = () => {
     //save task the data
     const handleTaskSubmit = async (e) => {
         e.preventDefault();  
-        
-        console.log("log the data ok", taskForms)
         const tasksWithBrandAndProject = taskForms.map((task) => ({
             ...task,
             brand_id: selectedBrand?.id || "",
@@ -202,7 +197,7 @@ const AddTask = () => {
                                         >
                                             <option value="">Select Project</option>
                                             {projects.map((project) => (
-                                                <option key={project._id} value={project._id}>
+                                                <option key={project.project_id} value={project.project_id}>
                                                     {project.project_name}
                                                 </option>
                                             ))}

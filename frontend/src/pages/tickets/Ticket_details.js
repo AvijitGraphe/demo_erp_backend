@@ -53,8 +53,6 @@ const Ticket_details = () => {
                     headers: { Authorization: `Bearer ${accessToken}` },
                 }
             );
-
-            console.log("log the dtaresponse",response)
             setTicket(response.data.ticket);
             setLoading(false);
         } catch (err) {

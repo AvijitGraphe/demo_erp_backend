@@ -67,8 +67,6 @@ function Emergencycontact({ userId, emergencyContacts, setVisibleModal3, fetchEm
                         headers: { Authorization: `Bearer ${accessToken}` },
                     });
                 }
-
-                console.log('Emergency contacts updated successfully');
                 setVisibleModal3(false);
                 fetchEmergencyContacts();
             } catch (error) {
@@ -95,7 +93,6 @@ function Emergencycontact({ userId, emergencyContacts, setVisibleModal3, fetchEm
                     { user_id: userId, id_emergency_contact: contactToRemove.id_emergency_contact },
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                 );
-                console.log('Emergency contact deleted successfully');
             } catch (error) {
                 console.error('Error deleting emergency contact:', error);
                 return;

@@ -35,8 +35,6 @@ const EditOvertime = ({ overtime_id, onSuccess }) => {
                     }
                 );
                 const data = response.data;
-        
-                console.log("log the data", data)
                 setOvertimeData(data);
         
                 setStartDate(new Date(data.overtime_date));

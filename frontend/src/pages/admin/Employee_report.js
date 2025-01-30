@@ -323,7 +323,7 @@ const Employee_report = () => {
 
     const handleEditClick = (attendance) => {
 
-        console.log("log the idsswaa", attendance)
+   
         const parseTime = (timeStr) => {
             if (!timeStr) return null;
             const [hours, minutes] = timeStr.split(':').map(Number);

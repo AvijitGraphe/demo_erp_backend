@@ -146,7 +146,6 @@ router.get('/fetchallletters', authenticateToken, async (req, res) => {
 // Duplicate a letter template
 router.post('/duplicate-letter-template', authenticateToken, async (req, res) => {
     const { template_id } = req.body;
-    console.log("template_id +++++", template_id);
 
     try {
         const existingTemplate = await LetterTemplate.aggregate([
@@ -565,8 +564,6 @@ router.get('/fetch-send-letters', authenticateToken, async (req, res) => {
             },
             { $sort: { employee_name: 1 } }
         ]);
-
-        console.log("log the data ", result);
         res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching send letters:', error);
@@ -786,9 +783,6 @@ router.post('/sendletters/:letterId/confirm', authenticateToken, async (req, res
         if (!letter || letter.length === 0) {
             return res.status(404).json({ error: 'Letter not found' });
         }
-
-        console.log("logn the data letter  letter  letter.template.template_subject", letter.template.template_subject);
-        
         // Extract letter details
         const letterData = letter[0];
         letterData.status = 'Confirmed';
@@ -943,8 +937,6 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
         // Extract letter details
         const letterData = letter[0];
 
-        console.log("logn the data letter  letter  letter.template.template_subject", letter.template.template_subject);
-
         // Generate section content
         const sectionsContent = letterData.send_letter_sections
             .map(
@@ -966,8 +958,6 @@ router.post('/resendletters/:letterId/resend', authenticateToken, async (req, re
         const formattedDate = letterData.createdAt
             ? new Date(letterData.createdAt).toLocaleDateString('en-GB')
             : 'Invalid Date';
-
-        console.log("log the data is mail", letter)    ;
         const mailOptions = {
             from: `"${process.env.MAIL_FROM_NAME}" <${process.env.MAIL_FROM_ADDRESS}>`,
             to: letter.user_email,

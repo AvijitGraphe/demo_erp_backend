@@ -72,7 +72,6 @@ router.post('/addtickets', authenticateToken, upload.array('images', 10), async 
 // Delete a ticket and associated images based on ticket_id
 router.delete('/tickets/:ticket_id', async (req, res) => {
     const { ticket_id } = req.params;
-    console.log("log the tricket_id", ticket_id)
     try {
         // Aggregate to find the ticket along with associated images
         const ticket = await RaiseTicket.aggregate([
@@ -316,8 +315,6 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
 router.get('/tickets/raiser/:user_id', authenticateToken, async (req, res) => {
   const { user_id } = req.params;
   const { subject, start_date, end_date } = req.query;
-  console.log("log the data", subject, start_date, end_date);
-
   try {
       // Build query filters dynamically
       const filters = {};

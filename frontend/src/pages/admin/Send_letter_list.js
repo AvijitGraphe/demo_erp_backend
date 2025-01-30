@@ -34,8 +34,6 @@ const Send_letter_list = () => {
             const response = await axios.get(`${config.apiBASEURL}/letterRoutes/fetch-send-letters`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-
-            console.log("response response", response.data);
             setData(response.data);
             setFilteredData(response.data);
         } catch (error) {

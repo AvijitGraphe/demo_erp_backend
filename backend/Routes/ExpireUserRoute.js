@@ -31,7 +31,6 @@ router.get('/getallEmplooyee', authenticateToken, async(req, res) =>{
         if (!expiredEmployees || expiredEmployees.length === 0) {
             return res.status(404).json({ message: "No expired employees found" });
         }
-        console.log("Expired employees data:", expiredEmployees);
         res.json(expiredEmployees);
     } catch (error) {
         console.error(error);

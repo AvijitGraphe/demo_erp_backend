@@ -45,8 +45,6 @@ const Dailytask_employee = () => {
                 params: { start_date, end_date },
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
-
-            console.log("log the data is now response", response.data)
             if (response.data.success) {
                 setTasksheets(response.data.data || []);
             } else {

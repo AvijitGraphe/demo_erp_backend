@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { Op } = require('sequelize');
-const Subtask = require('../models/Subtask'); // Adjust path if needed
-const Task = require('../models/Tasks'); // Adjust path if needed
+const Subtask = require('../Models/Subtask'); // Adjust path if needed
+const Task = require('../Models/Tasks'); // Adjust path if needed
 
 const checkSubtaskDeadlines = () => {
     // Schedule a task to run every 10 minutes
@@ -49,9 +49,6 @@ const checkSubtaskDeadlines = () => {
                     }
                 }
             }
-
-            console.log(`Checked and updated subtask deadlines at: ${now}`);
-
         } catch (error) {
             console.error('Error in checking subtask deadlines:', error);
         }

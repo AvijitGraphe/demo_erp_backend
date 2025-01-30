@@ -41,7 +41,6 @@ const Verify_employee = () => {
                 ]);
 
                 if (rolesResponse.data.success) {
-                    console.log("log the data", rolesResponse.data.data)
                     setRoles(rolesResponse.data.data);
                 }
                 setUnverifiedUsers(usersResponse.data || []);

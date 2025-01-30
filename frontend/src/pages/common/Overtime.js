@@ -41,9 +41,6 @@ const Overtime = () => {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 params,
             });
-
-            console.log("log the data", response)
-
             const { Pending, Approved, Rejected } = response.data;
             setData([...Pending, ...Approved, ...Rejected]);
         } catch (error) {
@@ -60,11 +57,8 @@ const Overtime = () => {
 
     const handleApprovalSubmit = async () => {
         if (approvalStatus === 'Rejected' && !reason) {
-            
             return;
         }
-        console.log("log the data", selectedOvertime)
-
         try {
             const payload = {
                 approved_by: userId, // Replace with the approver's actual name or ID

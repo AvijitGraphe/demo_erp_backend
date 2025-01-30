@@ -14,7 +14,6 @@ import { MultiSelect } from 'primereact/multiselect';
 function WebmobileOnbord() {
 
     const handleComplete = () => {
-        console.log("Form completed!");
         // Handle form completion logic here
     };
 

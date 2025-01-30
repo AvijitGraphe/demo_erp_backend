@@ -53,7 +53,6 @@ const ViewTask = () => {
                     },
                 }
             );
-            console.log("log the data response", response)
             setTask(response.data);
             setLoading(false);
         } catch (err) {

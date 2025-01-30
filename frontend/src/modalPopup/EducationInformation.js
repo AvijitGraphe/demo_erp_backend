@@ -86,7 +86,6 @@ const EducationInformation = ({
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
-                console.log("API Response:", response.data);
             }
 
             // Refresh data and close modal

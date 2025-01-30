@@ -65,7 +65,6 @@ router.get('/brand-calendar', authenticateToken, async (req, res) => {
       },
     };
 
-    console.log(filter);
     // Add brand_id filter if provided
     if (brand_id) {
       filter.brand_id = brand_id;

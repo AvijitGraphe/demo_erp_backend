@@ -60,7 +60,6 @@ function PersonalInformations({ userId, personalInfo, setVisibleModal2, fetchUse
 
         try {
             const response = await axios.put(`${config.apiBASEURL}/profile/userdetails/update?userId=${userId}`, formData);
-            console.log('User details updated:', response.data);
             setVisibleModal2(false); // Close the modal on successful update
             fetchUserDetails();
         } catch (error) {

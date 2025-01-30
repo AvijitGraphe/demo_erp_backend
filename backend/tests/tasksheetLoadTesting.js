@@ -37,7 +37,6 @@ export default function () {
     const task_id = "6780f7b4ccbea45c3e73334f"; 
     const payload = JSON.stringify({ subtask_id, task_id });
     const res = http.post(`${baseUrl}/handle-subtask-status`, payload, { headers });
-    console.log('Response Body:', res.body);
     check(res, {
       "status is 200": (r) => r.status === 200,
       "response contains success message": (r) => r.body.includes("Subtask data added to Subtasksheet successfully."),

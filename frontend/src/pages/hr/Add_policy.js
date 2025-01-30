@@ -64,7 +64,7 @@ const Add_policy = () => {
                     Authorization: `Bearer ${accessToken}`
                 }
             });
-            console.log(response.data);
+
             fetchPolicies();
         } catch (error) {
             console.error(error);
@@ -98,7 +98,6 @@ const Add_policy = () => {
 
 
     const handleEditClick = (policy) => {
-        console.log("log the all policies data ok", policy);
         setSelectedPolicy(policy);
         setPolicyName(policy.policy_name);
         const city = cities.find(c => c.name === policy.policy_type);

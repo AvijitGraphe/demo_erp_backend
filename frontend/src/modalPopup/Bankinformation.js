@@ -62,7 +62,6 @@ function Bankinformation({ userId, bankInfo, setVisibleModal4, fetchBankDetails 
                     },
                 }
             );
-            console.log(response.data.message);
             setVisibleModal4(false); // Close the modal on successful operation
             fetchBankDetails(); // Refresh bank details
         } catch (error) {

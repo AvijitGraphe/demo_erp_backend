@@ -36,11 +36,6 @@ export default function () {
                 const response = http.post(`${baseUrl}/Forgot/reset-password/${token}`, JSON.stringify({ password: newPassword }), {
                     headers: { 'Content-Type': 'application/json' },
                 });
-    
-                // Log the actual response status and body for debugging
-                console.log(`Response Status: ${response.status}`);
-                console.log(`Response Body: ${response.body}`);
-    
                 // Check the response as usual
                 check(response, {
                     'status is 200': (r) => r.status === 200,

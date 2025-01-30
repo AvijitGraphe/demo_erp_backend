@@ -48,7 +48,6 @@ router.put('/policies/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { policy_name, policy_type, policy_subject, policy_desc, updated_by } = req.body;
-        console.log("log the all polices ", req.body);
 
         // Find the policy by ID
         const policy = await Policy.findById(id);
@@ -59,7 +58,7 @@ router.put('/policies/:id', authenticateToken, async (req, res) => {
 
         // Validate if the `updated_by` user exists
         const updator = await User.findById(updated_by);
-        console.log("log the updator", updator);
+
         
         if (!updator) {
             return res.status(404).json({ error: 'Updator not found' });
@@ -242,7 +241,7 @@ router.get('/allpolicies', authenticateToken, async (req, res) => {
 
 router.delete('/policiesdelete/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-    console.log("log the policy id:", id);
+
 
     try {
         const policy = await Policy.findById(id);

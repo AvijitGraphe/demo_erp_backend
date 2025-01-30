@@ -14,7 +14,6 @@ const mongoose = require('mongoose');
 //Add attendance API--------------------------//
 router.post('/add-checkin', authenticateToken, async (req, res) => {
     const { user_id, date, start_time } = req.body;
-    console.log(user_id, date, start_time);
     try {
         const existingCheckIn = await Attendance.findOne({ user_id, date });
         if (existingCheckIn) {

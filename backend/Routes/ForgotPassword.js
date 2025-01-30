@@ -19,7 +19,6 @@ const transporter = nodemailer.createTransport({
 // Forgot Password Endpoint
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
-    console.log("log the emmail", email);
     try {
         const user = await User.findOne({ email });
         if (!user) {
@@ -56,7 +55,7 @@ router.post('/forgot-password', async (req, res) => {
             If you did not request this, please ignore this email and your password will remain unchanged.\n`,
         };
         await transporter.sendMail(mailOptions);
-        console.log("log the url ", resetUrl)
+
         res.send('Password reset link sent to email');
     } catch (error) {
         console.error('Error: ', error);
