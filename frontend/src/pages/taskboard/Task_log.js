@@ -72,7 +72,8 @@ const TaskLog = () => {
                     },
                 }
             );
-            console.log("log the data monthly ", response.data)
+            console.log("log the data monthly ", response.data);
+
             setProjectData(response.data);
         } catch (err) {
             console.error("Failed to fetch data:", err.response?.data?.error || "Error occurred");
@@ -211,7 +212,7 @@ const TaskLog = () => {
                             {projectData ? (
                                 <>
                                     <div className="jdate">
-                                        <span>Date of Creation : </span>
+                                        <span>Date of Creation :  </span>
                                         <b>{new Date(projectData.project.createdAt).toLocaleDateString('en-GB')}</b>
                                     </div>
                                     <ul className="newulist" onClick={() => navigate(`/dashboard/projects_details/${projectData?.project?.project_id}`)}
@@ -336,7 +337,7 @@ const TaskLog = () => {
                                                 >
                                                     <td>{task.task_name}</td>
 
-                                                    <td>
+                                                <td>
                                                         {new Date(task.deadline).toLocaleDateString('en-GB')}
                                                     </td>
                                                     <td>

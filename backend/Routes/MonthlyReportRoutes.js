@@ -162,10 +162,10 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                     },
                     project: {
                         project_id: "$_id",
-                        project_name: 1,
+                        project_name:"$project_name",
                         lead: 1,
                         members: 1,
-                        createdAt: 1,
+                        createdAt: "$createdAt",
                         updatedAt: 1
                     },
                     taskStatistics: {
