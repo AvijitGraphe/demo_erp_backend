@@ -20,6 +20,16 @@ const generateAccessToken = (user) => {
 // POST /register - Register a new user
 router.post('/register', async (req, res) => {
   try {
+    const expireData = await ExpireUser.findOne();
+    const currentDate = new Date();
+    const currentDateOnly = new Date(currentDate.toISOString().slice(0, 10));
+    const expireDate = new Date(expireData.expire_date);
+    const expireDataOnly = new Date(expireDate.toISOString().slice(0, 10));
+
+    if(currentDateOnly > expireDataOnly){
+      return res.status(403).json({ message : "Register is not allowed , the access has expired!"})
+    }
+      
     const { first_name, last_name, email, password } = req.body;
     // Validate input
     if (!first_name || !last_name || !email || !password) {
@@ -38,7 +48,7 @@ router.post('/register', async (req, res) => {
       last_name,
       email,
       password: hashedPassword,
-      Role_id: '679098175ea402d05759f3e5',  // Default role ID
+      // Role_id: '679098175ea402d05759f3e5', 
     });
     // Save the new user to the database
     await newUser.save();
@@ -98,65 +108,47 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    
-    // Fetch the expiration data
     const expireData = await ExpireUser.findOne();
-    console.log("expireData", expireData);
-    
-    // If expiration data exists, check if the account is expired
-    if (expireData) {
-      const currentDate = new Date();  // Get the current date and time
-      console.log("currentDate", currentDate);
-      
-      // Convert current date to the start of the day (midnight) in UTC (Year, Month, Day only)
-      const currentDateMidnightUTC = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()));
-      console.log("currentDateMidnightUTC:", currentDateMidnightUTC);
-      
-      // Convert expire date to the start of the day (midnight) in UTC (Year, Month, Day only)
-      const expireDateMidnightUTC = new Date(Date.UTC(expireData.expire_date.getUTCFullYear(), expireData.expire_date.getUTCMonth(), expireData.expire_date.getUTCDate()));
-      console.log("expireDateMidnightUTC:", expireDateMidnightUTC);
-      
-      // If the expiration date is today or has passed, deny login
-      if (expireDateMidnightUTC <= currentDateMidnightUTC) {
-        return res.status(403).json({ message: 'Your account has expired. Please contact Admin.' });
-      }
+    const currentDate = new Date();
+    const currentDateOnly = new Date(currentDate.toISOString().slice(0, 10));
+    const expireDate = new Date(expireData.expire_date);
+    const expireDataOnly = new Date(expireDate.toISOString().slice(0, 10));
+
+    if(currentDateOnly > expireDataOnly){
+      return res.status(403).json({ message : "Login is not allowed , the access has expired!"})
     }
 
-    // Find the user by email
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Check if the user is active
-    if (!user.isActive) {
+    if (!user.Is_active) {
       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
     }
 
-    // Compare the provided password with the hashed password in the database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // If successful, generate tokens
     const userPayload = { id: user._id, email: user.email };
     const accessToken = generateAccessToken(userPayload);
 
-    // Send tokens in response to be stored in session storage
-    const fullName = `${user.firstName} ${user.lastName}`;
+    const fullName = `${user.first_name} ${user.last_name}`;
     res.status(200).json({
       message: 'Login successful',
       name: fullName,
       accessToken,
-      role: user.userType,
+      role: user.user_type,
     });
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 
