@@ -304,7 +304,7 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                         {
                             $lookup: {
                                 from: "users",
-                                localField: "assignee",
+                                localField: "task_user_id",
                                 foreignField: "_id",
                                 as: "assignee",
                                 pipeline: [
