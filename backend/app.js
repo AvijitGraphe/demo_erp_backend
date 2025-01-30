@@ -126,24 +126,6 @@ app.use((err, req, res, next) => {
     `);
 });
 
-// Initialize associations
-// createUserAssociations();
-// createAttendanceAssociations();
-// createProjectAssociations();
-// createTasksheetAssociations();
-// createLeaveAssociation();
-// createTicketAssociations();
-// sequelize.sync()
-//     .then(() => {
-//         console.log('Database connected and synchronized');
-//         // Cronjob Call
-//         TaskDeadlineJob();
-//         LeaveBalanceAdjuster();
-//         app.listen(port, () => {
-//             console.log(`Server is running on ${port}`);
-//         });
-//     })
-//     .catch(err => console.error('Error connecting to the database:', err));
 
 // Connect to MongoDB
 connectToMongoDB().then(() => {
