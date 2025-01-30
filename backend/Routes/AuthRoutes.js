@@ -152,15 +152,6 @@ router.post('/login', async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
 // Status route
 router.get('/status', authenticateToken, async (req, res) => {
   try {
@@ -180,9 +171,6 @@ router.get('/status', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Error checking status', error });
   }
 });
-
-
-
 
 
 
