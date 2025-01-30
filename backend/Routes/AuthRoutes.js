@@ -189,8 +189,6 @@ router.get('/status', authenticateToken, async (req, res) => {
 //update the expire employee data
 router.post("/updateExpiredate", authenticateToken, async (req, res) => {
   const { expire_date, expire_id } = req.body;
-  console.log(expire_date, expire_id);
-  
   try {
     const existingExpireUser = await ExpireUser.findById(expire_id);
     if (existingExpireUser) {
@@ -225,14 +223,12 @@ router.post("/updateExpiredate", authenticateToken, async (req, res) => {
 router.get("/getallExpiredate", authenticateToken, async (req, res) => {
   try {
     const data = await ExpireUser.find().lean();
-    const modifiedData = data.map(item => ({
+    const modifiedData = data.map((item) => ({
       expire_id: item._id,
       expire_date: item.expire_date,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     }));
-    console.log(data);
-    
     return res.status(200).json(modifiedData);
   } catch (error) {
     console.error(error);
