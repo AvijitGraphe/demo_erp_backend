@@ -1379,6 +1379,7 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 //fetchspecifictask
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
+    console.log("log the data taskId", taskId)
     try {
         const task = await Tasks.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(taskId) } },
@@ -1394,7 +1395,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             {
                 $lookup: {
                     from: 'brands',
-                    localField: 'project.brand_id',
+                    localField: 'brand_id',
                     foreignField: '_id',
                     as: 'project.brand'
                 }
@@ -1495,6 +1496,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        console.log("log the data task", task);
         const taskData = task[0];
         taskData.subtasks = taskData.subtasks.map(subtask => {
             if (subtask.projectRole && subtask.project_role_id === subtask.projectRole._id.toString()) {
@@ -1515,17 +1517,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
 });
 
 
-
-
-
-
-
-
-
-
-
-
-//Fetch Edit Task
 router.get('/fetchtaskforedit/:taskId', async (req, res) => {
     const { taskId } = req.params;
     try {
