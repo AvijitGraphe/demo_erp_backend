@@ -31,16 +31,6 @@ const MeetingRoutes = require('./Routes/MeetingRoutes');
 const TicketRoutes = require('./Routes/TicketRoutes');
 const ResignationRoutes = require('./Routes/Resignation_Routes');
 const EmployeeAssest = require('./Routes/EmployeeAssetRoutes');
-// Automated Cronjob Paths
-// const TaskDeadlineJob = require('./cronjobs/TaskDeadlinejob');
-// const LeaveBalanceAdjuster = require('./cronjobs/LeaveCronJob');
-// Import association initializer
-// const createUserAssociations = require('./composer/UserAssociation');
-// const createAttendanceAssociations = require('./composer/AttendanceAssociation');
-// const createProjectAssociations = require('./composer/ProjectAssociation');
-// const createTasksheetAssociations = require('./composer/TasksheetAssociation');
-// const createLeaveAssociation = require('./composer/LeaveAssociation');
-// const createTicketAssociations = require('./composer/TicketAssociation');
 
 
 const app = express();
