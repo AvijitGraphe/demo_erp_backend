@@ -1887,72 +1887,79 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
 
 
 //fetch all task specific to a project ---------*//
-// Fetch tasks by project_id, include user and
+// Fetch tasks by project_id, include user and update@@
 router.get('/fetch-project-all-tasks',authenticateToken, async (req, res) => {
+    const { project_id } = req.query;
     try {
-        const { project_id } = req.query;
-
-        // Validate project_id
         if (!project_id) {
             return res.status(400).json({ message: 'Project ID is required.' });
         }
-
-        const tasksAggregation = await Tasks.aggregate([
+        const projectObjId = new mongoose.Types.ObjectId(project_id);
+        const tasks = await Tasks.aggregate([
             {
-                $match: {
-                    project_id:new mongoose.Types.ObjectId(project_id), // Ensure project_id is treated as ObjectId
-                }
+              $match: { project_id: projectObjId }
             },
             {
-                $lookup: {
-                    from: 'users', // Collection name for the User model
-                    localField: 'task_user_id', // Field in Tasks referencing User
-                    foreignField: '_id', // Field in User model
-                    as: 'assignee' // Output array for the user data
-                }
+              $lookup: {
+                from: 'users',
+                localField: 'task_user_id',
+                foreignField: '_id',
+                as: 'assignee'
+              }
             },
             {
-                $unwind: {
-                    path: '$assignee',
-                    preserveNullAndEmptyArrays: true // Keep tasks even if no user is assigned
-                }
+              $unwind: { path: '$assignee', preserveNullAndEmptyArrays: true }
             },
             {
-                $lookup: {
-                    from: 'images', // Assuming profile images are in a separate collection
-                    localField: 'assignee.profileImage', // Field in User referencing profileImage
-                    foreignField: '_id', // Field in Images collection
-                    as: 'assignee.profileImageData'
-                }
+              $lookup: {
+                from: 'profileimages',
+                localField: 'assignee.profileImage',
+                foreignField: '_id',
+                as: 'assignee.profileImage'
+              }
             },
             {
-                $unwind: {
-                    path: '$assignee.profileImageData',
-                    preserveNullAndEmptyArrays: true // Keep tasks even if no profileImage is found
-                }
-            },
-            {
-                $group: {
-                    _id: '$status', // Group tasks by their status
-                    tasks: { $push: '$$ROOT' }, // Include all task data in the group
-                    count: { $sum: 1 } 
-                }
-            },
-            {
-                $sort: { _id: 1 } 
+              $project: {
+                'assignee.first_name': 1,
+                'assignee.last_name': 1,
+                'assignee.profileImage.image_url': 1,
+                task_id:"$_id",
+                task_name: 1,
+                task_description:1, 
+                task_deadline:1,
+                status:1
+              }
             }
         ]);
-
-        res.status(200).json({
-            message: 'Tasks fetched successfully',
-            tasksAggregation
+        const taskCountByStatus = await Tasks.aggregate([
+            {
+              $match: { project_id: projectObjId }
+            },
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 }
+              }
+            },
+            {
+              $project: {
+                status: '$_id',
+                count: 1,
+                _id: 0
+              }
+            }
+        ]);        
+        return res.status(200).json({
+            tasks,
+            taskCountByStatus
         });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching tasks', error: error.message });
     }
-});
+})
+
+
 
 
 
