@@ -38,7 +38,7 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                     from: "users",
                     localField: "lead_id",
                     foreignField: "_id",
-                    as: "lead",
+                    as: "project.lead",
                     pipeline: [
                         {
                             $lookup: {
@@ -53,7 +53,7 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
                     ]
                 }
             },
-            { $unwind: { path: "$lead", preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: "$project.lead", preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: "users",
