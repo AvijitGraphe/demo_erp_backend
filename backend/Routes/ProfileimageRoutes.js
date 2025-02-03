@@ -43,7 +43,6 @@ router.post('/upload-or-update-profile-image/:userId', upload.single('image'), a
 
     // Convert the uploaded file to base64 for ImageKit
     const encodedImage = file.buffer.toString('base64');
-
     // Upload the new image to ImageKit
     const uploadResponse = await imagekit.upload({
       file: encodedImage,
@@ -83,7 +82,7 @@ router.get('/profile-image/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     // Check if a profile image exists for the user
-    const profileImage = await ProfileImage.findOne({ user_id: new mongoose.Types.ObjectId(userId)});
+    const profileImage = await ProfileImage.findOne({ _id: new mongoose.Types.ObjectId(userId)});
 
     if (!profileImage) {
       return res.status(204).end(); // 204 No Content
@@ -95,7 +94,7 @@ router.get('/profile-image/:userId', authenticateToken, async (req, res) => {
       imageUrl: profileImage.image_url,
     });
   } catch (error) {
-    console.error('Error fetching profile image:', error);
+    // console.error('Error fetching profile image:', error);
     res.status(500).json({ message: 'Failed to fetch profile image.', error });
   }
 });

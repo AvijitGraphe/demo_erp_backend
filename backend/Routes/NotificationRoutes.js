@@ -8,6 +8,7 @@ const moment = require('moment');
 
 router.get('/notifications/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
+    console.log("log the data ", userId)
     const { start, end } = req.query;
 
     // Validate if userId is a valid ObjectId
@@ -70,7 +71,7 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
 
         res.json({ notifications, unreadCount });
     } catch (error) {
-        console.error('Error fetching notifications:', error);
+        // console.error('Error fetching notifications:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -162,7 +163,7 @@ router.get('/notifications_push/:userId', authenticateToken, async (req, res) =>
         }
         res.json({ notifications });
     } catch (error) {
-        console.error('Error fetching notifications:', error);
+        // console.error('Error fetching notifications:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
