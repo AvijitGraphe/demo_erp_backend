@@ -252,9 +252,7 @@ router.post('/promotion-users', authenticateToken, async (req, res) => {
                     user_type: role.role_name,
                 },
             }
-        );
-        console.log("log thedat aok", data);
-        
+        );       
         res.status(200).json({ message: 'User promoted successfully' });
     } catch (error) {
         console.error('Error promoting user:', error);

@@ -5,7 +5,7 @@
 
 // Fetch Projects by User API with Pagination and Filters
 router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
-    const { user_id } = req.params;
+    const { user_id } = req.params;                                                                                              
     const { brand_name, end_date } = req.query;
     const userId = new mongoose.Types.ObjectId(user_id);
 

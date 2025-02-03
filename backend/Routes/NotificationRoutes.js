@@ -121,6 +121,7 @@ router.get('/notifications/unread/today/:userId', authenticateToken, async (req,
 // Fetch notifications by user_id for today
 router.get('/notifications_push/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
+    console.log(userId)
     try {
         // Calculate today's date range
         const todayStart = moment().startOf('day').toDate();
