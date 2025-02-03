@@ -3,6 +3,7 @@ const Notification = require('../Models/Notification');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const router = express.Router();
 const moment = require('moment');   
+const User = require("../Models/User");
 
 const mongoose = require('mongoose');
 
@@ -37,6 +38,9 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
             createdAt: -1, 
         });
 
+        if(!notifications){
+            return res.json(400).json({ message : "Notification Data Not Found!"});
+        }
         // Count unread notifications
         const unreadCount = await Notification.countDocuments({
             user_id: userId,
@@ -108,7 +112,9 @@ router.get('/notifications/unread/today/:userId', authenticateToken, async (req,
                 $lte: todayEnd,   
             },
         });
-
+        if (hasUnreadNotifications) {
+            return res.status(404).json({ message : "Notification Data not Found!"})
+        }
         res.json({ hasUnread: hasUnreadNotifications ? true : false });
     } catch (error) {
         console.error('Error checking unread notifications:', error);
@@ -121,7 +127,7 @@ router.get('/notifications/unread/today/:userId', authenticateToken, async (req,
 // Fetch notifications by user_id for today
 router.get('/notifications_push/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
-    console.log(userId)
+    // console.log(userId)
     try {
         // Calculate today's date range
         const todayStart = moment().startOf('day').toDate();
@@ -137,6 +143,9 @@ router.get('/notifications_push/:userId', authenticateToken, async (req, res) =>
             is_read: 1,
             createdAt: -1, 
         });
+        if(!notifications){
+            return res.status(404).json({ message : "Notifications Data Not Found! "});
+        }
         const unsentNotificationIds = notifications.map((n) => n._id);
         if (unsentNotificationIds.length > 0) {
             await Notification.updateMany(

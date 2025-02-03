@@ -109,7 +109,7 @@ const AddTicketPage = ({ onClose, onSuccess }) => {
                                 className="form-control h-auto"
                             />
                         </Col>
-                        <Col lg={12} md={12}className="mb-3">
+                        {/* <Col lg={12} md={12}className="mb-3">
                             <label htmlFor="images" className="form-label">
                                 Upload Images
                             </label>
@@ -124,7 +124,7 @@ const AddTicketPage = ({ onClose, onSuccess }) => {
                             <small className="text-secondary" style={{ fontSize: '12px' }}>
                                 {images.length}/10 images uploaded
                             </small>
-                        </Col>
+                        </Col> */}
                     </Row>
                 </Card.Body>
             </Card>

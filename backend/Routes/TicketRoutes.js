@@ -300,6 +300,8 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
             }
         ]);
 
+        console.log("log the ticket data list ", result);
+        
         res.status(200).json(result[0]);
     } catch (error) {
         console.error('Error fetching tickets:', error);
