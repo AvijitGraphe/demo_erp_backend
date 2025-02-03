@@ -113,8 +113,7 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-    if(user.user_type === 'SuperAdmin'){
-    }else{
+    if(user.user_type !== 'SuperAdmin'){
       const expireData = await ExpireUser.findOne();
       const currentDate = new Date();
       const currentDateOnly = new Date(currentDate.toISOString().slice(0, 10));
@@ -124,6 +123,7 @@ router.post('/login', async (req, res) => {
         return res.status(403).json({ message : "Login is not allowed , the access has expired!"})
       }  
     }
+
     if (!user.Is_active) {
       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
     }
