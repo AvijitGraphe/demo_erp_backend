@@ -2,18 +2,23 @@ const express = require('express');
 const Notification = require('../Models/Notification');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const router = express.Router();
-const moment = require('moment');   
 const User = require("../Models/User");
-
 const mongoose = require('mongoose');
+const moment = require('moment');
 
-// Fetch notifications by user_id
 router.get('/notifications/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const { start, end } = req.query;
+
+    // Validate if userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: 'Invalid userId format' });
+    }
+
     try {
         const todayStart = moment().startOf('day').toDate();
         const todayEnd = moment().endOf('day').toDate();
+
         const dateFilter = start && end
             ? {
                   createdAt: {
@@ -30,7 +35,7 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
 
         // Fetch all notifications for the user with applied filters and sort them
         const notifications = await Notification.find({
-            user_id: new mongoose.Types.ObjectId(userId),
+            user_id: new mongoose.Types.ObjectId(userId), // Ensure userId is a valid ObjectId
             ...dateFilter, // Apply date range filter
         })
         .sort({
@@ -38,9 +43,10 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
             createdAt: -1, 
         });
 
-        if(!notifications){
-            return res.json(400).json({ message : "Notification Data Not Found!"});
+        if (!notifications || notifications.length === 0) {
+            return res.status(400).json({ message: 'Notification Data Not Found!' });
         }
+
         // Count unread notifications
         const unreadCount = await Notification.countDocuments({
             user_id: userId,
@@ -61,12 +67,14 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
             );
             // console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
         }
+
         res.json({ notifications, unreadCount });
     } catch (error) {
         console.error('Error fetching notifications:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 
 

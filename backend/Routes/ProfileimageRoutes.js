@@ -83,7 +83,7 @@ router.get('/profile-image/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     // Check if a profile image exists for the user
-    const profileImage = await ProfileImage.findOne({ user_id: userId });
+    const profileImage = await ProfileImage.findOne({ user_id: new mongoose.Types.ObjectId(userId)});
 
     if (!profileImage) {
       return res.status(204).end(); // 204 No Content
