@@ -1528,7 +1528,7 @@ router.get('/fetchtaskforedit/:taskId', async (req, res) => {
 //Fetch the subtask Edit
 router.get('/fetchsubtaskforedit/:subtask_id', async(req, res) =>{
     const { subtask_id } = req.params;
-    console.log("log the fetchsubtaskforedit", subtask_id)
+    // console.log("log the fetchsubtaskforedit", subtask_id)
     try {
         const subtask = await Subtask.findById(subtask_id);
         if (!subtask || subtask.length === 0) {

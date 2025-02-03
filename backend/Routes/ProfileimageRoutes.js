@@ -23,7 +23,7 @@ router.post('/upload-or-update-profile-image/:userId', upload.single('image'), a
     const { userId } = req.params;
     const file = req.file;
 
-    console.log(userId, file)
+    // console.log(userId, file)
     if (!file) {
       return res.status(400).json({ message: 'No image file uploaded.' });
     }
