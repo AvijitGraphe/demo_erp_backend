@@ -30,7 +30,7 @@ router.get('/notifications/:userId', authenticateToken, async (req, res) => {
 
         // Fetch all notifications for the user with applied filters and sort them
         const notifications = await Notification.find({
-            user_id: userId,
+            user_id: new mongoose.Types.ObjectId(userId),
             ...dateFilter, // Apply date range filter
         })
         .sort({
@@ -80,8 +80,8 @@ router.put('/notifications/:notificationId/mark-as-read', authenticateToken, asy
         // Find the notification by its ID and update the `is_read` field to true
         const notification = await Notification.findByIdAndUpdate(
             notificationId, 
-            { is_read: true }, // Set is_read to true
-            { new: true } // Return the updated notification document
+            { is_read: true }, 
+            { new: true } 
         );
 
         // Check if the notification was found and updated
@@ -105,7 +105,7 @@ router.get('/notifications/unread/today/:userId', authenticateToken, async (req,
         const todayStart = moment().startOf('day').toDate();
         const todayEnd = moment().endOf('day').toDate();
         const hasUnreadNotifications = await Notification.findOne({
-            user_id: userId,
+            user_id:  new mongoose.Types.ObjectId(userId),
             is_read: false,
             created_at: {
                 $gte: todayStart,
@@ -127,13 +127,12 @@ router.get('/notifications/unread/today/:userId', authenticateToken, async (req,
 // Fetch notifications by user_id for today
 router.get('/notifications_push/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
-    // console.log(userId)
     try {
         // Calculate today's date range
         const todayStart = moment().startOf('day').toDate();
         const todayEnd = moment().endOf('day').toDate();
         const notifications = await Notification.find({
-            user_id: userId,
+            user_id: new mongoose.Types.ObjectId(userId),
             is_sent: false,
             createdAt: {
                 $gte: todayStart,
@@ -152,7 +151,6 @@ router.get('/notifications_push/:userId', authenticateToken, async (req, res) =>
                 { _id: { $in: unsentNotificationIds } },
                 { $set: { is_sent: true } }
             );
-            // console.log(`Notifications marked as sent: ${unsentNotificationIds}`);
         }
         res.json({ notifications });
     } catch (error) {
