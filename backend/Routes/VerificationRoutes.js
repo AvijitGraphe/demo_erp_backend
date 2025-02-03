@@ -157,6 +157,11 @@ router.get('/allroles', authenticateToken, async (req, res) => {
     try {
         const roles = await Role.aggregate([
             {
+                $match:{
+                    role_name: { $ne : 'SuperAdmin'}
+                }
+            },
+            {
                 $project: {
                     role_name: 1
                 }
@@ -166,6 +171,7 @@ router.get('/allroles', authenticateToken, async (req, res) => {
             success: true,
             data: roles, 
         });
+        
     } catch (error) {
         console.error('Error fetching roles:', error);
         res.status(500).json({
