@@ -299,12 +299,17 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
                 }
             }
         ]);
-        res.status(200).json(result[0]);
+        
+        // If counts is undefined, set it to an empty object
+        const response = result[0] || {};
+        response.counts = response.counts || {};
+        res.status(200).json(response);
     } catch (error) {
         console.error('Error fetching tickets:', error);
         res.status(500).json({ error: 'Failed to fetch tickets' });
     }
 });
+
 
 
 

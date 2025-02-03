@@ -469,8 +469,8 @@ const Taskboard_admin = () => {
                                                         {(provided) => (
                                                             <div
                                                                 className={`board-task 
-                                                    ${task.missed_deadline ? "task-red" : "task-green"} 
-                                                    ${task.priority_flag === 'Priority' ? "example-1" : ""}`}
+                                                                ${task.missed_deadline ? "task-red" : "task-green"} 
+                                                                ${task.priority_flag === 'Priority' ? "example-1" : ""}`}
                                                                 ref={provided.innerRef}
                                                                 {...provided.draggableProps}
                                                                 {...provided.dragHandleProps}

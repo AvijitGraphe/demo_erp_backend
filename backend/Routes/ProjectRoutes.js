@@ -883,12 +883,10 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 task_type,
                 priority
             } = task;
-
             const startDate = new Date(task_startdate);
             startDate.setHours(0, 0, 0, 0);
             const endDate = new Date(task_startdate);
             endDate.setHours(23, 59, 59, 999);
-
             let userTaskLimit = await UserTaskLimits.findOne({ user_id: user_id });
             if (!userTaskLimit) {
                 userTaskLimit = new UserTaskLimits({
@@ -898,17 +896,14 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 await userTaskLimit.save();
             }
             const taskLimit = userTaskLimit.max_tasks_per_day;
-
             const taskCount = await Tasks.countDocuments({
                 task_user_id: user_id,
                 status: { $in: ['Todo', 'InProgress', 'InChanges'] },
                 task_startdate: { $gte: startDate, $lte: endDate },
             });
-
             if (taskCount >= taskLimit) {
                 continue;
             }
-
             const newTask = new Tasks({
                 project_id,
                 brand_id,
@@ -922,36 +917,28 @@ router.post('/add-tasks', authenticateToken, async (req, res) => {
                 status: 'Todo',
             });
             await newTask.save();
-
             const usersToNotify = await User.find({
                 user_type: { $in: ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'] },
                 _id: { $ne: user_id },
             });
-
             const userIds = new Set(usersToNotify.map(user => user._id));
             userIds.add(user_id);
-
             for (const id of userIds) {
                 const maxPosition = await UserTaskPositions.findOne({
                     user_id: id,
                     column: 'Todo',
                 }).sort({ position: -1 });
-
                 const position = (maxPosition?.position || 0) + 1;
-
                 const newTaskPosition = new UserTaskPositions({
                     user_id: id,
                     task_id: newTask._id,
                     column: 'Todo',
                     position,
                 });
-
                 await newTaskPosition.save();
             }
-
             addedTasks.push(newTask);
         }
-
         res.status(201).json({
             message: 'Tasks added successfully.',
             tasks: addedTasks,
@@ -1379,7 +1366,7 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 //fetchspecifictask
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
-    console.log("log the data taskId", taskId)
+    // console.log("log the data taskId", taskId)
     try {
         const task = await Tasks.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(taskId) } },
@@ -1496,7 +1483,7 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        console.log("log the data task", task);
+        // console.log("log the data task", task);
         const taskData = task[0];
         taskData.subtasks = taskData.subtasks.map(subtask => {
             if (subtask.projectRole && subtask.project_role_id === subtask.projectRole._id.toString()) {
