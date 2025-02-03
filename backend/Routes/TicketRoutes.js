@@ -313,9 +313,6 @@ router.get('/fetchalltickets', authenticateToken, async (req, res) => {
 
 
 
-
-
-
 router.get('/tickets/raiser/:user_id', authenticateToken, async (req, res) => {
   const { user_id } = req.params;
   const { subject, start_date, end_date } = req.query;
