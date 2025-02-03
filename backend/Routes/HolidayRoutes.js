@@ -151,7 +151,17 @@ router.delete("/holiday/:id", authenticateToken, async (req, res) => {
 router.get('/holidays', authenticateToken, async (req, res) => {
   try {
     const holidays = await Holiday.find();
-    res.status(200).json(holidays);
+    const formattedHolidays = holidays.map(holiday => ({
+      holiday_id: holiday._id,
+      holiday_name: holiday.holiday_name,
+      holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'),
+      image_url: holiday.image_url,
+      imagekit_file_id: holiday.imagekit_file_id,
+      status: holiday.status,
+      createdAt: holiday.createdAt,
+      updatedAt: holiday.updatedAt,
+    }));
+    res.status(200).json(formattedHolidays);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch holidays', details: error.message });
   }
@@ -201,8 +211,8 @@ router.get('/holidays/week', authenticateToken, async (req, res) => {
     // Format the holiday_date to 'YYYY-MM-DD' before returning it
     const formattedHolidays = holidays.map(holiday => ({
       ...holiday.toObject(),
-      holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'), // Format the date field
-    }));
+      holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'),
+    }));    
     res.status(200).json({ holidays: formattedHolidays });
   } catch (error) {
     console.error(error);
@@ -375,20 +385,12 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
 
       return formattedRequest;
     });
-
     res.json({ leaveRequests: formattedRequests });
   } catch (error) {
     console.error('Error fetching leave requests:', error);
     res.status(500).json({ error: 'An error occurred while fetching leave requests.' });
   }
 });
-
-
-
-
-
-
-
 
 
 
