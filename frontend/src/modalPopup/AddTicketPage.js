@@ -128,7 +128,6 @@ const AddTicketPage = ({ onClose, onSuccess }) => {
                     </Row>
                 </Card.Body>
             </Card>
-
             <Col lg={12} md={12} className="text-end">
                 <Button
                     label="Cancel"
