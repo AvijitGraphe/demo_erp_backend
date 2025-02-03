@@ -106,7 +106,7 @@ router.put('/notifications/:notificationId/mark-as-read', authenticateToken, asy
 
 
 
-
+//notifications
 router.get('/notifications/unread/today/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     try {
