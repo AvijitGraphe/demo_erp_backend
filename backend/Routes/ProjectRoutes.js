@@ -1317,7 +1317,7 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
     try {
         // Find the task by ID
-        const task = await Task.findOne({ _id: task_id }).session(session);
+        const task = await Tasks.findOne({ _id: task_id }).session(session);
         
         if (!task) {
             return res.status(404).json({ error: 'Task not found' });
