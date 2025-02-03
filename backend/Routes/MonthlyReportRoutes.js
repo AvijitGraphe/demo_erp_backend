@@ -20,7 +20,6 @@ router.get('/fetch-monthly-report', authenticateToken, async (req, res) => {
     const { brandId, projectId, month } = req.query;
     const brandObjId = new mongoose.Types.ObjectId(brandId);
     const projectObjId = new mongoose.Types.ObjectId(projectId);
-
     try {
         const result = await Projects.aggregate([
             { $match: { _id: projectObjId, brand_id: brandObjId } },

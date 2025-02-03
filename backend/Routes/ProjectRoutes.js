@@ -2195,7 +2195,6 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
 
         res.status(200).json({ success: true, data: categorizedTasks });
     } catch (error) {
-        console.error('Error fetching categorized tasks:', error);
         res.status(500).json({ success: false, message: 'An error occurred while fetching tasks.' });
     }
 });
