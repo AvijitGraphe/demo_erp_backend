@@ -48,7 +48,7 @@ router.post('/register', async (req, res) => {
       last_name,
       email,
       password: hashedPassword,
-      // Role_id: '679098175ea402d05759f3e5', 
+      Role_id: '679098175ea402d05759f3e5', 
     });
     // Save the new user to the database
     await newUser.save();
@@ -108,34 +108,31 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const expireData = await ExpireUser.findOne();
-    const currentDate = new Date();
-    const currentDateOnly = new Date(currentDate.toISOString().slice(0, 10));
-    const expireDate = new Date(expireData.expire_date);
-    const expireDataOnly = new Date(expireDate.toISOString().slice(0, 10));
-
-    if(currentDateOnly > expireDataOnly){
-      return res.status(403).json({ message : "Login is not allowed , the access has expired!"})
-    }
-
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-
+    if(user.user_type === 'SuperAdmin'){
+    }else{
+      const expireData = await ExpireUser.findOne();
+      const currentDate = new Date();
+      const currentDateOnly = new Date(currentDate.toISOString().slice(0, 10));
+      const expireDate = new Date(expireData.expire_date);
+      const expireDataOnly = new Date(expireDate.toISOString().slice(0, 10));
+      if(currentDateOnly > expireDataOnly){
+        return res.status(403).json({ message : "Login is not allowed , the access has expired!"})
+      }  
+    }
     if (!user.Is_active) {
       return res.status(403).json({ message: 'Your account is inactive. Please contact Admin.' });
     }
-
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-
     const userPayload = { id: user._id, email: user.email };
     const accessToken = generateAccessToken(userPayload);
-
     const fullName = `${user.first_name} ${user.last_name}`;
     res.status(200).json({
       message: 'Login successful',
