@@ -2389,7 +2389,7 @@ router.get('/specific-user-task-summary', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'users', // Assuming assignee collection is 'users'
+                    from: 'users', 
                     localField: 'assignee',
                     foreignField: '_id',
                     as: 'assigneeDetails',
@@ -2403,7 +2403,7 @@ router.get('/specific-user-task-summary', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'profileImages', // Assuming profile images collection is 'profileImages'
+                    from: 'profileImages', 
                     localField: 'assigneeDetails.profileImage',
                     foreignField: '_id',
                     as: 'profileImageDetails',
