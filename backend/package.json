@@ -1,12 +1,12 @@
 {
-  "name": "express-erp-backend",
+  "name": "backend",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "nodemon app.js"
   },
   "keywords": [],
-  "author": "Anirban",
+  "author": "Avijit",
   "license": "ISC",
   "description": "",
   "dependencies": {
