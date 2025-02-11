@@ -85,7 +85,6 @@ router.put('/policies/:id', authenticateToken, async (req, res) => {
 router.get('/alldistpolicies',authenticateToken, async (req, res) => {
     try {
         const { policy_type } = req.query;
-
         // Aggregation pipeline to fetch policies with associated User and ProfileImage
         const policies = await Policy.aggregate([
             {
