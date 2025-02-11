@@ -27,9 +27,6 @@ router.post('/addholiday', authenticateToken, upload.single('image'), async (req
   let imageUrl = null;
   let imagekitFileId = null;
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (req.file) {
       const uploadResponse = await imagekit.upload({
@@ -48,22 +45,16 @@ router.post('/addholiday', authenticateToken, upload.single('image'), async (req
       imagekit_file_id: imagekitFileId,
       status,
     });
-    // console.log("newHoliday", newHoliday);
-    
 
-    await newHoliday.save({ session });
-    await session.commitTransaction();
+    await newHoliday.save();
     res.status(201).json({ message: 'Holiday created successfully' });
 
   } catch (error) {
-    await session.abortTransaction();
     console.error('Error creating holiday:', error);
     res.status(500).json({
       message: 'Internal server error',
       details: error.message,
     });
-  } finally {
-    session.endSession();
   }
 });
 
