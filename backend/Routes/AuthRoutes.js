@@ -104,6 +104,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
 // Status route
 router.get('/status', authenticateToken, async (req, res) => {
   try {

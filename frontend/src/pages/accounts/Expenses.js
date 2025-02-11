@@ -80,7 +80,7 @@ const Expenses = () => {
                                             <td>20/01/2025</td>
                                             <td>
                                                 {/* <Image src={require("../../assets/images/logo.png")} alt='' style={{ width: '80px', height: 'auto' }} preview /> */}
-                                                <Image src={require("../../assets/images/logo.png")} zoomSrc={require("../../assets/images/logo.png")} alt="Image" width="80" height="auto" preview />
+                                                {/* <Image src={require("../../assets/images/logo.png")} zoomSrc={require("../../assets/images/logo.png")} alt="Image" width="80" height="auto" preview /> */}
                                             </td>
                                             <td>
                                                 <p className='m-0 w-75'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
@@ -107,12 +107,12 @@ const Expenses = () => {
             <Sidebar visible={visibleRight} position="right" onHide={() => setVisibleRight(false)}>
                 <h5 className='mb-4'>Add Expenses</h5>
                 <Form>
-                    <div className='mb-3'>
+                    {/* <div className='mb-3'>
                         <Form.Label>Upload Image</Form.Label>
                             <Form.Control
                                 type="file"
                             />
-                    </div>
+                    </div> */}
                     <div className='mb-3'>
                         <Form.Label>Your Text</Form.Label>
                         <Form.Control as="textarea" aria-label="With textarea" rows={5} className='h-auto' />
