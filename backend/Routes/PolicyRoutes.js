@@ -172,9 +172,9 @@ router.get('/allpolicies', authenticateToken, async (req, res) => {
         const policies = await Policy.aggregate([
             {
                 $lookup: {
-                    from: 'users', // Look up the 'users' collection (the user who created the policy)
-                    localField: 'created_by', // Field in Policy
-                    foreignField: '_id', // Field in User
+                    from: 'users', 
+                    localField: 'created_by', 
+                    foreignField: '_id', 
                     as: 'creator', // Alias for the creator
                 },
             },
@@ -241,18 +241,14 @@ router.get('/allpolicies', authenticateToken, async (req, res) => {
 
 router.delete('/policiesdelete/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
-
-
     try {
         const policy = await Policy.findById(id);
-        
         if (!policy) {
             return res.status(404).json({
                 success: false,
                 message: 'Policy not found.',
             });
         }
-
         // Use deleteOne instead of remove
         await Policy.deleteOne({ _id: id });
 
