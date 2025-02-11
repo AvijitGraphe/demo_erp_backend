@@ -1599,20 +1599,16 @@ router.post('/duplicate-task', authenticateToken, async (req, res) => {
         const users = await User.find({
             user_type: { $in: ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'] }
         });
-        // Convert user list to a set to avoid duplicates
         const userIds = new Set(users.map(user => user._id));
-        // Ensure the task_user_id is included in the list
         userIds.add(task_user_id);
         // Step 4: Add task positions for each user
         for (const id of userIds) {
-            // Fetch all existing positions in the 'Todo' column for the current user
             const existingPositions = await UserTaskPositions.find({
                 user_id: id,
                 column: 'Todo'
             }).sort({ position: 1 });
-            let position = 1; // Start with position 1
+            let position = 1;
             if (existingPositions.length > 0) {
-                // Find the first gap in the sequence of positions
                 const positionSet = new Set(existingPositions.map(pos => pos.position));
                 while (positionSet.has(position)) {
                     position++;
@@ -1655,14 +1651,12 @@ router.put('/edit-task/:task_id', authenticateToken, async (req, res) => {
         task_type,
         priority_flag
     } = req.body;
-
     try {
         // Find the task by ID
         const task = await Tasks.findById(task_id);
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
         }
-
         // Update the task with the provided data
         task.task_name = task_name || task.task_name;
         task.task_description = task_description || task.task_description;
@@ -1676,10 +1670,8 @@ router.put('/edit-task/:task_id', authenticateToken, async (req, res) => {
         task.on_hold = on_hold !== undefined ? on_hold : task.on_hold;
         task.task_type = task_type || task.task_type;
         task.priority_flag = priority_flag || task.priority_flag;
-
         // Save the updated task
         await task.save();
-
         res.status(200).json({
             message: 'Task updated successfully',
             task
@@ -1808,17 +1800,17 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
         // Aggregate task logs with user and profile image information
         const taskLogs = await TaskStatusLogger.aggregate([
             { 
-                $match: { task_id:new mongoose.Types.ObjectId(task_id) } // Match the task_id
+                $match: { task_id:new mongoose.Types.ObjectId(task_id) } 
             },
             { 
                 $sort: { time_stamp: -1 } 
             },
             {
                 $lookup: {
-                    from: 'users', // Assuming users collection is called 'users'
-                    localField: 'task_user_id', // Reference field in TaskStatusLogger
-                    foreignField: '_id', // Reference field in User collection
-                    as: 'user' // Output field to store user data
+                    from: 'users', 
+                    localField: 'task_user_id', 
+                    foreignField: '_id',
+                    as: 'user' 
                 }
             },
             { 
@@ -1826,10 +1818,10 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'profileimages', // Assuming profile images collection is 'profileimages'
-                    localField: 'user.profileImage', // Reference field in User
-                    foreignField: '_id', // Reference field in ProfileImage collection
-                    as: 'user.profileImage' // Output field to store profile image
+                    from: 'profileimages', 
+                    localField: 'user.profileImage', 
+                    foreignField: '_id', 
+                    as: 'user.profileImage' 
                 }
             },
             { 
@@ -2066,7 +2058,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'projects', // MongoDB collection name for Projects
+                    from: 'projects', 
                     localField: 'project_id',
                     foreignField: '_id',
                     as: 'project',
@@ -2080,7 +2072,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'brands', // MongoDB collection name for Brands
+                    from: 'brands',
                     localField: 'project.brand_id',
                     foreignField: '_id',
                     as: 'project.brand',
@@ -2094,7 +2086,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'users', // MongoDB collection name for Users
+                    from: 'users', 
                     localField: 'task_user_id',
                     foreignField: '_id',
                     as: 'assignee',
@@ -2108,7 +2100,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'profileimages', // MongoDB collection name for ProfileImages
+                    from: 'profileimages', 
                     localField: 'assignee.profileImage',
                     foreignField: '_id',
                     as: 'assignee.profileImage',
@@ -2122,7 +2114,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'users', // MongoDB collection name for Users (for the lead)
+                    from: 'users', 
                     localField: 'project.lead_id',
                     foreignField: '_id',
                     as: 'project.lead',
@@ -2136,7 +2128,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
             {
                 $lookup: {
-                    from: 'profileimages', // MongoDB collection name for ProfileImages
+                    from: 'profileimages',
                     localField: 'project.lead.profileImage',
                     foreignField: '_id',
                     as: 'project.lead.profileImage',
