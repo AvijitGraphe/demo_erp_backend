@@ -582,11 +582,9 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 }
             }
         );
-
         if (end_date) {
             pipeline.push({ $match: { end_date: { $lte: new Date(end_date) } } });
         }
-
         pipeline.push({
             $project: {
                 _id: 0,
@@ -605,7 +603,6 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 members: 1
             }
         });
-
         const projects = await Projects.aggregate(pipeline);
         res.status(200).json({ message: 'Projects fetched successfully', projects });
     } catch (error) {
@@ -682,12 +679,10 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
                 },
             },
         ]);
-
         // If no project was found, return 404
         if (!project || project.length === 0) {
             return res.status(404).json({ message: 'Project not found' });
         }
-
         // Return the enriched project data
         res.status(200).json({
             message: 'Project fetched successfully',
@@ -707,12 +702,10 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
 //*---------project scearch by brand name ------------------*/
 router.get('/projects-by-brand', authenticateToken, async (req, res) => {
     const { brand_name } = req.query;
-
     try {
         if (!brand_name) {
             return res.status(400).json({ message: 'Brand name is required' });
         }
-
         const projects = await Projects.aggregate([
             {
                 $lookup: {
@@ -739,7 +732,6 @@ router.get('/projects-by-brand', authenticateToken, async (req, res) => {
                 }
             }
         ]);
-
         if (projects.length === 0) {
             return res.status(404).json({ message: 'No projects found for the specified brand' });
         }
