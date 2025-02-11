@@ -64,11 +64,11 @@ import Invoice_list from '../accounts/Invoice_list';
 import ExpireUser from '../admin/ExpireUser';
 
 const Dashboard = () => {
-  const { role: initialRole } = useAuth(); // Assuming `role` is provided by useAuth
-  const [role, setRole] = useState(initialRole); // Initialize role with value from useAuth
+  const { role: initialRole } = useAuth(); 
+  const [role, setRole] = useState(initialRole);
 
   useEffect(() => {
-    setRole(initialRole); // Update role if `initialRole` changes
+    setRole(initialRole);
   }, [initialRole]);
 
   return (
@@ -80,7 +80,6 @@ const Dashboard = () => {
         <Route path="hr" element={<ProtectedRoute element={Hr_dash} allowedRoles={['HumanResource']} />} />
         <Route path="exemployee" element={<ProtectedRoute element={Exemployee} allowedRoles={['Ex_employee']} />} />
         {/* <Route path="task_manager" element={<ProtectedRoute element={Taskm_dash} allowedRoles={['Task_manager']} />} /> */}
-
         {/*====Inner Pages Links ======*/}
         <Route path="profiledetails" element={<ProtectedRoute element={ProfileDetails} allowedRoles={['SuperAdmin','Admin', 'Employee', 'Social_Media_Manager', 'HumanResource', 'Task_manager', 'Founder','Department_Head']} />} />
         <Route path="all_notifications" element={<ProtectedRoute element={Notification} allowedRoles={['SuperAdmin','Admin', 'Employee', 'Social_Media_Manager', 'HumanResource', 'Task_manager', 'Founder','Department_Head']} />} />
@@ -112,7 +111,6 @@ const Dashboard = () => {
         <Route path="daily_task" element={<ProtectedRoute element={Daily_task} allowedRoles={['SuperAdmin','Admin', 'HumanResource', 'Founder']} />} />
         <Route path="addemployeeletter" element={<ProtectedRoute element={Employmentletter} allowedRoles={['SuperAdmin','Admin', 'HumanResource', 'Founder']} />} />
         <Route path="editemployletter/:template_id" element={<ProtectedRoute element={EditEmploymentletter} allowedRoles={['SuperAdmin','Admin', 'HumanResource', 'Founder']} />} />
-
         <Route path="employee_dailytask" element={<ProtectedRoute element={Dailytask_employee} allowedRoles={['Employee', 'Social_Media_Manager','Task_manager','Department_Head']} />} />
         <Route path="leave_apply" element={<ProtectedRoute element={Leave_apply} allowedRoles={['Employee', 'Social_Media_Manager', 'Task_manager','Department_Head']} />} />
         <Route path="download_documenis" element={<ProtectedRoute element={Download_doc} allowedRoles={['Employee', 'Social_Media_Manager', 'Task_manager','Department_Head', 'Ex_employee']} />} />
@@ -128,16 +126,13 @@ const Dashboard = () => {
         <Route path="ticket_details/:ticket_id" element={<ProtectedRoute element={Ticket_details} allowedRoles={['SuperAdmin','Admin', 'Employee', 'Social_Media_Manager', 'HumanResource', 'Task_manager', 'Founder','Department_Head']} />} />
         {/*Project Management*/}
         <Route path="employee_ticket_list" element={<ProtectedRoute element={Ticket_list_employee} allowedRoles={['SuperAdmin','Admin', 'Employee', 'Social_Media_Manager', 'HumanResource', 'Task_manager', 'Founder','Department_Head']} />} />
-
         <Route path="client_list" element={<ProtectedRoute element={Client_list} allowedRoles={['SuperAdmin']} />} />
         <Route path="edit_client" element={<ProtectedRoute element={Edit_client} allowedRoles={['SuperAdmin']} />} />
         <Route path="view_client" element={<ProtectedRoute element={View_client} allowedRoles={['SuperAdmin']} />} />
         <Route path="expenses" element={<ProtectedRoute element={Expenses} allowedRoles={['SuperAdmin']} />} />
         <Route path="invoice_list" element={<ProtectedRoute element={Invoice_list} allowedRoles={['SuperAdmin']} />} />
         <Route path="add_invoice" element={<ProtectedRoute element={Add_invoice} allowedRoles={['SuperAdmin']} />} />
-
         <Route path="exp_demo_uri" element={<ProtectedRoute element={ExpireUser} allowedRoles={['SuperAdmin']} />} />
-
       </Routes>
     </Container>
   );
