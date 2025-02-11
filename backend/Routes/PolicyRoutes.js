@@ -48,18 +48,13 @@ router.put('/policies/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { policy_name, policy_type, policy_subject, policy_desc, updated_by } = req.body;
-
         // Find the policy by ID
         const policy = await Policy.findById(id);
-
         if (!policy) {
             return res.status(404).json({ error: 'Policy not found' });
         }
-
         // Validate if the `updated_by` user exists
         const updator = await User.findById(updated_by);
-
-        
         if (!updator) {
             return res.status(404).json({ error: 'Updator not found' });
         }
