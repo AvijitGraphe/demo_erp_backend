@@ -251,7 +251,6 @@ router.delete('/policiesdelete/:id', authenticateToken, async (req, res) => {
         }
         // Use deleteOne instead of remove
         await Policy.deleteOne({ _id: id });
-
         return res.status(200).json({
             success: true,
             message: 'Policy successfully deleted.',
