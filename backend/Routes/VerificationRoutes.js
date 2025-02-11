@@ -9,8 +9,6 @@ const UserDetails = require('../Models/UserDetails');
 const BankDetails = require('../Models/BankDetails');
 const EducationInfo = require('../Models/EducationInfo');
 const EmergencyContact = require('../Models/EmergencyContact');
-
-
 const mongoose = require('mongoose');
 
 const moment = require('moment-timezone'); // Install moment.js if not already installed
@@ -22,11 +20,9 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
     if (!user_id || !user_type || !joining_date || !start_time) {
         return res.status(400).json({ message: 'Missing required fields: user_id, user_type, joining_date, start_time' });
     }
-
     if (user_type === 'SuperAdmin') {
         return res.status(400).json({ message: 'Cannot update user to SuperAdmin role' });
     }
-
     try {
         // Step 1: Fetch the role from the Role collection
         const role = await Role.findOne({
@@ -44,7 +40,6 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
         );
         // Step 3: Update or create joining date (JoiningDate model)
         const existingJoiningDate = await JoiningDate.findOne({ user_id:user_id });
-
         if (existingJoiningDate) {
             await JoiningDate.updateOne(
                 { user_id },
@@ -55,12 +50,9 @@ router.post('/update-user-role-location', authenticateToken, async (req, res) =>
                 { user_id, joining_date }
             );
         }
-
         // Step 4: Parse and format start_time into local time
         const localTime = moment.utc(start_time).tz('Asia/Kolkata');
         const formattedTime = localTime.format('HH:mm:ss');
-
-
         if (!formattedTime) {
             return res.status(400).json({ message: 'Invalid start_time format. Expected ISO 8601 format.' });
         }
@@ -171,7 +163,6 @@ router.get('/allroles', authenticateToken, async (req, res) => {
             success: true,
             data: roles, 
         });
-        
     } catch (error) {
         console.error('Error fetching roles:', error);
         res.status(500).json({
