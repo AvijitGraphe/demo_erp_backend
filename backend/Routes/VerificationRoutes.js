@@ -224,7 +224,6 @@ router.get('/users_verified', authenticateToken, async (req, res) => {
 // Employee Promotion API
 router.post('/promotion-users', authenticateToken, async (req, res) => {
     const { user_id, user_type, user_role_id } = req.body;
-    
     if (!user_id || !user_type, !user_role_id) {
         return res.status(400).json({ message: 'user_id and user_type are required' });
     }
