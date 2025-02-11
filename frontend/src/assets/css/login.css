@@ -1,0 +1,224 @@
+
+.error {
+    color: red;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.p-card-content{
+    padding-top: 0 !important;
+}
+
+.login-card .p-inputtext{
+    width: 100%;
+    border: 0;
+    font-size: 16px !important;
+    color: #000 !important;
+    font-weight: 600;
+    border: 1px solid #e3e3e3;
+    border-radius: 10px;
+    height: 54px;
+    margin-top: 8px;
+    padding: 0 10px;
+}
+.login-card{
+    background: #f9fdfc url(../images/login_bg.jpg) no-repeat center right;
+}
+.newyearcard{
+    background: #f9fdfc url(../images/newyear.png) no-repeat center right;
+    position: relative;
+    background-size: 54%;
+}
+.newyearcard::after {
+    content: '';
+    position: absolute;
+    top: -28%;
+    right: -22.5%;
+    width: 100%;
+    height: 100%;
+    background: url(../images/baclantern.png) no-repeat center right;
+    object-fit: contain;
+    background-size: 23%;
+}
+.login-card .row{
+    height: 100vh;
+    align-items: center;
+    padding-left: 0;
+    justify-content: start;
+    overflow: auto;
+    padding-left: 10%;
+    position: relative;
+    z-index: 2;
+}
+.w-440{
+    width: 450px !important;
+}
+.w-600{
+    width: 600px !important;
+}
+.login-card .p-card{
+    border-radius: 20px !important;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    padding: 20px;
+    background: #ffff;
+}
+.login-card label{
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    display: block;
+    color: #696969;
+}
+.login-card .p-button{
+    width: 100%;
+}
+/* .login-card .p-button-label{
+    font-size: 20px !important;
+} */
+.fnameinp{
+    /* border-bottom: 1px solid #cfcfcf; */
+    display: block;
+    border-radius: 0;
+    padding: 8px 0 0 0;
+}
+.p-inputtext::placeholder{
+    font-weight: 400;
+    font-size: 15px;
+    color: #a0a0a0;
+    font-style: italic;
+}
+.login-card a{
+    font-weight: 500 !important;
+    font-size: 14px;
+}
+.login-card a:hover{
+    color: blueviolet !important;
+}
+
+.login-card .PhoneInput{
+    width: 100%;
+    border: 0;
+    font-size: 16px !important;
+    color: #000 !important;
+    font-weight: 600;
+    border: 1px solid #e3e3e3;
+    border-radius: 10px;
+    height: 54px;
+    margin-top: 8px;
+    font-size: 18px !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+}
+.login-card label span{
+    color: #ff0000;
+}
+.pt-6{
+    padding-top: 9% !important;
+}
+.special-label{
+    display: none !important;
+}
+.react-tel-input .form-control{
+    border: 0 !important;
+    padding-left: 50px !important;
+}
+.p-card-title{
+    font-size: 22px;
+    color: #000;
+}
+.loginbtn{
+    background: #000932;
+    border: #000932 1px solid;
+    height: 56px !important;
+    display: block;
+    border-radius: 40px;
+    
+}
+.loginbtn span{
+    font-size: 18px !important;
+}
+.p-card-body{
+    padding-bottom: 0 ;
+}
+.p-input-icon-right > svg{
+    right: 10px;
+    top: 57%;
+}
+.PhoneInputInput{
+    flex: 1 1;
+    min-width: 0;
+    height: 46px;
+    border: 0;
+    
+}
+.PhoneInput{
+    border: 1px solid #d1d5db;
+    padding: 0 10px;
+}
+.PhoneInput input:focus-visible {
+    outline: none;
+    border: 0;
+}
+.login-card .p-card{
+    position: relative;
+}
+.user-Select{
+    position: absolute;
+    top:40px;
+    right: 40px;
+}
+.user-Select .form-select {
+    height: 35px;
+    border: 1px solid #e3e3e3 !important;
+    width: 110px;
+    border-radius: 5px !important;
+    font-size: 13px !important;
+    font-weight: 600;
+    background-color: #fff !important;
+    margin: 0 !important;
+}
+.user-Select label{
+    font-size: 13px !important;
+    color: #000;
+    margin-bottom: 6px;
+}
+@media (max-width: 1520px) {
+    .login-card .row{
+        padding-left: 0%;
+        justify-content: start;
+    }
+    .newyearcard::after {
+        top: -26%;
+        right: -9.5%;
+    }
+}
+.login-card{
+    position: relative;
+}
+.login-card .login_logo{
+    margin-bottom: 0px;
+    position: absolute;
+    right: 5%;
+    top: 8%;
+    font-weight: 700;
+    font-size: 20px;
+    display: flex;
+    flex-wrap: nowrap;
+    color: #000932;
+}
+.login-card .login_logo img{
+    margin-right: 10px;
+}
+
+.userchoose .form-select{
+    width: 100%;
+    border: 0;
+    font-size: 16px !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+    border: 1px solid #e3e3e3 !important;
+    border-radius: 10px !important;
+    height: 54px !important;
+    margin-top:15px !important;
+    padding: 8px 15px !important;
+}

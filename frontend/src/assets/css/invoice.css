@@ -1,0 +1,223 @@
+.inv_header{
+    text-align:  center;
+   
+}
+
+.inv-Div{
+    background: #ffffff;
+    padding: 0;
+    
+}
+
+.inv_form .card{
+    padding: 20px;
+}
+
+.inv_form .form-select{
+    border: 1px solid #e4e4e4 !important;
+    height: 46px;
+    margin-left: 0 !important;
+    font-size: 14px !important;
+    font-weight: 400;
+    color: #000 !important;
+    margin-bottom: 12px !important;
+}
+.inv_form label {
+    font-size: 13px;
+    color: #868686;
+    font-weight: 500;
+}
+.invtable th{
+    text-align: end;
+    font-size: 17px;
+    font-weight: 600 !important;
+}
+.service_form .form-control{
+    border: 1px solid #b9b9b9 !important;
+    font-size: 16px !important;
+}
+.template_sec{
+    /* position: sticky;
+    top: 6rem;
+    right: 0;
+    width: 45rem;
+    list-style: none;
+    padding: .25rem 0;
+    margin: 0 0 0 1rem;
+    align-self: flex-start; */
+}
+
+.inv_header span{
+    background: #ffe815 !important;
+    padding: 5px;
+    display: block;
+}
+.logo_part{
+    padding: 5px 0 8px 0;
+    text-align: center;
+}
+.logo_part img{
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    margin: 0 auto
+}
+.inv_header span .form-control{
+    width: 100% !important;
+    border: 0 !important;
+    background-color: transparent !important;
+    text-align: center;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    padding: 5px !important;
+    height: auto !important;
+}
+
+.inv_address{
+    display: flex;
+    flex-wrap: wrap;
+    padding: 20px 15px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #c5c5c5;
+    justify-content: space-between;
+}
+.inv_address p{
+    margin: 0 0 5px 0;
+    font-size: 13px;
+    color: #323535;
+
+}
+.inv_address div{
+  max-width: 50%;  
+}
+.inv_address p span{
+    font-size: 12px;
+    color: #000;
+    font-weight: 600;
+}
+.inv_cost{
+    padding: 0 15px;
+}
+.inv_cost table th{
+    font-size: 12px;
+    font-weight: 600;
+}
+.inv_cost table th:first-child{
+    width: 300px;
+}
+.inv_cost table td{
+    vertical-align: middle;
+    width: 180px;
+    font-size: 14px;
+}
+.noteText p, .sign_sec p, .bankDet p{
+    margin-bottom: 0;
+    font-size: 14px;
+    color: #323535;
+}
+.sign_sec{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+.sign_sec div{
+    max-width: 50%;
+}
+.note_de p{
+    font-size: 13px;
+}
+.bankDet{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+.bankDet p{
+    font-weight: 400;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #000;
+    width: calc((100% - 60px) / 2);
+}
+.bankDet p span{
+    font-weight: 500;
+}
+/* .bankDet{
+    max-width: 50%;
+    margin-bottom: 30px;
+} */
+
+.pdf-footer{
+    background: #313030;
+    padding: 8px 15px;
+}
+.pdf-footer p{
+    color: #fff;
+    margin: 0;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.85px;
+    font-weight: 300;
+}
+.pdf-footer p a{
+    color: #ffe815;
+}
+.sig img{
+    width: 100px;
+    height: auto;
+    object-fit: contain;
+}
+.pagination{
+    display: flex;
+    justify-content: end;
+}
+.pagination ul{
+    list-style: none ;
+    display: flex;
+}
+.pagination .page-item a {
+    padding: 8px 12px;
+    line-height: 1;
+}
+.pagination .page-item.active a {
+    background-color: #a855f8;
+    color: #fff;
+}
+
+.cancelled{
+    position: relative;
+  }
+  .cancelled::after{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #e5e5e5 url(../../assets/images/cancelled.png) no-repeat center center;
+    content: '';
+    top: 0;
+    left: 0;
+    opacity: 0.55;
+    background-size: contain;
+  }
+  
+  .cancelled .cancbtn{
+    z-index: 9;
+  }
+  
+  .adInv .form-label {
+    margin-bottom: .5rem;
+    color: #000 !important;
+    font-size: 14px;
+    }
+    .adInv .form-control, .adInv .form-select, .adInv .p-inputtext{
+    border-radius: 5px !important;
+    width: 100% !important;
+    height: 40px;
+    margin: 0 !important;
+    margin-bottom: 8px !important;
+}
+.addSER .form-control{
+    margin-right: 5px !important;
+}
+.adInv .sticky-top{
+    z-index: inherit !important;
+}
