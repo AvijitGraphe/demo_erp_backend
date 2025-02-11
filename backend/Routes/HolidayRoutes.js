@@ -48,7 +48,7 @@ router.post('/addholiday', authenticateToken, upload.single('image'), async (req
       imagekit_file_id: imagekitFileId,
       status,
     });
-    console.log("newHoliday", newHoliday);
+    // console.log("newHoliday", newHoliday);
     
 
     await newHoliday.save({ session });
