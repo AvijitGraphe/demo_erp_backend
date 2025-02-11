@@ -600,7 +600,7 @@ const Send_letter = () => {
                                             </Col>
 
 
-                                            <Col sm={12} lg={12} className="mb-3 ps-0">
+                                            <Col sm={12} lg={12} className="mb-3 ps-0 d-none">
                                                 <Form.Label>Admin Signature</Form.Label>
                                                 <Form.Control
                                                     type="file"
