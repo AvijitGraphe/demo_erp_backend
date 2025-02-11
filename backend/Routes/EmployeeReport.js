@@ -24,11 +24,10 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
     }
     try {
         // Parse month and year, and calculate the correct start and end dates
-        const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();  // Convert to Date object
-        const endDate = moment(startDate).endOf('month').toDate();  // Convert to Date object
+        const startDate = moment(`${year}-${month}-01`).startOf('month').toDate(); 
+        const endDate = moment(startDate).endOf('month').toDate();
         const isCurrentMonth = moment().isSame(moment(startDate), 'month');
         
-        // Fetch user details including profile image, role, attendances, and overtime
         const userDetails = await User.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(userId) } },
             {
@@ -96,33 +95,26 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
 
         const user = userDetails[0];
         const { attendances, userTimes, overtimes, joiningDates } = user;
-        const startTime = userTimes?.[0]?.start_time || '09:00:00'; // Default to 09:00 if no start time
+        const startTime = userTimes?.[0]?.start_time || '09:00:00';
 
         const totalDaysInMonth = moment(startDate).daysInMonth();
         const weekdays = [...Array(totalDaysInMonth).keys()].map((i) =>
             moment(startDate).add(i, 'days')
         );
         const workingDays = weekdays.filter(
-            (date) => ![0, 6].includes(date.day()) // Exclude weekends
+            (date) => ![0, 6].includes(date.day())
         );
-
         const totalPresentDays = attendances.length;
         const totalAbsentDays =
             isCurrentMonth
                 ? workingDays.filter((date) => date.isBefore(moment()) && !attendances.some((att) => att.date === date.format('YYYY-MM-DD'))).length
                 : workingDays.length - totalPresentDays;
-
         const lateDays = attendances.filter(
             (attendance) => moment(attendance.start_time, 'HH:mm:ss').isAfter(moment(startTime, 'HH:mm:ss'))
         ).map((attendance) => attendance.date);
-
         const totalLateCount = lateDays.length;
-
         const totalOvertimeMinutes = overtimes?.reduce((sum, overtime) => sum + overtime.total_time, 0) || 0;
-        const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); // Convert minutes to hours
-        
-        // Adding the end time to the attendances data before sending the response
-        // Sort attendances in descending order by date (or start_time)
+        const totalOvertimeHours = (totalOvertimeMinutes / 60).toFixed(2); 
         const formattedAttendances = attendances
         .map(att => ({
             ...att,
@@ -143,8 +135,6 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
             totalOvertimeHours,
             attendances: formattedAttendances,
         });
-
-
     } catch (error) {
         console.error(`Error fetching user details: ${error.message}`);
         res.status(500).json({ message: 'Error fetching user details', error: error.message });
@@ -158,8 +148,8 @@ router.get('/Employee-report-attendance', authenticateToken, async (req, res) =>
 
 
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
-    const { user_id } = req.params; // Get user_id from params
-    const { month, year } = req.query; // Get month and year from query params
+    const { user_id } = req.params;
+    const { month, year } = req.query;
 
     // Check if month and year are provided
     if (!month || !year) {
@@ -233,19 +223,15 @@ const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     const { month, year } = req.query;
-
     if (!month || !year) {
         return res.status(400).json({
             success: false,
             message: "Month and year query parameters are required.",
         });
     }
-
     try {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59);
-
-        //
         const taskCountsByStatus = await Tasks.aggregate([
             {
                 $match: {
@@ -258,20 +244,19 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
             },
             {
                 $group: {
-                    _id: "$status",  // Group by the 'status' field
-                    statusCount: { $sum: 1 }  // Count the number of documents per status
+                    _id: "$status", 
+                    statusCount: { $sum: 1 } 
                 }
             },
             {
                 $project: {
-                    status: "$_id",  // Rename the _id field to 'status'
-                    statusCount: 1,  // Keep the statusCount field
-                    _id: 0  // Exclude the default _id field
+                    status: "$_id",
+                    statusCount: 1,
+                    _id: 0
                 }
             }
         ]);
         
-    
         const missedAndOnTimeCounts = await Tasks.aggregate([
             { 
                 $match: { 
@@ -288,8 +273,6 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
             }
         ]);
 
- 
-        
         // For missed deadline tasks
         const missedDeadlineTasks = await Tasks.aggregate([
             { 
@@ -344,8 +327,6 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
                 }
             }
         ]);
-        
-
         const yearlyTotals = tasksByMonth.reduce(
             (acc, monthData) => {
                 acc.totalTasks += parseInt(monthData.totalTasks, 10);
@@ -394,13 +375,6 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
         });
     }
 });
-
-
-
-
-
-
-
 
 
 
@@ -502,9 +476,6 @@ router.get('/task-stats/monthly/:userId', async (req, res) => {
 });
 
 
-
-
-
 ///employee dashboard attendance 
 router.get('/dashboard-Employee-report-attendance', authenticateToken, async (req, res) => {
     const { userId } = req.query;
@@ -517,12 +488,9 @@ router.get('/dashboard-Employee-report-attendance', authenticateToken, async (re
         const month = now.getMonth();
         const startDate = new Date(year, month, 1);
         const endDate = new Date(year, month + 1, 0);
-
         const formattedStartDate = startDate.toISOString();
         const formattedEndDate = endDate.toISOString();
-
         const totalDaysInMonth = endDate.getDate();
-
         const aggregationPipeline = [
             { $match: { _id: new mongoose.Types.ObjectId(userId) } },
             {
@@ -696,11 +664,6 @@ router.get('/dashboard-Employee-report-attendance', authenticateToken, async (re
         res.status(500).json({ message: 'Error fetching user details', error: error.message });
     }
 });
-
-
-
-
-
 
 
 module.exports = router; 

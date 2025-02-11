@@ -69,7 +69,6 @@ router.post('/register', async (req, res) => {
 
 
 
-
 // POST /login - Authenticate use
 //login system with-out reister !
 // router.post('/login', async (req, res) => {
@@ -147,8 +146,6 @@ router.post('/login', async (req, res) => {
 });
 
 
-
-
 // Status route
 router.get('/status', authenticateToken, async (req, res) => {
   try {
@@ -170,7 +167,6 @@ router.get('/status', authenticateToken, async (req, res) => {
 });
 
 
-
 //update the expire employee data
 router.post("/updateExpiredate", authenticateToken, async (req, res) => {
   const { expire_date, expire_id } = req.body;
@@ -181,11 +177,9 @@ router.post("/updateExpiredate", authenticateToken, async (req, res) => {
         { _id: expire_id },
         { $set: { expire_date, updatedAt: new Date() } }
       );
-
       if (result.modifiedCount === 0) {
         return res.status(400).json({ message: 'No changes were made to the expire date.' });
       }
-
       return res.status(200).json({ message: 'Expire date updated successfully' });
     } else {
       await ExpireUser.create({
@@ -193,10 +187,8 @@ router.post("/updateExpiredate", authenticateToken, async (req, res) => {
         expire_date: expire_date,
         updatedAt: new Date(),
       });
-
       return res.status(200).json({ message: 'New expire date created successfully' });
     }
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Expire date update failed" });
@@ -220,11 +212,6 @@ router.get("/getallExpiredate", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Expire date update failed" });
   }
 });
-
-
-
-
-
 
 
 
