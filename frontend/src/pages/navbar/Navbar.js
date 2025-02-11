@@ -393,7 +393,6 @@ const Navbar = () => {
 
         // Show navigation links based on the user role
         switch (role) {
-
             case 'SuperAdmin':
                 return (
                     <>
