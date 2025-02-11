@@ -327,7 +327,7 @@ router.put('/edit-project/:project_id', authenticateToken, async (req, res) => {
         description,
         priority,
         lead_id,
-        project_files, // Single file URL
+        project_files, 
         member_id,      // Array of member user IDs
     } = req.body;
 
