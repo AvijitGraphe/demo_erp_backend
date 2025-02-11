@@ -318,7 +318,7 @@ router.post('/add-project', authenticateToken, async (req, res) => {
 
 // Edit Project API
 router.put('/edit-project/:project_id', authenticateToken, async (req, res) => {
-    const { project_id } = req.params; // Get project ID from URL parameters
+    const { project_id } = req.params; 
     const {
         project_name,
         brand_id,
@@ -328,7 +328,7 @@ router.put('/edit-project/:project_id', authenticateToken, async (req, res) => {
         priority,
         lead_id,
         project_files, 
-        member_id,      // Array of member user IDs
+        member_id,     
     } = req.body;
 
     try {
