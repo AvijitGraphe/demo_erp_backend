@@ -492,14 +492,11 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
     const { brand_name, end_date } = req.query;
     const userId = new mongoose.Types.ObjectId(user_id);
-
     try {
         const user = await User.findById(userId).select('user_type');
         if (!user) return res.status(404).json({ message: 'User not found' });
-
         const pipeline = [];
         const privilegedRoles = ['Founder', 'Admin', 'SuperAdmin', 'HumanResource', 'Department_Head', 'Task_manager'];
-
         if (!privilegedRoles.includes(user.user_type)) {
             pipeline.push({
                 $match: {
@@ -512,7 +509,6 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 }
             });
         }
-
         if (brand_name) {
             pipeline.push({
                 $lookup: {
@@ -527,7 +523,7 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 }
             });
             pipeline.push({
-                $match: { 'brand.0': { $exists: true } } // Ensure only projects with matching brand are returned
+                $match: { 'brand.0': { $exists: true } }
             });
         } else {
             pipeline.push({
@@ -540,7 +536,6 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
                 }
             });
         }
-
         pipeline.push(
             { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
             {
