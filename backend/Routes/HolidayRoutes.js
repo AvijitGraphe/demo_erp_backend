@@ -213,6 +213,8 @@ router.get('/holidays/week', authenticateToken, async (req, res) => {
       ...holiday.toObject(),
       holiday_date: moment(holiday.holiday_date).format('YYYY-MM-DD'),
     }));    
+    // console.log("formattedHolidays", formattedHolidays);
+    
     res.status(200).json({ holidays: formattedHolidays });
   } catch (error) {
     console.error(error);

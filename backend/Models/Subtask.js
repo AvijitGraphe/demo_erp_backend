@@ -15,8 +15,8 @@ const SubtaskSchema = new Schema({
     required: true
   },
   task_id: {
-    type: mongoose.Schema.Types.ObjectId,  // Task ID (ObjectId in MongoDB)
-    ref: 'Task',  // Reference to the Tasks model
+    type: mongoose.Schema.Types.ObjectId,  
+    ref: 'Task', 
     required: true
   },
   project_id: {
@@ -26,10 +26,10 @@ const SubtaskSchema = new Schema({
   },
   brand_id: {
     type: mongoose.Schema.Types.ObjectId,  // Brand ID (ObjectId in MongoDB)
-    ref: 'Brand',  // Reference to the Brand model
+    ref: 'Brand',  
   },
   project_role_id: {
-    type: mongoose.Schema.Types.ObjectId,  // Project User Role ID (ObjectId in MongoDB)
+    type: mongoose.Schema.Types.ObjectId, 
     ref: 'ProjectUserRole',
   },
   sub_task_description: {
@@ -76,10 +76,8 @@ const SubtaskSchema = new Schema({
     default: 'No-Priority'
   }
 }, {
-  timestamps: true  // Automatically manage createdAt and updatedAt fields
+  timestamps: true  
 });
 
-// Create the Mongoose model
 const Subtask = mongoose.model('Subtask', SubtaskSchema);
-
 module.exports = Subtask;
