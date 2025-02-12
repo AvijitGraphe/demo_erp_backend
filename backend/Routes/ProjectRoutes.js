@@ -621,7 +621,6 @@ router.get('/projects/user/:user_id', authenticateToken, async (req, res) => {
 // Fetch Project by ID API
 router.get('/projects/:project_id', authenticateToken, async (req, res) => {
     const { project_id } = req.params;
-
     try {
         // Use aggregation to fetch the project details and populate related data
         const project = await Projects.aggregate([
@@ -666,15 +665,15 @@ router.get('/projects/:project_id', authenticateToken, async (req, res) => {
             },
             {
                 $project: {
-                    _id: 1,  // Include project ID
-                    project_name: 1,  // Include project name
-                    description: 1,  // Include description
-                    status: 1,  // Include status
-                    priority: 1,  // Include priority
-                    start_date: 1,  // Include start date
-                    end_date: 1,  // Include end date
-                    brand: { brand_name: 1 },  // Include brand name
-                    lead: { user_id: 1, first_name: 1, last_name: 1, profile_image: '$lead.profileImage.image_url' },  // Include lead info
+                    _id: 1,  
+                    project_name: 1, 
+                    description: 1,  
+                    status: 1, 
+                    priority: 1, 
+                    start_date: 1, 
+                    end_date: 1,  
+                    brand: { brand_name: 1 },  
+                    lead: { user_id: 1, first_name: 1, last_name: 1, profile_image: '$lead.profileImage.image_url' },  
                     members: { user_id: 1, first_name: 1, last_name: 1, profile_image: { $arrayElemAt: ['$members.profileImage.image_url', 0] } },  // Include members info and profile image
                 },
             },
