@@ -73,8 +73,8 @@ const Navbar = () => {
     const [profileImageUrl, setProfileImageUrl] = useState(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [checkedIn, setCheckedIn] = useState(false);
-    const location = useLocation(); // Get the current URL path
-    // Check if the current path starts with a base path
+    const location = useLocation(); 
+    
     const isActive = (path) => location.pathname.startsWith(path);
     const menuIconClick = () => {
         setMenuCollapse(!menuCollapse);
@@ -129,13 +129,9 @@ const Navbar = () => {
                         Authorization: `Bearer ${accessToken}`,
                     },
                 });
-
-
                 // Assuming response.data is an array and you want the first item
                 const imgUrl = response.data.imageUrl; // Extract img_url from the response
                 setProfileImageUrl(imgUrl);
-
-
             } catch (error) {
                 console.error('Error fetching profile image:', error);
                 // Handle error as needed
@@ -343,11 +339,6 @@ const Navbar = () => {
         handleCheckOut();
         setShowConfirmDialog(false);
     };
-
-
-
-
-
 
 
 
@@ -1364,8 +1355,6 @@ const Navbar = () => {
                         </NavLink>
                     </>
                 );
-
-
 
             default:
                 return null;
