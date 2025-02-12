@@ -74,7 +74,7 @@ const Navbar = () => {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [checkedIn, setCheckedIn] = useState(false);
     const location = useLocation(); 
-    
+
     const isActive = (path) => location.pathname.startsWith(path);
     const menuIconClick = () => {
         setMenuCollapse(!menuCollapse);
@@ -365,8 +365,6 @@ const Navbar = () => {
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     };
-
-    /*------------------------------------------------*/
 
 
     const getNavLinks = () => {
