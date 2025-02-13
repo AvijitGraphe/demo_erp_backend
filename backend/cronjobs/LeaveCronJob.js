@@ -9,7 +9,6 @@ const User = require('../Models/User');
 const LeaveBalanceAdjuster = () => {
   // Define the cron job to run monthly
   cron.schedule('0 0 1 * *', async () => {
-    console.log('Running monthly leave accrual calculation...');
 
     const session = await mongoose.startSession();
     session.startTransaction();

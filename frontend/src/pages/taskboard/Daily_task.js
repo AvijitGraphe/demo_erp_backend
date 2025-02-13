@@ -65,7 +65,7 @@ const Daily_task = () => {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
             const data = response.data.data || {}; 
-            console.log("log the data", data);
+
                        
             setTasksheetsData(data);
             // Extract employee data with missed deadline counts

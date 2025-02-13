@@ -5,7 +5,7 @@ const TaskDeadlineJob = () => {
   cron.schedule('*/2 * * * *', async () => {
     try {
       const now = new Date();
-      console.log("now",now)
+
       const updatedTasks = await Tasks.updateMany(
         {
           status: { $in: ['InProgress', 'InChanges'] },
@@ -14,7 +14,7 @@ const TaskDeadlineJob = () => {
         },
         { $set: { missed_deadline: true } }
       );
-      console.log(`${updatedTasks.nModified} tasks updated for missed deadlines.`);
+
     } catch (error) {
       console.error('Error checking task deadlines:', error);
     }
