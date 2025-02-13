@@ -1107,13 +1107,6 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 //fetch  all data
 
 
-
-
-
-//get the all routes
-
-
-
 router.get('/tasks/kanban', authenticateToken, async (req, res) => {
     try {
         const { user_id, brand_id, task_type, start_date, end_date } = req.query;
@@ -1279,10 +1272,6 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
-
-
-
 
 
 
@@ -2144,6 +2133,7 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             },
         ]);
         
+        console.log("tasks", tasks)
         // Categorize tasks
         const categorizedTasks = {
             today_tasks: tasks.filter(
@@ -2168,11 +2158,141 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
             ),
         };
 
+        // console.log("categorizedTasks", categorizedTasks)
         res.status(200).json({ success: true, data: categorizedTasks });
     } catch (error) {
         res.status(500).json({ success: false, message: 'An error occurred while fetching tasks.' });
     }
 });
+
+// router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) => {
+//     const { user_id } = req.params;
+
+//     try {
+//         // Define start and end of the week
+//         const startOfWeek = moment().startOf('week').toDate();
+//         const endOfWeek = moment().endOf('week').toDate();
+
+//         // Define start and end of today
+//         const today = moment().startOf('day').toDate();
+//         const endOfToday = moment().endOf('day').toDate();
+
+//         // Fetch tasks for the user and categorize them
+//         const tasks = await Tasks.aggregate([
+//             {
+//                 $match: {
+//                     task_user_id: new mongoose.Types.ObjectId(user_id),
+//                     is_active: true,
+//                 }
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'projects', // Assuming the collection name for projects is 'projects'
+//                     localField: 'project_id',
+//                     foreignField: '_id',
+//                     as: 'project',
+//                     pipeline: [
+//                         { $project: { project_id: 1, project_name: 1 } },
+//                         {
+//                             $lookup: {
+//                                 from: 'brands', // Assuming the collection name for brands is 'brands'
+//                                 localField: 'brand_id',
+//                                 foreignField: '_id',
+//                                 as: 'brand',
+//                                 pipeline: [{ $project: { brand_id: 1, brand_name: 1 } }],
+//                             }
+//                         },
+//                         {
+//                             $lookup: {
+//                                 from: 'users', // Assuming the collection name for users is 'users'
+//                                 localField: 'lead_id', // Assuming lead_id is the reference to the lead user
+//                                 foreignField: '_id',
+//                                 as: 'lead',
+//                                 pipeline: [
+//                                     { $project: { user_id: 1, first_name: 1, last_name: 1 } },
+//                                     {
+//                                         $lookup: {
+//                                             from: 'profileimages', // Assuming the collection name for profile images is 'profileimages'
+//                                             localField: '_id',
+//                                             foreignField: 'user_id',
+//                                             as: 'profileImage',
+//                                             pipeline: [{ $project: { image_url: 1 } }],
+//                                         }
+//                                     },
+//                                     { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+//                                 ],
+//                             }
+//                         },
+//                     ],
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'users', // Assuming the collection name for users is 'users'
+//                     localField: 'task_user_id',
+//                     foreignField: '_id',
+//                     as: 'assignee',
+//                     pipeline: [
+//                         { $project: { user_id: 1, first_name: 1, last_name: 1 } },
+//                         {
+//                             $lookup: {
+//                                 from: 'profileimages', // Assuming the collection name for profile images is 'profileimages'
+//                                 localField: '_id',
+//                                 foreignField: 'user_id',
+//                                 as: 'profileImage',
+//                                 pipeline: [{ $project: { image_url: 1 } }],
+//                             }
+//                         },
+//                         { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+//                     ],
+//                 },
+//             },
+//             {
+//                 $project: {
+//                     task_name: 1,
+//                     task_startdate: 1,
+//                     status: 1,
+//                     priority_flag: 1,
+//                     missed_deadline: 1,
+//                     task_user_id: 1,
+//                     assignee: 1,
+//                     project: 1,
+//                     brand: 1,
+//                     lead: 1,
+//                 },
+//             }
+//         ]);
+
+//         // Categorize tasks
+//         const categorizedTasks = {
+//             today_tasks: tasks.filter(
+//                 (task) =>
+//                     moment(task.task_startdate).isBetween(today, endOfToday, null, '[]') &&
+//                     task.status === 'Todo'
+//             ),
+//             pending_tasks: tasks.filter(
+//                 (task) =>
+//                     moment(task.task_startdate).isBetween(startOfWeek, endOfWeek, null, '[]') &&
+//                     ['InProgress', 'InReview', 'InChanges'].includes(task.status)
+//             ),
+//             urgent_tasks: tasks.filter(
+//                 (task) =>
+//                     task.priority_flag === 'Priority' &&
+//                     moment(task.task_startdate).isBetween(startOfWeek, endOfWeek, null, '[]')
+//             ),
+//             missed_deadlines: tasks.filter(
+//                 (task) =>
+//                     task.missed_deadline === true &&
+//                     moment(task.task_startdate).isBetween(startOfWeek, endOfWeek, null, '[]')
+//             ),
+//         };
+
+//         res.status(200).json({ success: true, data: categorizedTasks });
+//     } catch (error) {
+//         console.error('Error fetching categorized tasks:', error);
+//         res.status(500).json({ success: false, message: 'An error occurred while fetching tasks.' });
+//     }
+// });
 
 
 
@@ -2351,15 +2471,12 @@ router.get('/specific-user-task-summary', authenticateToken, async (req, res) =>
     if (!user_id) {
         return res.status(400).json({ error: 'user_id is required' });
     }
-
     try {
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth();
-
         const startDate = new Date(year, month, 1);
         const endDate = new Date(year, month + 1, 0);
-
         const aggregationPipeline = [
             {
                 $match: {
@@ -2425,22 +2542,17 @@ router.get('/specific-user-task-summary', authenticateToken, async (req, res) =>
                 },
             },
         ];
-
         const aggregationResult = await Tasks.aggregate(aggregationPipeline);
-
         if (aggregationResult.length === 0) {
             return res.status(404).json({ error: 'No tasks found for this user in the specified period.' });
         }
-
         // Prepare the final summary structure
         const summary = aggregationResult[0];
-
         // Prepare task status counts
         const allStatuses = ['Todo', 'InProgress', 'InReview', 'InChanges', 'Completed'];
         allStatuses.forEach((status) => {
             summary[status] = summary.taskCounts.filter((taskStatus) => taskStatus === status).length;
         });
-
         // Remove taskCounts from final summary
         delete summary.taskCounts;
         res.json({ summary });

@@ -364,6 +364,9 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
       },
     ]);
 
+    
+    
+
     const filteredRequests = leaveRequests.filter((request) => {
       const datesArray =
         typeof request.dates === 'string' ? JSON.parse(request.dates) : request.dates;
@@ -387,6 +390,8 @@ router.get('/approved-leave-requests', authenticateToken, async (req, res) => {
 
       return formattedRequest;
     });
+
+    
     res.json({ leaveRequests: formattedRequests });
   } catch (error) {
     console.error('Error fetching leave requests:', error);

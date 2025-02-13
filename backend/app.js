@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const connectToMongoDB = require('./config/database'); 
 
 
+
 // Definition of routes
 const authRoutes = require('./Routes/AuthRoutes');
 const promotionRoutes = require('./Routes/VerificationRoutes');
@@ -29,6 +30,9 @@ const MeetingRoutes = require('./Routes/MeetingRoutes');
 const TicketRoutes = require('./Routes/TicketRoutes');
 const ResignationRoutes = require('./Routes/Resignation_Routes');
 const EmployeeAssest = require('./Routes/EmployeeAssetRoutes');
+
+const TaskDeadlineJob = require('./cronjobs/TaskDeadlinejob');
+const LeaveBalanceAdjuster = require('./cronjobs/LeaveCronJob');
 
 
 const app = express();
@@ -118,6 +122,8 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB
 connectToMongoDB().then(() => {
     const server = app.listen(port, () => {
+        TaskDeadlineJob();
+        LeaveBalanceAdjuster();
         console.log(`Server is running on ${port}`);
     });
 });

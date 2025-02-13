@@ -233,12 +233,15 @@ router.get('/fetch-dashboard-attendance-summary', authenticateToken, async (req,
                 },
             },
         ]);
+        console.log("leaveRequests",leaveRequests);
+        
         
         const leaveUserIds = leaveRequests.map(leave => leave.user_id);
         const leaveUsers = users.filter(user => leaveUserIds.some(leaveUserId => leaveUserId.equals(user.user_id)));
         const finalNotCheckedInUsers = notCheckedInUsers.filter(
             user => !leaveUserIds.includes(user.user_id)
         );
+        console.log("log the ", leaveUsers.length, leaveUsers)
         res.json({
             totalUsers,
             presentCount: presentUserIds.length,

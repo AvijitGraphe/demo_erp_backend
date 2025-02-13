@@ -69,10 +69,11 @@ function EmpLeaverequest({ onSuccess }) {
             const dates = selectedDates.map(date =>
                 new Date(date).toLocaleDateString('en-CA')
             ); 
+
             const response = await axios.post(`${config.apiBASEURL}/leaveRoutes/add-leave`, {
                 user_id: userId,
                 Leave_type_Id: leaveTypeId,
-                dates: selectedDates,
+                dates: dates,
                 Total_days: totalDays,
                 reason: leaveReason,
             }, {

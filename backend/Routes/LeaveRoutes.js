@@ -242,6 +242,9 @@ const transporter = nodemailer.createTransport({
 //not update !!!!
 router.post('/add-leave', authenticateToken, async (req, res) => {
     const { user_id, Leave_type_Id, dates, Total_days, reason } = req.body;
+
+    console.log("user_id, Leave_type_Id, dates, Total_days, reason", user_id, Leave_type_Id, dates, Total_days, reason);
+    
     try {
         // Fetch the user's details (name, email, etc.)
         const user = await User.findById(user_id).select('first_name last_name email');
@@ -1141,6 +1144,130 @@ router.put('/update-leave-status', authenticateToken, async (req, res) => {
 
 
 //leave-requests-by-status
+// router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
+//     try {
+//         const { start_date, end_date, search_query } = req.query;
+//         const matchConditions = {};
+//         if (start_date && end_date) {
+//             matchConditions.updatedAt = {
+//                 $gte: new Date(start_date),
+//                 $lte: new Date(end_date),
+//             };
+//         }
+//         const userMatchConditions = {};
+//         if (search_query) {
+//             userMatchConditions.$or = [
+//                 { first_name: { $regex: search_query, $options: 'i' } },
+//                 { last_name: { $regex: search_query, $options: 'i' } },
+//             ];
+//         }
+//         const leaveRequests = await LeaveRequest.aggregate([
+//             {
+//                 $match: matchConditions,
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'users',
+//                     localField: 'user_id',
+//                     foreignField: '_id',
+//                     as: 'requestor',
+//                     pipeline: [
+//                         { $match: userMatchConditions },
+//                         { $project: { first_name: 1, last_name: 1, email: 1 } },
+//                         {
+//                             $lookup: {
+//                                 from: 'profileimages',
+//                                 localField: '_id',
+//                                 foreignField: 'user_id',
+//                                 as: 'profileImage',
+//                                 pipeline: [{ $project: { image_url: 1 } }],
+//                             },
+//                         },
+//                         { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
+//                     ],
+//                 },
+//             },
+//             {
+//                 $lookup: {
+//                     from: 'leavetypes',
+//                     let: { leaveTypeId: { $toObjectId: "$Leave_type_Id" } },
+//                     pipeline: [
+//                         { 
+//                             $match: { 
+//                                 $expr: { $eq: ["$_id", "$$leaveTypeId"] }
+//                             }
+//                         },
+//                         { 
+//                             $project: { 
+//                                 _id: 1, 
+//                                 name: 1, 
+//                                 description: 1 
+//                             }
+//                         }
+//                     ],
+//                     as: 'leaveType',
+//                 }
+//             },
+//             {
+//                 $match: {
+//                     'requestor': { $ne: [] }  
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: '$Status',
+//                     requests: { $push: '$$ROOT' },
+//                 },
+//             },
+//             {
+//                 $project: {
+//                     _id: 0,
+//                     status: '$_id',
+//                     requests: 1,
+//                 },
+//             },
+//             {
+//                 $sort: { status: 1 },
+//             },
+//         ]);
+
+//         const groupedRequests = {
+//             Pending: [],
+//             Approved: [],
+//             Rejected: [],
+//         };
+//         leaveRequests.forEach((group) => {
+//             groupedRequests[group.status] = group.requests.map((request) => {
+//                 return {
+//                     ...request,
+//                     Leave_request_id: request._id,
+//                     _id: undefined, 
+//                 };
+//             });
+//         });
+//         if (leaveRequests.length === 0) {
+//             return res.status(200).json({
+//                 success: true,
+//                 data: groupedRequests,
+//             });
+//         }
+
+//         console.log("groupedRequests",groupedRequests,);
+        
+//         res.status(200).json({
+//             success: true,
+//             data: groupedRequests,
+//         });
+//     } catch (error) {
+//         console.error('Error fetching leave requests by status:', error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch leave requests',
+//             error: error.message,
+//         });
+//     }
+// });
+
 router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
     try {
         const { start_date, end_date, search_query } = req.query;
@@ -1182,6 +1309,16 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                         },
                         { $unwind: { path: '$profileImage', preserveNullAndEmptyArrays: true } },
                     ],
+                },
+            },
+            {
+                $addFields: {
+                    'requestor.user_id': { $arrayElemAt: ['$requestor._id', 0] }, // Rename _id to user_id
+                },
+            },
+            {
+                $project: {
+                    'requestor._id': 0, // Remove the original _id field from requestor
                 },
             },
             {
@@ -1242,12 +1379,16 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
                 };
             });
         });
+
         if (leaveRequests.length === 0) {
             return res.status(200).json({
                 success: true,
                 data: groupedRequests,
             });
         }
+
+        console.log("groupedRequests", groupedRequests);
+        
         res.status(200).json({
             success: true,
             data: groupedRequests,
@@ -1261,7 +1402,6 @@ router.get('/leave-requests-by-status', authenticateToken, async (req, res) => {
         });
     }
 });
-
 
 
 //leave-requests/user/:user_id
@@ -1373,6 +1513,8 @@ router.get('/leave-requests/user/:user_id', authenticateToken, async (req, res) 
 //fetch-user-leave-balances/:user_id'
 router.get('/fetch-user-leave-balances/:user_id', authenticateToken, async (req, res) => {
     const { user_id } = req.params;
+    console.log("user_id", user_id);
+    
 
     try {
         const leaveBalances = await LeaveBalance.aggregate([

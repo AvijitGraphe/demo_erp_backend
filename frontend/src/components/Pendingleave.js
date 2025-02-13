@@ -91,8 +91,10 @@ const Pendingleave = ({ pendingLeaves, fetchLeaveRequests }) => {
     };
 
     const handleOpenDialog = (request) => {
+        console.log(request);
+        
         setSelectedRequest(request);
-        fetchLeaveBalances(request.requestor.User_id);
+        fetchLeaveBalances(request.requestor[0]?.user_id);
         setShowDialog(true);
     };
 

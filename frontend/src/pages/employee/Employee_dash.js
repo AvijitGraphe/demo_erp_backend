@@ -102,7 +102,6 @@ const Employee_dash = () => {
         // Calculate start_date (yesterday) and end_date (today)
         const end_date = moment().format('YYYY-MM-DD');
         const start_date = moment().subtract(1, 'days').format('YYYY-MM-DD');
-
         const fetchTasksheets = async () => {
             try {
                 const response = await axios.get(`${config.apiBASEURL}/tasksheetRoutes/tasksheets/user/${userId}`, {
@@ -116,10 +115,8 @@ const Employee_dash = () => {
                 setLoading(false);
             }
         };
-
         fetchTasksheets();
     }, [accessToken, userId]);
-
 
     const renderTasks = (taskList, columns) =>
         taskList.length > 0 ? (
@@ -255,7 +252,7 @@ const Employee_dash = () => {
                                             </tbody>
                                         </Table>
                                     ) : (
-                                        <p>Loading task summary...</p>
+                                        <p>No tasks Available</p>
                                     )}
                                 </Card.Body>
                             </Card>
@@ -306,7 +303,7 @@ const Employee_dash = () => {
                                             </tbody>
                                         </Table>
                                     ) : (
-                                        <p>Loading task summary...</p>
+                                        <p>No tasks Available</p>
                                     )}
                                 </Card.Body>
                             </Card>

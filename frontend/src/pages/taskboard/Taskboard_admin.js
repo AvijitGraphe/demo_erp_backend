@@ -52,7 +52,7 @@ const Taskboard_admin = () => {
         'HumanResource',
         'Accounts',
         'Department_Head',
-        'Task_manager'
+        'Task_manager',
     ];
 
     const [isDialogVisible, setDialogVisible] = useState(false);
