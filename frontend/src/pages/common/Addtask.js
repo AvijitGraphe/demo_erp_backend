@@ -21,7 +21,8 @@ const AddTask = () => {
     const [selectedProject, setSelectedProject] = useState("");
     const [projects, setProjects] = useState([]);
     const [selectedUserDetails, setSelectedUserDetails] = useState(null);
-    const [videoDialogVisible, setVideoDialogVisible] = useState(false); // New state for video dialog
+    const [videoDialogVisible, setVideoDialogVisible] = useState(false);
+    const [loading, setLoading] = useState(false);
     const createEmptyTaskForm = () => ({
         user_id: "",
         task_name: "",
@@ -136,7 +137,8 @@ const AddTask = () => {
 
     //save task the data
     const handleTaskSubmit = async (e) => {
-        e.preventDefault();  
+        e.preventDefault(); 
+        setLoading(true); 
         const tasksWithBrandAndProject = taskForms.map((task) => ({
             ...task,
             brand_id: selectedBrand?.id || "",
@@ -148,16 +150,15 @@ const AddTask = () => {
                 { tasks: tasksWithBrandAndProject },
                 { headers: { Authorization: `Bearer ${accessToken}` } }
             );
-            // Show video dialog
             setVideoDialogVisible(true);
             setTimeout(() => {
-                // Hide video dialog after 5 seconds
                 setVideoDialogVisible(false);
-                // Navigate to the admin task board
                 navigate("/dashboard/task_board_admin");
             }, 5000);
         } catch (error) {
             console.error("Error adding tasks:", error);
+        }finally {
+            setLoading(false); 
         }
     };
 
@@ -222,11 +223,11 @@ const AddTask = () => {
                                             label="Save All"
                                             icon="pi pi-check"
                                             className="py-2 border-0"
+                                            loading={loading}
                                             onClick={handleTaskSubmit}
                                         />
                                     </div>
                                     <Row>
-
                                         {taskForms.map((task, index) => (
                                             <div key={index} className="mb-2 border p-3 oddBox">
                                                 <div className="d-flex justify-content-between align-items-center position-relative">
