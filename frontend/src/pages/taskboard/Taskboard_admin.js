@@ -73,7 +73,6 @@ const Taskboard_admin = () => {
         try {
             setIsLoading(true); // Set loading state
             setColumns({}); // Reset columns
-
             const response = await axios.get(`${config.apiBASEURL}/projectRoutes/tasks/kanban`, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
@@ -86,7 +85,6 @@ const Taskboard_admin = () => {
                     task_type: taskType || null, // Only include task_type if selected
                 },
             });
-
             const data = response.data?.data || initialColumns;
             setColumns(data);
         } catch (error) {
@@ -118,6 +116,7 @@ const Taskboard_admin = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
+            console.log("log the brnad_id", response);
             setBrands(response.data || []);
         } catch (error) {
             console.error("Error fetching brands:", error);
@@ -129,6 +128,8 @@ const Taskboard_admin = () => {
         fetchUsers();
     }, [accessToken, userId]);
 
+   
+   
     // Filter brands for autocomplete
     const searchBrands = (event) => {
         const query = event.query.toLowerCase();
@@ -308,11 +309,9 @@ const Taskboard_admin = () => {
             if (response.status === 201 && response.data.message) {
                 closeDialog(); // Close the dialog
                 setVideoDialogVisible(true); // Show video dialog
-               
                 setTimeout(() => {
                     setVideoDialogVisible(false); // Hide video dialog after 6 seconds
                     fetchTasks();
-                  
                 }, 5000);
             } else {
                 console.error("Failed to duplicate task:", response.data.error || response.data.message);
@@ -327,7 +326,6 @@ const Taskboard_admin = () => {
 
     const handleDeadlineUpdate = async () => {
         if (!selectedTask || !newDeadline) return;
-
         try {
             const response = await axios.put(
                 `${config.apiBASEURL}/projectRoutes/update-task-deadline`,
@@ -386,7 +384,7 @@ const Taskboard_admin = () => {
                             className="form-select mx-2"
                             style={{ width: "150px" }}
                         >
-                            <option value="">Select Task Type</option>
+                            <option value="" selected disabled>Select Task Type</option>
                             <option value="Graphe">Graphe</option>
                             <option value="Weddings">Weddings</option>
                         </select>

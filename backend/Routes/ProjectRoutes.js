@@ -836,15 +836,21 @@ router.post('/AddeditBrands', authenticateToken, async (req, res) => {
 
 
 
-// READ: Get all Brands
 router.get('/fetchallbrands', authenticateToken, async (req, res) => {
     try {
         const brands = await Brand.find();
-        res.status(200).json(brands); 
+        const transformedBrands = brands.map(brand => ({
+            brand_id: brand._id,
+            brand_name: brand.brand_name,
+            createdAt: brand.createdAt,
+            updatedAt: brand.updatedAt
+        }));
+        console.log("Transformed Brands:", transformedBrands);
+        res.status(200).json(transformedBrands);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve brands', details: error.message });
     }
-});
+})
 
 
 
@@ -1109,6 +1115,8 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 router.get('/tasks/kanban', authenticateToken, async (req, res) => {
     try {
         const { user_id, brand_id, task_type, start_date, end_date } = req.query;
+
+        console.log("log the data", user_id, brand_id, task_type, start_date, end_date)
 
         if (!user_id) {
             return res.status(400).json({ message: 'User ID is required' });
