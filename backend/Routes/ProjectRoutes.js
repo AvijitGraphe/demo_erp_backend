@@ -845,7 +845,6 @@ router.get('/fetchallbrands', authenticateToken, async (req, res) => {
             createdAt: brand.createdAt,
             updatedAt: brand.updatedAt
         }));
-        console.log("Transformed Brands:", transformedBrands);
         res.status(200).json(transformedBrands);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve brands', details: error.message });
@@ -1112,126 +1111,117 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 
 
 //get the all routes
+
+
+
 router.get('/tasks/kanban', authenticateToken, async (req, res) => {
     try {
         const { user_id, brand_id, task_type, start_date, end_date } = req.query;
-
-        console.log("log the data", user_id, brand_id, task_type, start_date, end_date)
-
         if (!user_id) {
             return res.status(400).json({ message: 'User ID is required' });
         }
-
         // Build dynamic filter for MongoDB
-        const filter = { user_id };
+        const filter = { 'user_id': new mongoose.Types.ObjectId(user_id) };
         if (brand_id) {
-            filter['task.project.brand_id'] = brand_id;
+            filter['task.brand_id'] = new mongoose.Types.ObjectId(brand_id);
         }
         if (task_type) {
             filter['task.task_type'] = task_type;
         }
         if (start_date || end_date) {
-        filter['task.task_startdate'] = filter['task.task_startdate'] || {};
-        if (start_date) {
-            filter['task.task_startdate'].$gte = new Date(`${start_date}T00:00:00`);
+            filter['task.task_startdate'] = {};
+            if (start_date) {
+                filter['task.task_startdate'].$gte = new Date(`${start_date}T00:00:00`);
+            }
+            if (end_date) {
+                filter['task.task_startdate'].$lte = new Date(`${end_date}T23:59:59`);
+            }
         }
-        if (end_date) {
-            filter['task.task_startdate'].$lte = new Date(`${end_date}T23:59:59`);
-        }
-        }
-        
         // Fetch tasks with aggregation pipeline
         const userTasks = await UserTaskPositions.aggregate([
-            { 
-                $match: { 
-                    user_id: new mongoose.Types.ObjectId(filter.user_id)
-                } 
-            },
+            { $match: { user_id: filter.user_id } },
             {
-              $lookup: {
-                from: 'tasks',
-                localField: 'task_id',
-                foreignField: '_id',
-                as: 'task',
-              },
+                $lookup: {
+                    from: 'tasks',
+                    localField: 'task_id',
+                    foreignField: '_id',
+                    as: 'task',
+                },
             },
             { $unwind: '$task' },
-        
             {
-              $match: {
-                'task.task_startdate': {
-                  '$gte': new Date(filter['task.task_startdate'].$gte),
-                  '$lte': new Date(filter['task.task_startdate'].$lte)
-                }
-              }
+                $match: {
+                    ...filter,
+                    'task.task_startdate': {
+                        '$gte': filter['task.task_startdate'].$gte || new Date('1970-01-01'),
+                        '$lte': filter['task.task_startdate'].$lte || new Date(),
+                    },
+                },
             },
-            // The rest of your lookup stages
             {
-              $lookup: {
-                from: 'projects',
-                localField: 'task.project_id',
-                foreignField: '_id',
-                as: 'task.project',
-              },
+                $lookup: {
+                    from: 'projects',
+                    localField: 'task.project_id',
+                    foreignField: '_id',
+                    as: 'task.project',
+                },
             },
             { $unwind: { path: '$task.project', preserveNullAndEmptyArrays: true } },
             {
-              $lookup: {
-                from: 'brands',
-                localField: 'task.project.brand_id',
-                foreignField: '_id',
-                as: 'task.project.brand',
-              },
+                $lookup: {
+                    from: 'brands',
+                    localField: 'task.project.brand_id',
+                    foreignField: '_id',
+                    as: 'task.project.brand',
+                },
             },
             { $unwind: { path: '$task.project.brand', preserveNullAndEmptyArrays: true } },
             {
-              $lookup: {
-                from: 'users',
-                localField: 'task.assignee_id',
-                foreignField: '_id',
-                as: 'task.assignee',
-              },
+                $lookup: {
+                    from: 'users',
+                    localField: 'task.assignee_id',
+                    foreignField: '_id',
+                    as: 'task.assignee',
+                },
             },
             { $unwind: { path: '$task.assignee', preserveNullAndEmptyArrays: true } },
             {
-              $lookup: {
-                from: 'profileimages',
-                localField: 'task.assignee.profile_image_id',
-                foreignField: '_id',
-                as: 'task.assignee.profileImage',
-              },
+                $lookup: {
+                    from: 'profileimages',
+                    localField: 'task.assignee.profile_image_id',
+                    foreignField: '_id',
+                    as: 'task.assignee.profileImage',
+                },
             },
             { $unwind: { path: '$task.assignee.profileImage', preserveNullAndEmptyArrays: true } },
-            
             {
-              $project: {
-                task_id: '$task._id',
-                task_name: '$task.task_name',
-                status: '$task.status',
-                priority: '$task.priority',
-                priority_flag: '$task.priority_flag',
-                missed_deadline: '$task.missed_deadline',
-                task_description: '$task.task_description',
-                position: 1,
-                task_deadline: '$task.task_deadline',
-                assignee_name: {
-                  $concat: [
-                    { $ifNull: ['$task.assignee.first_name', 'N/A'] },
-                    ' ',
-                    { $ifNull: ['$task.assignee.last_name', ''] },
-                  ],
+                $project: {
+                    task_id: '$task._id',
+                    task_name: '$task.task_name',
+                    status: '$task.status',
+                    priority: '$task.priority',
+                    priority_flag: '$task.priority_flag',
+                    missed_deadline: '$task.missed_deadline',
+                    task_description: '$task.task_description',
+                    position: 1,
+                    task_deadline: '$task.task_deadline',
+                    assignee_name: {
+                        $concat: [
+                            { $ifNull: ['$task.assignee.first_name', 'N/A'] },
+                            ' ',
+                            { $ifNull: ['$task.assignee.last_name', ''] },
+                        ],
+                    },
+                    assignee_email: '$task.assignee.email',
+                    profile_image: '$task.assignee.profileImage.image_url',
+                    project_name: '$task.project.project_name',
+                    brand_name: '$task.project.brand.brand_name',
+                    column: 1,
                 },
-                assignee_email: '$task.assignee.email',
-                profile_image: '$task.assignee.profileImage.image_url',
-                project_name: '$task.project.project_name',
-                brand_name: '$task.project.brand.brand_name',
-                column: 1,
-              },
             },
-            
             { $sort: { column: 1, 'task.priority_flag': -1, position: 1 } },
         ]);
-        
+
         if (!userTasks || userTasks.length === 0) {
             return res.status(200).json({
                 message: "No tasks found for the user's Kanban board",
@@ -1253,7 +1243,6 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
             InChanges: [],
             Completed: [],
         };
-
         userTasks.forEach((task) => {
             const taskData = {
                 task_id: task.task_id,
@@ -1271,12 +1260,10 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
                 project_name: task.project_name || 'N/A',
                 brand_name: task.brand_name || 'N/A',
             };
-
             if (kanbanBoard[task.column]) {
                 kanbanBoard[task.column].push(taskData);
             }
         });
-
         Object.keys(kanbanBoard).forEach((column) => {
             kanbanBoard[column].sort((a, b) => {
                 const priorityOrder = b.priority_flag.localeCompare(a.priority_flag);
@@ -1292,6 +1279,8 @@ router.get('/tasks/kanban', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+
 
 
 

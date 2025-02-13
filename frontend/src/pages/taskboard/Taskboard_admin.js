@@ -163,9 +163,7 @@ const Taskboard_admin = () => {
         updatedColumns[source.droppableId] = sourceColumn;
         updatedColumns[destination.droppableId] = destinationColumn;
         setColumns(updatedColumns);
-
         let updateSuccess = false;
-
         try {
             setIsLoading(true); // Set loading state
             const response = await axios.put(
@@ -182,7 +180,6 @@ const Taskboard_admin = () => {
                     },
                 }
             );
-
             if (response.status === 200) {
                 updateSuccess = true;
 
@@ -199,13 +196,11 @@ const Taskboard_admin = () => {
                         },
                     }
                 );
-
                 // Fetch updated taskboard data
-
-                setIsLoading(false); // Stop loading
-                setVideoDialogVisible(true); // Show video dialog
+                setIsLoading(false); 
+                setVideoDialogVisible(true); 
                 setTimeout(() => {
-                    setVideoDialogVisible(false); // Hide video dialog after 6 seconds
+                    setVideoDialogVisible(false);
                  fetchTasks();
                 }, 5000);
 
@@ -217,7 +212,6 @@ const Taskboard_admin = () => {
                 setTimeout(() => {
                     setVideocrossDialogVisible(false); // Hide video dialog after 6 seconds
                     fetchTasks();
-                  
                 }, 5000);
 
             }
@@ -340,7 +334,7 @@ const Taskboard_admin = () => {
                 }
             );
             if (response.status === 200) {
-                fetchTasks(); // Refresh tasks to reflect changes
+                fetchTasks();
                 setDeadlineDialogVisible(false);
                 resetDialogState();
             } else {
