@@ -117,11 +117,11 @@ const Dash_evntcal = () => {
             const meetingEvents = response.data.data.map(meeting => ({
                 id: `meeting-${meeting.meeting_id}`,
                 title: `${meeting.purpose}- Meeting`,
-                start: `${meeting.date}T${meeting.start_time}`, // Combine date and time
+                start: `${meeting.date}T${meeting.start_time}`,
                 end: `${meeting.date}T${meeting.end_time}`,
                 description: 'Meeting',
                 members: meeting.members,
-                backgroundColor: '#03b2cb', // Custom color for meetings
+                backgroundColor: '#03b2cb',
                 borderColor: '#03b2cb',
                 textColor: '#fff',
             }));
@@ -206,11 +206,11 @@ const Dash_evntcal = () => {
                         editable={false}
                         selectable={true}
                         events={events}
-                        dayHeaderFormat={{ weekday: 'short', day: '2-digit' }} // DD/MM/YY for header
+                        dayHeaderFormat={{ weekday: 'short', day: '2-digit' }} 
                         eventTimeFormat={{
                             hour: '2-digit',
                             minute: '2-digit',
-                            meridiem: false // 24-hour format
+                            meridiem: false
                         }}
                     />
                 </Card.Body>
@@ -225,8 +225,7 @@ const Dash_evntcal = () => {
                     <AddMeeting
                         setVisible={setVisible2}
                         onSuccess={() => {
-                            setVisible2(false);  // Close the dialog
-                            // Re-fetch meetings after adding new one
+                            setVisible2(false);
                             fetchMeetings();
                         }}
                     />

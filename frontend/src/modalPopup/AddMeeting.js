@@ -48,12 +48,13 @@ const AddMeeting = ({ onSuccess, fetchmeetings }) => {
             meeting_member_id: selectedMembers 
         };
 
+        console.log("meetingData", meetingData);
+
         try {
             // Send data to backend
             const response = await axios.post(`${config.apiBASEURL}/meetingRoutes/add-or-edit-meeting`, meetingData, {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
-
             if (response.data.success) {
                 // Call the onSuccess function passed via props after successful meeting creation/edit
                 onSuccess();

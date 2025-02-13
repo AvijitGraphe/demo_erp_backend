@@ -118,7 +118,7 @@ router.post('/add-or-edit-meeting', async (req, res) => {
 
 // Fetch meetings within a given date range
 router.get('/meetings', async (req, res) => {
-    const { start_date, end_date, user_id } = req.query;
+    const { start_date, end_date } = req.query;
     if (!start_date || !end_date) {
         return res.status(400).json({
             success: false,
@@ -128,19 +128,13 @@ router.get('/meetings', async (req, res) => {
     try {
         const start = new Date(start_date);
         const end = new Date(end_date);
-        let meetingsQuery = {
+        const meetingsQuery = {
             date: {
                 $gte: start,
                 $lte: end,  
             },
         };
-        if (user_id) {
-            const userObjectId = new mongoose.Types.ObjectId(user_id);
-            meetingsQuery = {
-                ...meetingsQuery,
-                meeting_member_id: userObjectId,
-            };
-        }    
+
         const meetings = await Meeting.find(meetingsQuery)
             .populate('meeting_member_id', 'first_name last_name email profileImage');
         if (!meetings.length) {
@@ -150,7 +144,7 @@ router.get('/meetings', async (req, res) => {
                 data: [],
             });
         }
-        // Extract all unique user IDs from meeting_member_id arrays
+
         const memberIds = [
             ...new Set(
                 meetings
@@ -158,14 +152,12 @@ router.get('/meetings', async (req, res) => {
                     .map(user => user._id.toString())  
             ),
         ];
-        // Fetch user details for the extracted member IDs
         const users = await User.find({
             _id: { $in: memberIds },
         }).populate('profileImage', 'image_url', null, { strictPopulate: false });
 
-        // Map users into a dictionary for easy access
         const userMap = users.reduce((acc, user) => {
-            acc[user._id.toString()] = {  // Convert _id to string to ensure matching
+            acc[user._id.toString()] = {
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
@@ -175,11 +167,12 @@ router.get('/meetings', async (req, res) => {
         }, {});
 
         const enrichedMeetings = meetings.map(meeting => ({
-            ...meeting.toObject(),  // Convert Mongoose document to plain object
-            meeting_id: meeting._id.toString(),  // Rename _id to meeting_id
+            ...meeting.toObject(),
+            meeting_id: meeting._id.toString(),
             date: meeting.date.toISOString().slice(0, 10), 
-            members: (meeting.meeting_member_id || []).map(member => userMap[member._id.toString()] || null),  // Use _id for proper matching
+            members: (meeting.meeting_member_id || []).map(member => userMap[member._id.toString()] || null),
         }));
+        console.log("log enrichedMeetings", enrichedMeetings)
         res.status(200).json({
             success: true,
             message: 'Meetings fetched successfully.',
@@ -194,6 +187,7 @@ router.get('/meetings', async (req, res) => {
         });
     }
 });
+
 
 
 

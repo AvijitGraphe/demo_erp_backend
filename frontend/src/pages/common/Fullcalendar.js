@@ -106,24 +106,27 @@ const Fullcalendar = () => {
 
 
     // Fetch meetings
-    const fetchMeetings = async (startDate, endDate) => {
+    const fetchMeetings = async (startDate, endDate, accessToken) => {
         try {
             const response = await axios.get(`${config.apiBASEURL}/meetingRoutes/meetings`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
-                params: { start_date: startDate, end_date: endDate, user_id: userId },
+                params: { start_date: startDate, end_date: endDate },
             });
-
-            return response.data.data.map(meeting => ({
-                id: `meeting-${meeting.meeting_id}`,
-                title: `${meeting.purpose}- Meeting`,
-                start: `${meeting.date}T${meeting.start_time}`, // Combine date and time
-                end: `${meeting.date}T${meeting.end_time}`,
-                description: 'Meeting',
-                members: meeting.members,
-                backgroundColor: '#337AB7', // Custom color for meetings
-                borderColor: '#337AB7',
-                textColor: '#fff',
-            }));
+            return response.data.data.map(meeting => {
+                const startTime = moment(`${meeting.date}T${meeting.start_time}`).format('hh:mm A');
+                const endTime = moment(`${meeting.date}T${meeting.end_time}`).format('hh:mm A');
+                return {
+                    id: `meeting-${meeting.meeting_id}`,
+                    title: `${meeting.purpose} - Meeting`,
+                    start: `${meeting.date}T${meeting.start_time}`,
+                    end: `${meeting.date}T${meeting.end_time}`,
+                    description: `Meeting from ${startTime} to ${endTime}`,
+                    members: meeting.members,
+                    backgroundColor: '#337AB7',
+                    borderColor: '#337AB7',
+                    textColor: '#fff',
+                };
+            });
         } catch (error) {
             console.error('Error fetching meetings:', error);
             return [];
