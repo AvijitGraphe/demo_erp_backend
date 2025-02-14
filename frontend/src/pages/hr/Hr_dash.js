@@ -77,6 +77,8 @@ const Hr_dash = () => {
                     headers: { Authorization: `Bearer ${accessToken}` },
 
                 });
+                console.log(response.data);
+                
                 setOvertimeData(response.data);
             } catch (error) {
                 console.error('Error fetching attendance status:', error);
@@ -155,11 +157,19 @@ const Hr_dash = () => {
 
 
     const formatTime = (time) => {
-        const [hours, minutes] = time.slice(0, 5).split(':').map(Number); // Get HH:mm and split
+        console.log("log the data time formatTime", time);
+      
+        // Extract time portion after the space (HH:mm:ss)
+        const timeString = time.split(' ')[1]; // '19:30:04'
+        const [hours, minutes] = timeString.slice(0, 5).split(':').map(Number); // Get HH:mm and split
+      
         const suffix = hours >= 12 ? 'PM' : 'AM'; // Determine AM/PM
-        const adjustedHours = hours % 12 || 12; // Convert 24-hour to 12-hour format
-        return `${adjustedHours}:${minutes.toString().padStart(2, '0')} ${suffix}`; // Format time with AM/PM
-    };
+        const adjustedHours = hours % 12 || 12;
+        return `${adjustedHours}:${minutes.toString().padStart(2, '0')} ${suffix}`;
+      };
+      
+
+      
 
     return (
         <>
@@ -494,8 +504,11 @@ const Hr_dash = () => {
                                                         className="rounded-circle me-2"
                                                         style={{ width: '35px', height: '35px', objectFit: 'cover' }}
                                                     />
-                                                        {`${overtime.requester.first_name} ${overtime.requester.last_name}`}</td>
-                                                    <td>{new Date(overtime.ovetime_date).toLocaleDateString('en-GB')}</td>
+                                                        {`${overtime.requester.first_name} ${overtime.requester.last_name}`}
+                                                    </td>
+                                                    <td>
+                                                        {new Date(overtime.overtime_date).toLocaleDateString('en-GB')}
+                                                    </td>
                                                     <td>{formatTime(overtime.start_time)}</td> {/* Format start_time */}
                                                     <td>{formatTime(overtime.end_time)}</td>   {/* Format end_time */}
                                                     <td>{(overtime.total_time / 60).toFixed(1)} hrs</td>
