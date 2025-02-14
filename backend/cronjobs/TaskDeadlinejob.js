@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const Tasks = require('../Models/Tasks');
 
 const TaskDeadlineJob = () => {
-  cron.schedule('*/2 * * * *', async () => {
+  cron.schedule('*/10 * * * *', async () => {
     try {
       const now = new Date();
       const currentDate = new Date(now.setHours(0, 0, 0, 0));
