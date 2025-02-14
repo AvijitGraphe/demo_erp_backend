@@ -21,9 +21,6 @@ const Approvedleave = ({ approvedLeaves }) => {
                     <tbody>
                         {Array.isArray(approvedLeaves) && approvedLeaves.length > 0 ? (
                             approvedLeaves.map((request) => {
-
-                                console.log("log the data ok", request);
-
                                 const { requestor, leaveType, dates } = request;
                                 const parsedDates = Array.isArray(dates)
                                     ? dates

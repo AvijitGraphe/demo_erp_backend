@@ -37,9 +37,6 @@ require('./stream/changeStreams');
 require('./stream/taskStreamChange');
 require('./stream/leaveStreamChange');
 
-console.log("hello database log")
-
-
 const app = express();
 const port = process.env.PORT || 3000;
 const publicRoot = path.resolve(__dirname, './dist');

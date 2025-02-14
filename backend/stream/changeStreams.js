@@ -21,7 +21,6 @@ changeStream.on('change', async (change) => {
                     message: `Hi ${user.first_name} ${user.last_name}, You have been added to the project "${newProject.project_name}" as a Project Member for the brand "${brandDetails.brand_name}".`
                 });
                 await notification.save();
-                console.log('Notification created successfully for user:', user.first_name);
             }
         }
     } catch (error) {
