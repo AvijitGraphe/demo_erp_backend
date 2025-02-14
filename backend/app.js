@@ -33,6 +33,11 @@ const EmployeeAssest = require('./Routes/EmployeeAssetRoutes');
 
 const TaskDeadlineJob = require('./cronjobs/TaskDeadlinejob');
 const LeaveBalanceAdjuster = require('./cronjobs/LeaveCronJob');
+require('./stream/changeStreams');
+require('./stream/taskStreamChange');
+require('./stream/leaveStreamChange');
+
+console.log("hello database log")
 
 
 const app = express();

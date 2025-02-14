@@ -282,7 +282,6 @@ router.get('/allovertime', authenticateToken, async (req, res) => {
 //           }
 //       });
 
-//       console.log("log the data ok ", )
 //       // Return the response with grouped records
 //       res.status(200).json({
 //           Pending: groupedRecords.Pending,

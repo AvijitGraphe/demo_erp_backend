@@ -33,6 +33,8 @@ const Notification = () => {
                     end: endDate.toISOString(),
                 },
             });
+            console.log("response", response);
+            
             setNotifications(response.data.notifications);
             setUnreadCount(response.data.unreadCount);
         } catch (error) {

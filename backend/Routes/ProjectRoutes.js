@@ -50,114 +50,6 @@ router.get('/fetch-all-users', authenticateToken, async (req, res) => {
 
 
 
-// router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
-//     try {
-//         const { user_id, start_date } = req.query;
-//         if (!start_date) {
-//             return res.status(400).json({ message: "start_date is required." });
-//         }
-//         const dayStart = new Date(start_date);
-//         dayStart.setHours(0, 0, 0, 0);
-//         const dayEnd = new Date(start_date);
-//         dayEnd.setHours(23, 59, 59, 999);
-//         const userCondition = {
-//             user_type: { $in: ['Department_Head', 'Employee', 'Social_Media_Manager', 'Task_manager'] }
-//         };
-
-//         if (user_id) {
-//             userCondition._id = new ObjectId(user_id);
-//         }
-
-//         const users = await User.aggregate([
-//             { $match: userCondition },
-//             { 
-//                 $lookup: {
-//                     from: 'usertasklimits',
-//                     localField: '_id',
-//                     foreignField: 'user_id',
-//                     as: 'taskLimit'
-//                 }
-//             },
-//             { 
-//                 $lookup: {
-//                     from: 'profileimages',
-//                     localField: '_id',
-//                     foreignField: 'user_id',
-//                     as: 'profileImage'
-//                 }
-//             },
-//             { 
-//                 $project: {
-//                     user_id: 1,
-//                     first_name: 1,
-//                     last_name: 1,
-//                     email: 1,
-//                     user_type: 1,
-//                     taskLimit: { $arrayElemAt: ['$taskLimit.max_tasks_per_day', 0] },
-//                     profileImage: { $arrayElemAt: ['$profileImage.image_url', 0] }
-//                 }
-//             }
-//         ]);
-//         // Fetch tasks for the specified date and group 
-//         const tasksToday = await Tasks.aggregate([
-//             { 
-//                 $match: {
-//                     status: { $in: ['Todo', 'InProgress', 'InChanges'] }, // Include Todo, InProgress, and InChanges
-//                     task_startdate: { $gte: dayStart, $lte: dayEnd }
-//                 }
-//             },
-//             { 
-//                 $group: {
-//                     _id: '$task_user_id', // Group by user
-//                     taskCount: { $sum: 1 } // Count the number of tasks
-//                 }
-//             }
-//         ]);
-
-//         // Map task counts by user_id for easy access
-//         const taskCountMap = {};
-//         tasksToday.forEach(task => {
-//             taskCountMap[task._id.toString()] = task.taskCount;
-//         });
-
-//         // Build the response by merging user data with task counts and limits
-//         const response = users.map(user => {
-
-
-//             const userId = user._id.toString();
-//             const taskLimit = user.taskLimit || 0;
-//             const taskCount = taskCountMap[userId] || 0;
-//             const remainingTasks = taskLimit - taskCount;
-
-//             return {
-//                 user_id: userId,
-//                 first_name: user.first_name,
-//                 last_name: user.last_name,
-//                 email: user.email,
-//                 user_type: user.user_type,
-//                 max_tasks_per_day: taskLimit,
-//                 tasks_today: taskCount,
-//                 remaining_tasks: remainingTasks > 0 ? remainingTasks : 0, // Ensure non-negative value
-//                 limit_exceeded: taskCount >= taskLimit,
-//                 profile_image: user.profileImage || null // Include profile image URL
-//             };
-//         });
-
-
-//         console.log("log the data response",response)
-//         res.status(200).json(response);
-//     } catch (error) {
-//         console.error('Error fetching all users with task details:', error);
-//         res.status(500).json({ message: 'Internal server error' });
-//     }
-// });
-
-
-
-
-
-
-// Add Project API
 
 router.get('/fetch-all-task-users', authenticateToken, async (req, res) => {
     try {
@@ -1338,7 +1230,6 @@ router.put('/update-task-deadline', authenticateToken, async (req, res) => {
 //fetchspecifictask
 router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => {
     const { taskId } = req.params;
-    // console.log("log the data taskId", taskId)
     try {
         const task = await Tasks.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(taskId) } },
@@ -1454,8 +1345,6 @@ router.get('/fetchspecifictask/:taskId', authenticateToken, async (req, res) => 
         if (!task || task.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
-
-        // console.log("log the data task", task);
         const taskData = task[0];
         taskData.subtasks = taskData.subtasks.map(subtask => {
             if (subtask.projectRole && subtask.project_role_id === subtask.projectRole._id.toString()) {
@@ -1500,7 +1389,6 @@ router.get('/fetchtaskforedit/:taskId', async (req, res) => {
 //Fetch the subtask Edit
 router.get('/fetchsubtaskforedit/:subtask_id', async(req, res) =>{
     const { subtask_id } = req.params;
-    // console.log("log the fetchsubtaskforedit", subtask_id)
     try {
         const subtask = await Subtask.findById(subtask_id);
         if (!subtask || subtask.length === 0) {
@@ -1811,8 +1699,6 @@ router.get('/task-logs/:task_id', authenticateToken, async (req, res) => {
                 }
             }
         ]);
-
-        // console.log("log the data tasklogs", taskLogs)
         res.status(200).json({
             message: 'Task logs retrieved successfully.',
             task_id,
@@ -2132,8 +2018,6 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
                 },
             },
         ]);
-        
-        console.log("tasks", tasks)
         // Categorize tasks
         const categorizedTasks = {
             today_tasks: tasks.filter(
@@ -2157,8 +2041,6 @@ router.get('/tasks/categorized/:user_id', authenticateToken, async (req, res) =>
                     moment(task.task_startdate).isBetween(startOfWeek, endOfWeek, null, '[]')
             ),
         };
-
-        // console.log("categorizedTasks", categorizedTasks)
         res.status(200).json({ success: true, data: categorizedTasks });
     } catch (error) {
         res.status(500).json({ success: false, message: 'An error occurred while fetching tasks.' });

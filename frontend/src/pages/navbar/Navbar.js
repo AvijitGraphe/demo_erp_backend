@@ -166,12 +166,10 @@ const Navbar = () => {
         if (userId && accessToken) {
             // Fetch immediately on mount
             fetchUnreadStatus();
-
             // Set up polling every 30 seconds
             const intervalId = setInterval(() => {
                 fetchUnreadStatus();
-            }, 30000);
-
+            }, 2000);
             // Cleanup on component unmount
             return () => {
                 clearInterval(intervalId);
@@ -249,7 +247,7 @@ const Navbar = () => {
         }
 
         // Poll notifications every 10 seconds
-        const interval = setInterval(fetchNotifications, 10000);
+        const interval = setInterval(fetchNotifications, 1000);
 
         return () => clearInterval(interval); // Cleanup on unmount
     }, []);

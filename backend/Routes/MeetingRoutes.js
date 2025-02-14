@@ -172,7 +172,6 @@ router.get('/meetings', async (req, res) => {
             date: meeting.date.toISOString().slice(0, 10), 
             members: (meeting.meeting_member_id || []).map(member => userMap[member._id.toString()] || null),
         }));
-        // console.log("log enrichedMeetings", enrichedMeetings)
         res.status(200).json({
             success: true,
             message: 'Meetings fetched successfully.',

@@ -198,7 +198,7 @@ const AddProjects = () => {
                                                         value={projectData.brand_id}
                                                         options={brands.map((brand) => ({
                                                             label: brand.brand_name,
-                                                            value: brand._id,
+                                                            value: brand.brand_id,
                                                         }))}
                                                         onChange={handleChange}
                                                         placeholder="Select a brand"
