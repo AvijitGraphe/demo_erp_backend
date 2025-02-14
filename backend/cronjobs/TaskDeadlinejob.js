@@ -14,7 +14,6 @@ const TaskDeadlineJob = () => {
         },
         { $set: { missed_deadline: true } }
       );
-      console.log("Updated tasks:", updatedTasks);
     } catch (error) {
       console.error('Error checking task deadlines:', error);
     }
