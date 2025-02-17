@@ -169,7 +169,7 @@ const Navbar = () => {
             // Set up polling every 30 seconds
             const intervalId = setInterval(() => {
                 fetchUnreadStatus();
-            }, 20000);
+            }, 30000);
             // Cleanup on component unmount
             return () => {
                 clearInterval(intervalId);
