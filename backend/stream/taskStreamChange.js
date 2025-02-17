@@ -31,7 +31,6 @@ taskStreamChange.on('change', async (change) => {
                     message: `Hi ${user.first_name} ${user.last_name}, A task "${newTask.task_name}" has been assigned to you with a deadline of "${formattedDeadline}".`
                 });
                 await notification.save();
-                console.log("notification", notification);
             } else {
                 console.log(`Notification for task "${newTask.task_name}" already exists for user "${user.first_name} ${user.last_name}"`);
             }
