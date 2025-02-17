@@ -1,6 +1,6 @@
 // src/config.js
 const config = {
-  apiBASEURL: 'http://localhost:5000', 
+  apiBASEURL: 'https://demo-erp-backend.onrender.com', 
 };
 
 export default config;
