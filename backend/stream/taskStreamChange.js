@@ -12,14 +12,29 @@ taskStreamChange.on('change', async (change) => {
     try {
         const user = await User.findById(newTask.task_user_id);
         if (user) {
-            const deadline = new Date(newTask.task_deadline);
-            const formattedDeadline = deadline.toISOString().split('T')[0];
-            const notification = new Notification({
+            // Check if a notification already exists for this task and user
+            const existingNotification = await Notification.findOne({
                 user_id: user._id,
-                notification_type: 'Task Assignment',
-                message: `Hi ${user.first_name} ${user.last_name}, A task "${newTask.task_name}" has been assigned to you with a deadline of "${formattedDeadline}".`
+                task_id: newTask._id
             });
-            await notification.save();
+
+            // If no existing notification, create a new one
+            if (!existingNotification) {
+
+
+                const deadline = new Date(newTask.task_deadline);
+                const formattedDeadline = deadline.toISOString().split('T')[0];
+                const notification = new Notification({
+                    user_id: user._id,
+                    task_id: newTask._id,  // Store task ID for reference
+                    notification_type: 'Task Assignment',
+                    message: `Hi ${user.first_name} ${user.last_name}, A task "${newTask.task_name}" has been assigned to you with a deadline of "${formattedDeadline}".`
+                });
+                await notification.save();
+                console.log("notification", notification);
+            } else {
+                console.log(`Notification for task "${newTask.task_name}" already exists for user "${user.first_name} ${user.last_name}"`);
+            }
         }
     } catch (error) {
         console.error('Error creating notification:', error);
