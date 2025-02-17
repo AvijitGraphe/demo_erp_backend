@@ -39,7 +39,7 @@ require('./stream/leaveStreamChange');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const publicRoot = path.resolve(__dirname, './dist');
+const publicRoot = path.resolve(__dirname, './build');
 
 // Middleware setup
 app.use(cors({

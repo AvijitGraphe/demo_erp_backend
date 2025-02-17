@@ -76,9 +76,7 @@ const Hr_dash = () => {
                 const response = await axios.get(`${config.apiBASEURL}/overtimeRoutes/dashboardovertime`, {
                     headers: { Authorization: `Bearer ${accessToken}` },
 
-                });
-                console.log(response.data);
-                
+                });                
                 setOvertimeData(response.data);
             } catch (error) {
                 console.error('Error fetching attendance status:', error);

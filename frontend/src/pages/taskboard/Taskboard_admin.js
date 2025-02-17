@@ -116,7 +116,6 @@ const Taskboard_admin = () => {
                     Authorization: `Bearer ${accessToken}`,
                 },
             });
-            console.log("log the brnad_id", response);
             setBrands(response.data || []);
         } catch (error) {
             console.error("Error fetching brands:", error);
