@@ -9,6 +9,8 @@ const moment = require('moment');
 router.get('/notifications/:userId', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     const { start, end } = req.query;
+console.log(userId, start, end )
+
     try {
         const todayStart = moment().startOf('day').toDate();
         const todayEnd = moment().endOf('day').toDate();
