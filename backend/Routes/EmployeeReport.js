@@ -306,7 +306,8 @@ router.get('/fetch-task-stats/:user_id', authenticateToken, async (req, res) => 
                     "project.project_name": 1,
                     "project.brand.brand_name": 1,
                     task_name: 1,
-                    missed_deadline: 1
+                    task_deadline: 1,
+                    task_id: "$_id"
                 }
             }
         ]);
